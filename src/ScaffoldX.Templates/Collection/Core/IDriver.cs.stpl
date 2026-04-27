@@ -1,0 +1,57 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace {{ NamespacePrefix }}.Collection.Core
+{
+    /// <summary>
+    /// 数据采集驱动接口，所有协议驱动必须实现此接口。
+    /// </summary>
+    public interface IDriver
+    {
+        /// <summary>驱动唯一标识符。</summary>
+        string DriverId { get; }
+
+        /// <summary>协议名称，用于 UI 显示。</summary>
+        string ProtocolName { get; }
+
+        /// <summary>当前连接状态。</summary>
+        bool IsConnected { get; }
+
+        /// <summary>
+        /// 异步建立连接。
+        /// </summary>
+        /// <param name="parameters">连接参数。</param>
+        /// <returns>连接成功返回 <c>true</c>，否则 <c>false</c>。</returns>
+        Task<bool> ConnectAsync(ConnectionParams parameters);
+
+        /// <summary>
+        /// 异步断开连接并释放资源。
+        /// </summary>
+        Task DisconnectAsync();
+
+        /// <summary>
+        /// 异步读取单个标签值。
+        /// </summary>
+        /// <param name="tag">要读取的标签定义。</param>
+        /// <returns>包含值和质量的 <see cref="DataValue"/>。</returns>
+        Task<DataValue> ReadAsync(Tag tag);
+
+        /// <summary>
+        /// 异步批量读取多个标签值。
+        /// </summary>
+        /// <param name="tags">标签列表。</param>
+        /// <returns>标签地址到 <see cref="DataValue"/> 的映射字典。</returns>
+        Task<Dictionary<string, DataValue>> ReadBatchAsync(IEnumerable<Tag> tags);
+
+        /// <summary>
+        /// 异步写入单个标签值。
+        /// </summary>
+        /// <param name="tag">目标标签定义。</param>
+        /// <param name="value">要写入的值。</param>
+        /// <returns>写入成功返回 <c>true</c>，否则 <c>false</c>。</returns>
+        Task<bool> WriteAsync(Tag tag, object value);
+    }
+}

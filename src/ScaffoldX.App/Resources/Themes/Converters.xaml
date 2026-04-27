@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:ScaffoldX.App.Converters">
+
+    <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+    <converters:InverseStringToVisibilityConverter x:Key="InverseStringToVisibilityConverter"/>
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisConverter"/>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+</ResourceDictionary>

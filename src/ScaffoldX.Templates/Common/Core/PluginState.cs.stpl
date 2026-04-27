@@ -1,0 +1,103 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+
+namespace {{ NamespacePrefix }}.Core.Abstractions
+{
+    /// <summary>
+    /// 插件生命周期状态枚举。
+    /// </summary>
+    public enum PluginState
+    {
+        /// <summary>插件已创建，尚未初始化。</summary>
+        Created = 0,
+
+        /// <summary>插件正在初始化。</summary>
+        Initializing = 1,
+
+        /// <summary>插件已初始化并正常运行。</summary>
+        Running = 2,
+
+        /// <summary>插件正在停止。</summary>
+        Stopping = 3,
+
+        /// <summary>插件已停止。</summary>
+        Stopped = 4,
+
+        /// <summary>插件发生错误，处于故障状态。</summary>
+        Faulted = 5
+    }
+
+    /// <summary>
+    /// 插件状态机，负责管理合法的状态转换。
+    /// </summary>
+    public sealed class PluginStateMachine
+    {
+        private PluginState _current = PluginState.Created;
+        private readonly object _lock = new object();
+
+        /// <summary>当前状态。</summary>
+        public PluginState Current
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _current;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 执行状态转换。若转换非法则抛出 <see cref="InvalidOperationException"/>。
+        /// </summary>
+        /// <param name="target">目标状态。</param>
+        /// <exception cref="InvalidOperationException">当前状态不允许转换到目标状态。</exception>
+        public void Transition(PluginState target)
+        {
+            lock (_lock)
+            {
+                if (!IsValidTransition(_current, target))
+                {
+                    throw new InvalidOperationException(
+                        $"插件状态机：不允许从 {_current} 转换到 {target}");
+                }
+                _current = target;
+            }
+        }
+
+        /// <summary>
+        /// 判断从 <paramref name="from"/> 到 <paramref name="to"/> 的转换是否合法。
+        /// </summary>
+        /// <param name="from">源状态。</param>
+        /// <param name="to">目标状态。</param>
+        /// <returns>合法返回 <c>true</c>，否则 <c>false</c>。</returns>
+        private static bool IsValidTransition(PluginState from, PluginState to)
+        {
+            return (from, to) switch
+            {
+                (PluginState.Created, PluginState.Initializing) => true,
+                (PluginState.Initializing, PluginState.Running) => true,
+                (PluginState.Initializing, PluginState.Faulted) => true,
+                (PluginState.Running, PluginState.Stopping) => true,
+                (PluginState.Running, PluginState.Faulted) => true,
+                (PluginState.Stopping, PluginState.Stopped) => true,
+                (PluginState.Stopping, PluginState.Faulted) => true,
+                _ => false
+            };
+        }
+    }
+
+    /// <summary>
+    /// 插件接口版本常量，用于宿主与插件之间的兼容性协商。
+    /// </summary>
+    public static class PluginInterfaceVersions
+    {
+        /// <summary>当前宿主支持的接口版本。</summary>
+        public const int Current = 1;
+
+        /// <summary>宿主支持的最低插件接口版本。</summary>
+        public const int Minimum = 1;
+    }
+}

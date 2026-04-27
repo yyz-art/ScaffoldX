@@ -1,0 +1,81 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+
+namespace {{ NamespacePrefix }}.Collection.Core
+{
+    /// <summary>
+    /// 标签数据值，封装采集到的值、质量戳和时间戳。
+    /// </summary>
+    public sealed class DataValue
+    {
+        /// <summary>采集到的原始值。</summary>
+        public object Value { get; init; }
+
+        /// <summary>数据质量。</summary>
+        public TagQuality Quality { get; init; }
+
+        /// <summary>采集时间戳（UTC）。</summary>
+        public DateTime Timestamp { get; init; }
+
+        /// <summary>
+        /// 创建一个质量良好的数据值。
+        /// </summary>
+        /// <param name="value">采集值。</param>
+        /// <returns>质量为 <see cref="TagQuality.Good"/> 的 <see cref="DataValue"/>。</returns>
+        public static DataValue Good(object value)
+        {
+            return new DataValue
+            {
+                Value = value,
+                Quality = TagQuality.Good,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>
+        /// 创建一个质量不良的数据值。
+        /// </summary>
+        /// <param name="reason">不良原因描述（可选）。</param>
+        /// <returns>质量为 <see cref="TagQuality.Bad"/> 的 <see cref="DataValue"/>。</returns>
+        public static DataValue Bad(string reason = null)
+        {
+            return new DataValue
+            {
+                Value = null,
+                Quality = TagQuality.Bad,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>
+        /// 判断数据值是否有效可用。
+        /// </summary>
+        public bool IsGood => Quality == TagQuality.Good;
+    }
+
+    /// <summary>
+    /// 标签数据质量枚举，参考 OPC UA 质量码设计。
+    /// </summary>
+    public enum TagQuality
+    {
+        /// <summary>数据质量良好，值可信。</summary>
+        Good = 0,
+
+        /// <summary>数据质量不确定，值可能不准确。</summary>
+        Uncertain = 1,
+
+        /// <summary>数据质量不良，值不可用。</summary>
+        Bad = 2,
+
+        /// <summary>设备未连接，无法采集。</summary>
+        NotConnected = 3,
+
+        /// <summary>地址配置错误，无法解析。</summary>
+        ConfigError = 4,
+
+        /// <summary>通信超时。</summary>
+        Timeout = 5
+    }
+}

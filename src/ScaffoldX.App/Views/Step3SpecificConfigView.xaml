@@ -1,0 +1,207 @@
+<UserControl x:Class="ScaffoldX.App.Views.Step3SpecificConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:vm="clr-namespace:ScaffoldX.App.ViewModels"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             mc:Ignorable="d"
+             Background="{StaticResource SurfaceBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="48,36">
+
+            <!-- 步骤标题 -->
+            <TextBlock Text="专项配置" Style="{StaticResource StepTitleStyle}"/>
+            <TextBlock Text="根据所选项目类型配置专属参数，这些参数将影响生成的驱动、服务和模块代码。"
+                       Style="{StaticResource StepSubtitleStyle}"/>
+
+            <!-- ══ 采集类配置面板 ══ -->
+            <materialDesign:Card Visibility="{Binding IsCollection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  UniformCornerRadius="4"
+                                  materialDesign:ElevationAssist.Elevation="Dp2"
+                                  Padding="28,24"
+                                  Background="White">
+                <StackPanel>
+                    <TextBlock Text="驱动协议选择"
+                               FontSize="14" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,12"/>
+
+                    <!-- 驱动 CheckBox 列表 -->
+                    <ItemsControl ItemsSource="{Binding DriverOptions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:DriverOption}">
+                                <CheckBox Content="{Binding DisplayName}"
+                                          IsChecked="{Binding IsSelected}"
+                                          Margin="0,4"
+                                          Style="{StaticResource MaterialDesignCheckBox}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Separator Margin="0,16"/>
+
+                    <!-- S7 机架槽号（仅选中 S7Net 时显示） -->
+                    <StackPanel Visibility="{Binding IsS7Selected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Margin="0,0,0,16">
+                        <TextBlock Text="西门子 S7 配置"
+                                   FontSize="13" FontWeight="Medium"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Margin="0,0,0,10"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="机架号 (Rack)"
+                                     materialDesign:HintAssist.IsFloating="True"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Text="{Binding S7Rack, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBox Grid.Column="2"
+                                     materialDesign:HintAssist.Hint="槽号 (Slot)"
+                                     materialDesign:HintAssist.IsFloating="True"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Text="{Binding S7Slot, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- 通用 PLC 连接参数 -->
+                    <TextBlock Text="默认连接参数"
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 materialDesign:HintAssist.Hint="默认 PLC IP"
+                                 materialDesign:HintAssist.IsFloating="True"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding DefaultPLCIp, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Grid.Column="2"
+                                 materialDesign:HintAssist.Hint="端口"
+                                 materialDesign:HintAssist.IsFloating="True"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding DefaultPLCPort, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+
+                    <Separator Margin="0,16"/>
+
+                    <CheckBox Content="生成仿真驱动（SimulationDriver）"
+                              IsChecked="{Binding EnableSimulationDriver}"
+                              Style="{StaticResource MaterialDesignCheckBox}"/>
+                    <TextBlock Text="仿真驱动可在无真实 PLC 时模拟数据，便于开发调试"
+                               Style="{StaticResource FieldLabelStyle}"
+                               Margin="28,2,0,0"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- ══ 视觉类配置面板 ══ -->
+            <materialDesign:Card Visibility="{Binding IsVision, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  UniformCornerRadius="4"
+                                  materialDesign:ElevationAssist.Elevation="Dp2"
+                                  Padding="28,24"
+                                  Background="White">
+                <StackPanel>
+                    <TextBlock Text="相机与推理配置"
+                               FontSize="14" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,16"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox Grid.Column="0"
+                                  materialDesign:HintAssist.Hint="相机品牌"
+                                  materialDesign:HintAssist.IsFloating="True"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding CameraBrands}"
+                                  SelectedValue="{Binding CameraBrand}"/>
+
+                        <ComboBox Grid.Column="2"
+                                  materialDesign:HintAssist.Hint="模型类型"
+                                  materialDesign:HintAssist.IsFloating="True"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding ModelTypes}"
+                                  SelectedValue="{Binding ModelType}"/>
+                    </Grid>
+
+                    <TextBox Margin="0,16,0,0"
+                             materialDesign:HintAssist.Hint="推理模型路径（.onnx / .engine，可留空）"
+                             materialDesign:HintAssist.IsFloating="True"
+                             materialDesign:TextFieldAssist.HasClearButton="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Text="{Binding ModelPath, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Separator Margin="0,16"/>
+
+                    <CheckBox Content="启用图像处理 Pipeline"
+                              IsChecked="{Binding EnablePipeline}"
+                              Style="{StaticResource MaterialDesignCheckBox}"/>
+                    <TextBlock Text="Pipeline 提供图像预处理、推理、后处理的标准化流水线框架"
+                               Style="{StaticResource FieldLabelStyle}"
+                               Margin="28,2,0,0"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- ══ 系统类配置面板 ══ -->
+            <materialDesign:Card Visibility="{Binding IsSystem, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  UniformCornerRadius="4"
+                                  materialDesign:ElevationAssist.Elevation="Dp2"
+                                  Padding="28,24"
+                                  Background="White">
+                <StackPanel>
+                    <TextBlock Text="功能模块选择"
+                               FontSize="14" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,12"/>
+
+                    <ItemsControl ItemsSource="{Binding ModuleOptions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ModuleOption}">
+                                <CheckBox Content="{Binding DisplayName}"
+                                          IsChecked="{Binding IsSelected}"
+                                          Margin="0,4"
+                                          Style="{StaticResource MaterialDesignCheckBox}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Separator Margin="0,16"/>
+
+                    <TextBlock Text="登录与安全"
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+
+                    <CheckBox Content="生成独立登录窗口"
+                              IsChecked="{Binding EnableLoginWindow}"
+                              Style="{StaticResource MaterialDesignCheckBox}"
+                              Margin="0,0,0,8"/>
+
+                    <CheckBox Content="强制首次登录修改密码"
+                              IsChecked="{Binding ForcePasswordChange}"
+                              Style="{StaticResource MaterialDesignCheckBox}"
+                              IsEnabled="{Binding EnableLoginWindow}"/>
+                    <TextBlock Text="需先启用独立登录窗口"
+                               Style="{StaticResource FieldLabelStyle}"
+                               Margin="28,2,0,0"
+                                   Visibility="{Binding EnableLoginWindow, Converter={StaticResource InverseBoolToVisConverter}}"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

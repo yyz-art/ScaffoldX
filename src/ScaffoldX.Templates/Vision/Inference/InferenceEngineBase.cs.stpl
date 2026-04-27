@@ -1,0 +1,131 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Vision.Core;
+
+namespace {{ NamespacePrefix }}.Vision.Inference
+{
+    /// <summary>
+    /// 推理引擎抽象基类，定义模型加载、推理和结果解析的模板方法。
+    /// 子类实现具体的推理后端（ONNX Runtime、OpenVINO、TensorRT 等）。
+    /// </summary>
+    public abstract class InferenceEngineBase
+    {
+        private bool _isLoaded;
+
+        /// <summary>推理引擎名称，如 "OnnxRuntime"、"OpenVINO"。</summary>
+        public abstract string EngineName { get; }
+
+        /// <summary>当前模型是否已加载。</summary>
+        public bool IsLoaded => _isLoaded;
+
+        /// <summary>已加载的模型文件路径。</summary>
+        protected string ModelPath { get; private set; }
+
+        /// <summary>
+        /// 异步加载推理模型。
+        /// </summary>
+        /// <param name="modelPath">模型文件路径（.onnx / .xml 等）。</param>
+        /// <param name="options">引擎特定的加载选项字典。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="modelPath"/> 为 null 或空。</exception>
+        public async Task LoadModelAsync(string modelPath, Dictionary<string, string> options = null)
+        {
+            if (string.IsNullOrWhiteSpace(modelPath))
+            {
+                throw new ArgumentNullException(nameof(modelPath));
+            }
+
+            ModelPath = modelPath;
+            await OnLoadModelAsync(modelPath, options ?? new Dictionary<string, string>());
+            _isLoaded = true;
+        }
+
+        /// <summary>
+        /// 异步执行推理，返回原始推理结果。
+        /// </summary>
+        /// <param name="frame">输入图像帧。</param>
+        /// <returns>推理结果列表。</returns>
+        /// <exception cref="InvalidOperationException">模型未加载时抛出。</exception>
+        public async Task<IReadOnlyList<InferenceResult>> InferAsync(FrameCapturedEventArgs frame)
+        {
+            if (!_isLoaded)
+            {
+                throw new InvalidOperationException("推理引擎：模型尚未加载，请先调用 LoadModelAsync");
+            }
+
+            if (frame == null)
+            {
+                throw new ArgumentNullException(nameof(frame));
+            }
+
+            return await OnInferAsync(frame);
+        }
+
+        /// <summary>
+        /// 释放推理引擎占用的资源。
+        /// </summary>
+        public virtual void Dispose()
+        {
+            _isLoaded = false;
+        }
+
+        /// <summary>
+        /// 子类实现具体的模型加载逻辑。
+        /// </summary>
+        /// <param name="modelPath">模型文件路径。</param>
+        /// <param name="options">加载选项。</param>
+        protected abstract Task OnLoadModelAsync(string modelPath, Dictionary<string, string> options);
+
+        /// <summary>
+        /// 子类实现具体的推理逻辑。
+        /// </summary>
+        /// <param name="frame">输入图像帧。</param>
+        /// <returns>推理结果列表。</returns>
+        protected abstract Task<IReadOnlyList<InferenceResult>> OnInferAsync(FrameCapturedEventArgs frame);
+    }
+
+    /// <summary>
+    /// 单个推理结果，表示检测到的目标或分类结果。
+    /// </summary>
+    public sealed class InferenceResult
+    {
+        /// <summary>类别标签名称。</summary>
+        public string Label { get; init; }
+
+        /// <summary>置信度分数，范围 [0, 1]。</summary>
+        public float Confidence { get; init; }
+
+        /// <summary>检测框（像素坐标），分类任务可为 null。</summary>
+        public BoundingBox BoundingBox { get; init; }
+
+        /// <summary>附加属性字典，用于传递引擎特定的额外信息。</summary>
+        public Dictionary<string, object> Extras { get; init; } = new();
+    }
+
+    /// <summary>
+    /// 目标检测边界框（像素坐标系）。
+    /// </summary>
+    public sealed class BoundingBox
+    {
+        /// <summary>左上角 X 坐标。</summary>
+        public float X { get; init; }
+
+        /// <summary>左上角 Y 坐标。</summary>
+        public float Y { get; init; }
+
+        /// <summary>宽度。</summary>
+        public float Width { get; init; }
+
+        /// <summary>高度。</summary>
+        public float Height { get; init; }
+
+        /// <summary>右下角 X 坐标。</summary>
+        public float Right => X + Width;
+
+        /// <summary>右下角 Y 坐标。</summary>
+        public float Bottom => Y + Height;
+    }
+}

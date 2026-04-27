@@ -1,0 +1,96 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Collection.Core;
+
+namespace {{ NamespacePrefix }}.Collection.Drivers.Simulation
+{
+    /// <summary>
+    /// 模拟数据采集驱动，用于开发和测试阶段，无需真实硬件。
+    /// 对布尔标签生成随机开关量，对数值标签生成正弦波叠加随机噪声。
+    /// </summary>
+    public sealed class SimDriver : IDriver
+    {
+        private readonly Random _random = new();
+        private bool _isConnected;
+        private double _phase;
+
+        /// <inheritdoc/>
+        public string DriverId => "Simulation";
+
+        /// <inheritdoc/>
+        public string ProtocolName => "Simulation";
+
+        /// <inheritdoc/>
+        public bool IsConnected => _isConnected;
+
+        /// <inheritdoc/>
+        public Task<bool> ConnectAsync(ConnectionParams parameters)
+        {
+            _isConnected = true;
+            return Task.FromResult(true);
+        }
+
+        /// <inheritdoc/>
+        public Task DisconnectAsync()
+        {
+            _isConnected = false;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<DataValue> ReadAsync(Tag tag)
+        {
+            if (!_isConnected)
+            {
+                return Task.FromResult(DataValue.Bad("驱动未连接"));
+            }
+
+            var value = GenerateValue(tag);
+            return Task.FromResult(DataValue.Good(value));
+        }
+
+        /// <inheritdoc/>
+        public async Task<Dictionary<string, DataValue>> ReadBatchAsync(IEnumerable<Tag> tags)
+        {
+            var result = new Dictionary<string, DataValue>();
+            foreach (var tag in tags)
+            {
+                result[tag.Address] = await ReadAsync(tag);
+            }
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> WriteAsync(Tag tag, object value)
+        {
+            // 模拟驱动接受所有写入操作但不实际存储
+            return Task.FromResult(_isConnected);
+        }
+
+        /// <summary>
+        /// 根据标签数据类型生成模拟值。
+        /// 数值类型使用正弦波 + 随机噪声；布尔类型随机翻转。
+        /// </summary>
+        /// <param name="tag">标签定义。</param>
+        /// <returns>模拟生成的值对象。</returns>
+        private object GenerateValue(Tag tag)
+        {
+            _phase += 0.05;
+
+            return tag.DataType switch
+            {
+                TagDataType.Bool => _random.NextDouble() > 0.5,
+                TagDataType.Int16 => (short)(Math.Sin(_phase) * 1000 + _random.Next(-50, 50)),
+                TagDataType.Int32 => (int)(Math.Sin(_phase) * 100000 + _random.Next(-500, 500)),
+                TagDataType.Float32 => (float)(Math.Sin(_phase) * 100.0 + _random.NextDouble() * 5),
+                TagDataType.Float64 => Math.Sin(_phase) * 100.0 + _random.NextDouble() * 5,
+                TagDataType.String => $"SIM_{DateTime.UtcNow:HHmmss}",
+                _ => 0
+            };
+        }
+    }
+}

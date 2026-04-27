@@ -1,0 +1,107 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Threading.Tasks;
+using Prism.Events;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.Core.Abstractions
+{
+    /// <summary>
+    /// 插件抽象基类，提供状态机管理和生命周期模板方法。
+    /// 所有插件应继承此类而非直接实现 <see cref="IPlugin"/>。
+    /// </summary>
+    public abstract class PluginBase : IPlugin
+    {
+        private readonly PluginStateMachine _stateMachine;
+
+        /// <inheritdoc/>
+        public abstract string Id { get; }
+
+        /// <inheritdoc/>
+        public abstract string Name { get; }
+
+        /// <inheritdoc/>
+        public abstract string Version { get; }
+
+        /// <inheritdoc/>
+        public virtual int InterfaceVersion => PluginInterfaceVersions.Current;
+
+        /// <inheritdoc/>
+        public PluginState State => _stateMachine.Current;
+
+        /// <summary>事件聚合器，初始化后可用。</summary>
+        protected IEventAggregator EventAggregator { get; private set; }
+
+        /// <summary>配置服务，初始化后可用。</summary>
+        protected IConfigService ConfigService { get; private set; }
+
+        /// <summary>日志记录器，初始化后可用。</summary>
+        protected ILogger Logger { get; private set; }
+
+        /// <summary>
+        /// 初始化 <see cref="PluginBase"/> 实例，状态设为 <see cref="PluginState.Created"/>。
+        /// </summary>
+        protected PluginBase()
+        {
+            _stateMachine = new PluginStateMachine();
+        }
+
+        /// <inheritdoc/>
+        public async Task InitializeAsync(IEventAggregator eventAggregator, IConfigService configService, ILogger logger)
+        {
+            _stateMachine.Transition(PluginState.Initializing);
+            try
+            {
+                EventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
+                ConfigService = configService ?? throw new ArgumentNullException(nameof(configService));
+                Logger = logger?.ForContext(GetType()) ?? throw new ArgumentNullException(nameof(logger));
+
+                await OnInitializeAsync();
+
+                _stateMachine.Transition(PluginState.Running);
+                Logger.Information("插件 [{PluginId}] 初始化完成", Id);
+            }
+            catch (Exception ex)
+            {
+                _stateMachine.Transition(PluginState.Faulted);
+                Logger?.Error(ex, "插件 [{PluginId}] 初始化失败", Id);
+                throw;
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task ShutdownAsync()
+        {
+            if (State == PluginState.Stopped || State == PluginState.Created)
+            {
+                return;
+            }
+
+            _stateMachine.Transition(PluginState.Stopping);
+            try
+            {
+                await OnShutdownAsync();
+                _stateMachine.Transition(PluginState.Stopped);
+                Logger?.Information("插件 [{PluginId}] 已停止", Id);
+            }
+            catch (Exception ex)
+            {
+                _stateMachine.Transition(PluginState.Faulted);
+                Logger?.Error(ex, "插件 [{PluginId}] 停止时发生错误", Id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 子类实现具体初始化逻辑。在基类完成依赖注入后调用。
+        /// </summary>
+        protected abstract Task OnInitializeAsync();
+
+        /// <summary>
+        /// 子类实现具体关闭逻辑。释放托管和非托管资源。
+        /// </summary>
+        protected abstract Task OnShutdownAsync();
+    }
+}

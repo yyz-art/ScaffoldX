@@ -1,0 +1,181 @@
+<UserControl x:Class="ScaffoldX.App.Views.ProjectHistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             mc:Ignorable="d"
+             Background="{StaticResource SurfaceBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 历史记录 DataGrid -->
+        <materialDesign:Card Grid.Row="0" Margin="24,24,24,12"
+                              UniformCornerRadius="4"
+                              materialDesign:ElevationAssist.Elevation="Dp2">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 表头区域 -->
+                <Border Grid.Row="0" Padding="16,14"
+                        BorderBrush="{StaticResource DividerBrush}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="History"
+                                                  Width="20" Height="20"
+                                                  Foreground="{StaticResource PrimaryBrush}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,8,0"/>
+                        <TextBlock Text="历史项目"
+                                   FontSize="15"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- DataGrid -->
+                <DataGrid Grid.Row="1"
+                           ItemsSource="{Binding HistoryItems}"
+                           SelectedItem="{Binding SelectedItem}"
+                           AutoGenerateColumns="False"
+                           CanUserAddRows="False"
+                           CanUserDeleteRows="False"
+                           IsReadOnly="True"
+                           SelectionMode="Single"
+                           GridLinesVisibility="Horizontal"
+                           HorizontalGridLinesBrush="{StaticResource DividerBrush}"
+                           HeadersVisibility="Column"
+                           materialDesign:DataGridAssist.ColumnHeaderPadding="8,10"
+                           materialDesign:DataGridAssist.CellPadding="8,8"
+                           BorderThickness="0">
+
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="打开所在文件夹"
+                                      Command="{Binding OpenFolderCommand}">
+                                <MenuItem.Icon>
+                                    <materialDesign:PackIcon Kind="FolderOpen"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Header="从历史中删除"
+                                      Command="{Binding DeleteHistoryCommand}"
+                                      Foreground="{StaticResource ErrorBrush}">
+                                <MenuItem.Icon>
+                                    <materialDesign:PackIcon Kind="Delete" Foreground="{StaticResource ErrorBrush}"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="项目名称"
+                                            Binding="{Binding ProjectName}"
+                                            Width="200"/>
+                        <DataGridTextColumn Header="项目类型"
+                                            Binding="{Binding ProjectType}"
+                                            Width="100"/>
+                        <DataGridTextColumn Header="存储路径"
+                                            Binding="{Binding OutputPath}"
+                                            Width="*"/>
+                        <DataGridTextColumn Header="目标框架"
+                                            Binding="{Binding TargetFramework}"
+                                            Width="100"/>
+                        <DataGridTextColumn Header="生成时间"
+                                            Binding="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                                            Width="150"/>
+                    </DataGrid.Columns>
+
+                    <!-- 空状态提示 -->
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HistoryItems.Count}" Value="0">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="DataGrid">
+                                                <StackPanel HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,60">
+                                                    <materialDesign:PackIcon Kind="FolderOpenOutline"
+                                                                              Width="48" Height="48"
+                                                                              Foreground="{StaticResource DividerBrush}"
+                                                                              HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="暂无历史记录"
+                                                               FontSize="14"
+                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0,12,0,0"/>
+                                                    <TextBlock Text="点击下方按钮新建第一个项目"
+                                                               FontSize="12"
+                                                               Foreground="{StaticResource DividerBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
+                </DataGrid>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 底部操作区 -->
+        <Grid Grid.Row="1" Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 新建项目大按钮 -->
+            <Button Grid.Column="0"
+                    Style="{StaticResource NewProjectButtonStyle}"
+                    Command="{Binding NewProjectCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Plus"
+                                              Width="20" Height="20"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,8,0"/>
+                    <TextBlock Text="新建项目" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <!-- 设置按钮 -->
+            <Button Grid.Column="1"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Width="80"
+                    ToolTip="设置">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Cog" Width="16" Height="16"/>
+                    <TextBlock Text="设置" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Button>
+
+            <!-- 关于按钮 -->
+            <Button Grid.Column="3"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Width="80"
+                    ToolTip="关于 ScaffoldX">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="InformationOutline" Width="16" Height="16"/>
+                    <TextBlock Text="关于" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

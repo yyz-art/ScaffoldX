@@ -1,0 +1,63 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+
+namespace {{ NamespacePrefix }}.System.Core
+{
+    /// <summary>
+    /// 用户角色枚举，使用 [Flags] 支持多角色组合。
+    /// 权限从低到高：Viewer < Operator < Engineer < Administrator。
+    /// </summary>
+    [Flags]
+    public enum UserRole
+    {
+        /// <summary>无角色（未登录或权限被撤销）。</summary>
+        None = 0,
+
+        /// <summary>查看者：只读访问，可查看数据和报表。</summary>
+        Viewer = 1 << 0,
+
+        /// <summary>操作员：可执行设备操作，不可修改配置。</summary>
+        Operator = 1 << 1,
+
+        /// <summary>工程师：可修改配置、参数和工艺。</summary>
+        Engineer = 1 << 2,
+
+        /// <summary>管理员：拥有所有权限，包括用户管理。</summary>
+        Administrator = 1 << 3,
+
+        /// <summary>组合角色：操作员 + 工程师。</summary>
+        OperatorEngineer = Operator | Engineer,
+
+        /// <summary>所有角色（用于权限检查快捷方式）。</summary>
+        All = Viewer | Operator | Engineer | Administrator
+    }
+
+    /// <summary>
+    /// 用户角色扩展方法。
+    /// </summary>
+    public static class UserRoleExtensions
+    {
+        /// <summary>
+        /// 判断当前角色是否包含指定角色权限。
+        /// </summary>
+        /// <param name="role">当前用户角色。</param>
+        /// <param name="required">所需角色。</param>
+        /// <returns>包含返回 <c>true</c>，否则 <c>false</c>。</returns>
+        public static bool HasRole(this UserRole role, UserRole required)
+        {
+            return (role & required) == required;
+        }
+
+        /// <summary>
+        /// 判断当前角色是否为管理员。
+        /// </summary>
+        /// <param name="role">当前用户角色。</param>
+        /// <returns>是管理员返回 <c>true</c>。</returns>
+        public static bool IsAdministrator(this UserRole role)
+        {
+            return role.HasRole(UserRole.Administrator);
+        }
+    }
+}

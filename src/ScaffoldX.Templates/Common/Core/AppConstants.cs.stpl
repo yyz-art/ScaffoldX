@@ -1,0 +1,23 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+namespace {{ NamespacePrefix }}.Core.Models
+{
+    /// <summary>
+    /// 应用程序全局常量，由 ScaffoldX 根据项目配置自动生成。
+    /// </summary>
+    public static class AppConstants
+    {
+        /// <summary>项目类型标识。</summary>
+        public const string ProjectType = "{{ ProjectType }}";
+
+        /// <summary>应用程序版本号。</summary>
+        public const string Version = "1.0.0";
+
+        /// <summary>本次脚手架生成时选择的模块列表。</summary>
+        public static readonly string[] Modules =
+        {
+            {{ for m in SelectedModules }}"{{ m }}"{{ if !for.last }}, {{ end }}{{ end }}
+        };
+    }
+}

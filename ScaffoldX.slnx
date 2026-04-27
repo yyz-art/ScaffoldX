@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScaffoldX.App/ScaffoldX.App.csproj" />
+    <Project Path="src/ScaffoldX.Core/ScaffoldX.Core.csproj" />
+    <Project Path="src/ScaffoldX.Templates/ScaffoldX.Templates.csproj" />
+  </Folder>
+</Solution>

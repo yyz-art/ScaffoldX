@@ -1,0 +1,135 @@
+<Window x:Class="ScaffoldX.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:prism="http://prismlibrary.com/"
+        prism:ViewModelLocator.AutoWireViewModel="True"
+        mc:Ignorable="d"
+        Title="ScaffoldX — 工业上位机脚手架生成工具"
+        Width="1100" Height="700"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶部标题栏 -->
+        <Border Grid.Row="0"
+                Background="{StaticResource PrimaryBrush}"
+                materialDesign:ElevationAssist.Elevation="Dp4">
+            <Grid Margin="24,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo 图标 -->
+                <materialDesign:PackIcon Grid.Column="0"
+                                         Kind="Factory"
+                                         Width="32" Height="32"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,12,0"/>
+
+                <!-- 标题文字 -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="ScaffoldX"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="White"/>
+                    <TextBlock Text="工业上位机脚手架生成工具"
+                               FontSize="11"
+                               Foreground="#B3FFFFFF"/>
+                </StackPanel>
+
+                <!-- 步骤指示器（历史列表时隐藏） -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsWizardVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="步骤 "
+                               Foreground="#B3FFFFFF"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CurrentStep}"
+                               Foreground="White"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text=" / 4"
+                               Foreground="#B3FFFFFF"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 主内容区 -->
+        <ContentControl Grid.Row="1"
+                         Content="{Binding CurrentView}"
+                         Margin="0"/>
+
+        <!-- 底部导航按钮区（历史列表时隐藏） -->
+        <Border Grid.Row="2"
+                BorderBrush="{StaticResource DividerBrush}"
+                BorderThickness="0,1,0,0"
+                Background="White"
+                Visibility="{Binding IsWizardVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid Margin="24,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 步骤进度条 -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StepDescription}"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,4"/>
+                    <ProgressBar Value="{Binding StepProgress}"
+                                 Maximum="100"
+                                 Height="4"
+                                 Width="200"
+                                 HorizontalAlignment="Left"
+                                 Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+
+                <!-- 上一步按钮 -->
+                <Button Grid.Column="1"
+                        Content="上一步"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding GoBackCommand}"
+                        IsEnabled="{Binding CanGoBack}"
+                        Width="100"/>
+
+                <!-- 下一步/生成按钮 -->
+                <Button Grid.Column="3"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding GoNextCommand}"
+                        IsEnabled="{Binding CanGoNext}"
+                        Width="120">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding NextButtonText}" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Kind="ArrowRight"
+                                                  Width="16" Height="16"
+                                                  Margin="6,0,0,0"
+                                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

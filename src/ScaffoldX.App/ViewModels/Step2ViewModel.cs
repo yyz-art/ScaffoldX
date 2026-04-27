@@ -1,0 +1,192 @@
+using Prism.Commands;
+using Prism.Mvvm;
+using ScaffoldX.App.Services;
+
+namespace ScaffoldX.App.ViewModels;
+
+/// <summary>
+/// 步骤二 ViewModel：基础信息表单，包含实时验证和字段联动逻辑。
+/// </summary>
+public class Step2ViewModel : BindableBase
+{
+    private readonly IValidationService _validationService;
+
+    private string _projectName = string.Empty;
+    private string _outputPath = string.Empty;
+    private string _namespacePrefix = string.Empty;
+    private string _uiFramework = "WPF";
+    private string _dotNetVersion = ".NET 8";
+    private string _projectDescription = string.Empty;
+
+    private string _projectNameError = string.Empty;
+    private string _outputPathError = string.Empty;
+
+    /// <summary>
+    /// 初始化步骤二 ViewModel，注入验证服务。
+    /// </summary>
+    /// <param name="validationService">字段验证服务。</param>
+    public Step2ViewModel(IValidationService validationService)
+    {
+        _validationService = validationService;
+        BrowseOutputPathCommand = new DelegateCommand(ExecuteBrowseOutputPath);
+    }
+
+    /// <summary>项目名称，变更时触发实时验证并联动命名空间前缀。</summary>
+    public string ProjectName
+    {
+        get => _projectName;
+        set
+        {
+            if (SetProperty(ref _projectName, value))
+            {
+                ValidateProjectName();
+                // 自动生成命名空间前缀
+                if (!string.IsNullOrWhiteSpace(value))
+                    NamespacePrefix = _validationService.ToPascalCase(value);
+                RaisePropertyChanged(nameof(PreviewText));
+                RaisePropertyChanged(nameof(HasErrors));
+            }
+        }
+    }
+
+    /// <summary>输出路径，变更时触发实时验证。</summary>
+    public string OutputPath
+    {
+        get => _outputPath;
+        set
+        {
+            if (SetProperty(ref _outputPath, value))
+            {
+                ValidateOutputPath();
+                RaisePropertyChanged(nameof(HasErrors));
+            }
+        }
+    }
+
+    /// <summary>命名空间前缀，默认由项目名称自动生成。</summary>
+    public string NamespacePrefix
+    {
+        get => _namespacePrefix;
+        set
+        {
+            if (SetProperty(ref _namespacePrefix, value))
+                RaisePropertyChanged(nameof(PreviewText));
+        }
+    }
+
+    /// <summary>目标 UI 框架："WPF" 或 "Avalonia"。选择 Avalonia 时禁用 .NET 6。</summary>
+    public string UIFramework
+    {
+        get => _uiFramework;
+        set
+        {
+            if (SetProperty(ref _uiFramework, value))
+            {
+                // Avalonia 不支持 .NET 6，强制切换到 .NET 8
+                if (value == "Avalonia" && DotNetVersion == ".NET 6")
+                    DotNetVersion = ".NET 8";
+                RaisePropertyChanged(nameof(IsDotNet6Enabled));
+                RaisePropertyChanged(nameof(PreviewText));
+            }
+        }
+    }
+
+    /// <summary>.NET 目标版本：".NET 6" 或 ".NET 8"。</summary>
+    public string DotNetVersion
+    {
+        get => _dotNetVersion;
+        set
+        {
+            if (SetProperty(ref _dotNetVersion, value))
+                RaisePropertyChanged(nameof(PreviewText));
+        }
+    }
+
+    /// <summary>项目描述文字。</summary>
+    public string ProjectDescription
+    {
+        get => _projectDescription;
+        set => SetProperty(ref _projectDescription, value);
+    }
+
+    /// <summary>项目名称验证错误信息，为空表示验证通过。</summary>
+    public string ProjectNameError
+    {
+        get => _projectNameError;
+        private set => SetProperty(ref _projectNameError, value);
+    }
+
+    /// <summary>输出路径验证错误信息，为空表示验证通过。</summary>
+    public string OutputPathError
+    {
+        get => _outputPathError;
+        private set => SetProperty(ref _outputPathError, value);
+    }
+
+    /// <summary>是否存在验证错误，控制下一步按钮可用性。</summary>
+    public bool HasErrors =>
+        !string.IsNullOrEmpty(ProjectNameError) ||
+        !string.IsNullOrEmpty(OutputPathError) ||
+        string.IsNullOrWhiteSpace(ProjectName) ||
+        string.IsNullOrWhiteSpace(OutputPath);
+
+    /// <summary>.NET 6 选项是否可用（Avalonia 时禁用）。</summary>
+    public bool IsDotNet6Enabled => UIFramework != "Avalonia";
+
+    /// <summary>底部预览文字，显示将生成的解决方案文件名和命名空间。</summary>
+    public string PreviewText
+    {
+        get
+        {
+            var name = string.IsNullOrWhiteSpace(ProjectName) ? "{项目名称}" : ProjectName;
+            var ns = string.IsNullOrWhiteSpace(NamespacePrefix) ? "{命名空间}" : NamespacePrefix;
+            var fw = UIFramework;
+            var ver = DotNetVersion;
+            return $"将生成 {name}.sln，命名空间 {ns}.*，框架 {fw} / {ver}";
+        }
+    }
+
+    /// <summary>浏览输出路径命令（调用 Ookii 文件夹对话框）。</summary>
+    public DelegateCommand BrowseOutputPathCommand { get; }
+
+    /// <summary>重置所有字段（新建项目时调用）。</summary>
+    public void Reset()
+    {
+        ProjectName = string.Empty;
+        OutputPath = string.Empty;
+        NamespacePrefix = string.Empty;
+        UIFramework = "WPF";
+        DotNetVersion = ".NET 8";
+        ProjectDescription = string.Empty;
+        ProjectNameError = string.Empty;
+        OutputPathError = string.Empty;
+    }
+
+    private void ValidateProjectName()
+    {
+        var result = _validationService.ValidateProjectName(ProjectName);
+        ProjectNameError = result.IsValid ? string.Empty : result.ErrorMessage;
+    }
+
+    private void ValidateOutputPath()
+    {
+        if (string.IsNullOrWhiteSpace(OutputPath))
+        {
+            OutputPathError = "输出路径不能为空";
+            return;
+        }
+        var result = _validationService.ValidateOutputPath(OutputPath, ProjectName);
+        OutputPathError = result.IsValid ? string.Empty : result.ErrorMessage;
+    }
+
+    private void ExecuteBrowseOutputPath()
+    {
+        var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog
+        {
+            Description = "选择项目输出目录",
+            UseDescriptionForTitle = true
+        };
+        if (dialog.ShowDialog() == true)
+            OutputPath = dialog.SelectedPath;
+    }
+}

@@ -1,0 +1,45 @@
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Collections.Generic;
+
+namespace {{ NamespacePrefix }}.Collection.Core
+{
+    /// <summary>
+    /// 驱动连接参数，以键值对形式传递协议特定的连接配置。
+    /// </summary>
+    public sealed class ConnectionParams
+    {
+        /// <summary>目标设备 IP 地址或主机名。</summary>
+        public string Host { get; init; }
+
+        /// <summary>目标端口号。</summary>
+        public int Port { get; init; }
+
+        /// <summary>连接超时（毫秒），默认 5000ms。</summary>
+        public int TimeoutMs { get; init; } = 5000;
+
+        /// <summary>重连间隔（毫秒），默认 3000ms。</summary>
+        public int ReconnectIntervalMs { get; init; } = 3000;
+
+        /// <summary>最大重连次数，0 表示无限重连。</summary>
+        public int MaxReconnectAttempts { get; init; } = 0;
+
+        /// <summary>
+        /// 协议特定的扩展参数字典。
+        /// 例如 S7 驱动使用 "Rack"、"Slot"；Modbus 使用 "UnitId"。
+        /// </summary>
+        public Dictionary<string, string> Extra { get; init; } = new();
+
+        /// <summary>
+        /// 获取扩展参数值，不存在时返回 <paramref name="defaultValue"/>。
+        /// </summary>
+        /// <param name="key">参数键。</param>
+        /// <param name="defaultValue">默认值。</param>
+        /// <returns>参数值或默认值。</returns>
+        public string GetExtra(string key, string defaultValue = null)
+        {
+            return Extra.TryGetValue(key, out var val) ? val : defaultValue;
+        }
+    }
+}
