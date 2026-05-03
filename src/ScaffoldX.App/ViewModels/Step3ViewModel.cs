@@ -92,9 +92,8 @@ public class Step3ViewModel : BindableBase
         {
             new() { Key = "UserManagement", DisplayName = "用户管理",   IsSelected = true  },
             new() { Key = "RolePermission", DisplayName = "角色权限",   IsSelected = true  },
-            new() { Key = "AuditLog",       DisplayName = "审计日志",   IsSelected = false },
-            new() { Key = "DataExport",     DisplayName = "数据导出",   IsSelected = false },
-            new() { Key = "SystemConfig",   DisplayName = "系统配置",   IsSelected = false },
+            new() { Key = "SystemLog",      DisplayName = "审计日志",   IsSelected = false },
+            new() { Key = "ThemeSwitcher",  DisplayName = "主题切换",   IsSelected = false },
         };
 
         CameraBrands = new List<string> { "海康", "大华", "Basler", "其他" };

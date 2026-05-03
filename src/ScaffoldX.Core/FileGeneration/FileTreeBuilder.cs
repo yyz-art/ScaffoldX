@@ -72,7 +72,10 @@ public class FileTreeBuilder
         AddChild(root, $"{projectName}.sln", NodeType.OtherFile, true);
         AddChild(root, "Directory.Build.props", NodeType.OtherFile, true);
         AddChild(root, "global.json", NodeType.OtherFile, true);
-        AddChild(root, ".gitignore", NodeType.OtherFile, config.InitGitRepository);
+        if (config.InitGitRepository)
+        {
+            AddChild(root, ".gitignore", NodeType.OtherFile, true);
+        }
         AddChild(root, "README.md", NodeType.OtherFile, true);
 
         if (config.GeneratePublishScripts)
@@ -153,6 +156,10 @@ public class FileTreeBuilder
             var vision = AddFolder(infraProject, "Vision");
             AddChild(vision, $"{VariableResolver.ToPascalCase(config.CameraBrand)}Camera.cs", NodeType.CsFile, false);
             AddChild(vision, "VisionService.cs", NodeType.CsFile, false);
+
+            var inference = AddFolder(vision, "Inference");
+            AddChild(inference, "InferenceEngineBase.cs", NodeType.CsFile, false);
+            AddChild(inference, "OnnxDetector.cs", NodeType.CsFile, false);
         }
 
         // 系统模块
@@ -163,22 +170,22 @@ public class FileTreeBuilder
             AddChild(users, "UserRepository.cs", NodeType.CsFile, false);
         }
 
-        if (config.EnableAlarmManagement)
+        if (config.EnableRolePermission)
         {
-            var alarms = AddFolder(infraProject, "Alarms");
-            AddChild(alarms, "AlarmService.cs", NodeType.CsFile, false);
+            var roles = AddFolder(infraProject, "RolePermission");
+            AddChild(roles, "RoleService.cs", NodeType.CsFile, false);
         }
 
-        if (config.EnableDataLogging)
+        if (config.EnableSystemLog)
         {
-            var logging = AddFolder(infraProject, "DataLogging");
-            AddChild(logging, "DataLogService.cs", NodeType.CsFile, false);
+            var logging = AddFolder(infraProject, "SystemLog");
+            AddChild(logging, "AuditLogService.cs", NodeType.CsFile, false);
         }
 
-        if (config.EnableReporting)
+        if (config.EnableThemeSwitcher)
         {
-            var reports = AddFolder(infraProject, "Reporting");
-            AddChild(reports, "ReportService.cs", NodeType.CsFile, false);
+            var themes = AddFolder(infraProject, "ThemeSwitcher");
+            AddChild(themes, "ThemeService.cs", NodeType.CsFile, false);
         }
 
         // tests 目录

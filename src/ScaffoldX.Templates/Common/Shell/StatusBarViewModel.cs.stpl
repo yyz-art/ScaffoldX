@@ -1,0 +1,74 @@
+##OUTPUT: src/{{ProjectName}}.App/Shell/StatusBarViewModel.cs
+##REQUIRED: true
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Windows.Media;
+using System.Windows.Threading;
+using Prism.Mvvm;
+
+namespace {{ NamespacePrefix }}.App.Shell
+{
+    /// <summary>
+    /// 底部状态栏 ViewModel，显示连接状态、当前用户和时间。
+    /// </summary>
+    public class StatusBarViewModel : BindableBase
+    {
+        private string _connectionStatusText = "未连接";
+        private SolidColorBrush _connectionStatusColor = new(Colors.Gray);
+        private string _currentUser = "admin";
+        private string _currentTime;
+
+        /// <summary>
+        /// 初始化状态栏，启动时钟定时器。
+        /// </summary>
+        public StatusBarViewModel()
+        {
+            _currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            timer.Tick += (_, _) => CurrentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            timer.Start();
+        }
+
+        /// <summary>连接状态文本。</summary>
+        public string ConnectionStatusText
+        {
+            get => _connectionStatusText;
+            set => SetProperty(ref _connectionStatusText, value);
+        }
+
+        /// <summary>连接状态指示灯颜色。</summary>
+        public SolidColorBrush ConnectionStatusColor
+        {
+            get => _connectionStatusColor;
+            set => SetProperty(ref _connectionStatusColor, value);
+        }
+
+        /// <summary>当前登录用户名。</summary>
+        public string CurrentUser
+        {
+            get => _currentUser;
+            set => SetProperty(ref _currentUser, value);
+        }
+
+        /// <summary>当前时间字符串。</summary>
+        public string CurrentTime
+        {
+            get => _currentTime;
+            set => SetProperty(ref _currentTime, value);
+        }
+
+        /// <summary>
+        /// 更新连接状态。
+        /// </summary>
+        /// <param name="isConnected">是否已连接。</param>
+        /// <param name="statusText">状态描述文本。</param>
+        public void UpdateConnectionStatus(bool isConnected, string statusText)
+        {
+            ConnectionStatusText = statusText;
+            ConnectionStatusColor = new SolidColorBrush(isConnected ? Colors.LimeGreen : Colors.Gray);
+        }
+    }
+}

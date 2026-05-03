@@ -99,7 +99,7 @@
                                FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                Margin="0,0,0,4"/>
-                    <ProgressBar Value="{Binding StepProgress}"
+                    <ProgressBar Value="{Binding StepProgress, Mode=OneWay}"
                                  Maximum="100"
                                  Height="4"
                                  Width="200"

@@ -1,0 +1,115 @@
+##OUTPUT: src/{{ProjectName}}.System/UserManagement/UserService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.System.Core;
+
+namespace {{ NamespacePrefix }}.System.UserManagement
+{
+    /// <summary>
+    /// <see cref="IUserService"/> 的骨架实现。
+    /// TODO: [ScaffoldX] 替换为真实的数据库存储和密码哈希逻辑。
+    /// </summary>
+    public sealed class UserService : IUserService
+    {
+        private readonly Dictionary<string, User> _users = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _passwords = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// 初始化 UserService，加载种子数据。
+        /// </summary>
+        public UserService()
+        {
+            foreach (var user in SeedData.DefaultUsers)
+            {
+                _users[user.Username] = user;
+                // TODO: [ScaffoldX] 使用 BCrypt 哈希存储密码
+                _passwords[user.Username] = "default_password";
+            }
+        }
+
+        /// <inheritdoc/>
+        public Task<User?> AuthenticateAsync(string username, string password)
+        {
+            if (_users.TryGetValue(username, out var user)
+                && _passwords.TryGetValue(username, out var storedPassword)
+                && storedPassword == password)
+            {
+                user.LastLoginAt = DateTime.UtcNow;
+                return Task.FromResult<User?>(user);
+            }
+
+            return Task.FromResult<User?>(null);
+        }
+
+        /// <inheritdoc/>
+        public Task<User?> GetUserAsync(string username)
+        {
+            _users.TryGetValue(username, out var user);
+            return Task.FromResult(user);
+        }
+
+        /// <inheritdoc/>
+        public Task<IReadOnlyList<User>> GetAllUsersAsync()
+        {
+            IReadOnlyList<User> result = new List<User>(_users.Values);
+            return Task.FromResult(result);
+        }
+
+        /// <inheritdoc/>
+        public Task<User> CreateUserAsync(User user, string password)
+        {
+            if (_users.ContainsKey(user.Username))
+            {
+                throw new InvalidOperationException($"用户 '{user.Username}' 已存在。");
+            }
+
+            _users[user.Username] = user;
+            _passwords[user.Username] = password;
+            return Task.FromResult(user);
+        }
+
+        /// <inheritdoc/>
+        public Task UpdateUserAsync(User user)
+        {
+            if (!_users.ContainsKey(user.Username))
+            {
+                throw new InvalidOperationException($"用户 '{user.Username}' 不存在。");
+            }
+
+            _users[user.Username] = user;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task DeleteAsync(string username)
+        {
+            _users.Remove(username);
+            _passwords.Remove(username);
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword)
+        {
+            if (!_passwords.TryGetValue(username, out var storedPassword)
+                || storedPassword != oldPassword)
+            {
+                return Task.FromResult(false);
+            }
+
+            _passwords[username] = newPassword;
+
+            if (_users.TryGetValue(username, out var user))
+            {
+                _users[username] = user with { MustChangePassword = false };
+            }
+
+            return Task.FromResult(true);
+        }
+    }
+}

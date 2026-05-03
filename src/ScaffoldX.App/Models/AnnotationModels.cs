@@ -1,0 +1,183 @@
+using System.Text.Json.Serialization;
+
+namespace ScaffoldX.App.Models;
+
+/// <summary>
+/// YOLO 标注数据模型，包含图像路径和边界框标注列表。
+/// </summary>
+public class AnnotationData
+{
+    /// <summary>图像文件的绝对路径。</summary>
+    public string ImagePath { get; set; } = string.Empty;
+
+    /// <summary>图像宽度（像素）。</summary>
+    public int ImageWidth { get; set; }
+
+    /// <summary>图像高度（像素）。</summary>
+    public int ImageHeight { get; set; }
+
+    /// <summary>该图像的所有边界框标注。</summary>
+    public List<BoundingBoxAnnotation> Boxes { get; set; } = new();
+}
+
+/// <summary>
+/// 单个边界框标注，包含类别和归一化坐标。
+/// </summary>
+public class BoundingBoxAnnotation
+{
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>边界框中心 X 坐标（归一化到 0-1）。</summary>
+    public double CenterX { get; set; }
+
+    /// <summary>边界框中心 Y 坐标（归一化到 0-1）。</summary>
+    public double CenterY { get; set; }
+
+    /// <summary>边界框宽度（归一化到 0-1）。</summary>
+    public double Width { get; set; }
+
+    /// <summary>边界框高度（归一化到 0-1）。</summary>
+    public double Height { get; set; }
+}
+
+/// <summary>
+/// 标注类别定义。
+/// </summary>
+public class AnnotationClass
+{
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int Index { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>类别颜色（十六进制，如 #FF0000）。</summary>
+    public string Color { get; set; } = "#FF0000";
+}
+
+/// <summary>
+/// 标注项目配置，包含类别定义和项目元数据。
+/// </summary>
+public class AnnotationProject
+{
+    /// <summary>项目名称。</summary>
+    public string ProjectName { get; set; } = string.Empty;
+
+    /// <summary>项目根目录（包含图像文件夹）。</summary>
+    public string ProjectDirectory { get; set; } = string.Empty;
+
+    /// <summary>类别定义列表。</summary>
+    public List<AnnotationClass> Classes { get; set; } = new();
+
+    /// <summary>已标注的图像数据。</summary>
+    public List<AnnotationData> Annotations { get; set; } = new();
+
+    /// <summary>项目创建时间。</summary>
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    /// <summary>最后修改时间。</summary>
+    public DateTime ModifiedAt { get; set; } = DateTime.Now;
+}
+
+/// <summary>
+/// YOLO 训练配置。
+/// </summary>
+public class YoloTrainingConfig
+{
+    /// <summary>训练数据集路径。</summary>
+    public string DatasetPath { get; set; } = string.Empty;
+
+    /// <summary>输出模型路径。</summary>
+    public string OutputPath { get; set; } = string.Empty;
+
+    /// <summary>预训练模型路径（如 yolov8n.pt）。</summary>
+    public string PretrainedModel { get; set; } = "yolov8n.pt";
+
+    /// <summary>训练轮数。</summary>
+    public int Epochs { get; set; } = 100;
+
+    /// <summary>批次大小。</summary>
+    public int BatchSize { get; set; } = 16;
+
+    /// <summary>图像尺寸。</summary>
+    public int ImageSize { get; set; } = 640;
+
+    /// <summary>学习率。</summary>
+    public double LearningRate { get; set; } = 0.01;
+
+    /// <summary>类别数量。</summary>
+    public int NumClasses { get; set; } = 1;
+
+    /// <summary>类别名称列表。</summary>
+    public List<string> ClassNames { get; set; } = new();
+
+    /// <summary>是否使用 GPU。</summary>
+    public bool UseGpu { get; set; } = true;
+
+    /// <summary>工作线程数。</summary>
+    public int Workers { get; set; } = 8;
+}
+
+/// <summary>
+/// 训练进度信息。
+/// </summary>
+public class TrainingProgress
+{
+    /// <summary>当前轮次。</summary>
+    public int CurrentEpoch { get; set; }
+
+    /// <summary>总轮次。</summary>
+    public int TotalEpochs { get; set; }
+
+    /// <summary>当前损失值。</summary>
+    public double Loss { get; set; }
+
+    /// <summary>当前 mAP@0.5。</summary>
+    public double Map50 { get; set; }
+
+    /// <summary>当前 mAP@0.5:0.95。</summary>
+    public double Map50_95 { get; set; }
+
+    /// <summary>学习率。</summary>
+    public double LearningRate { get; set; }
+
+    /// <summary>已用时间。</summary>
+    public TimeSpan Elapsed { get; set; }
+
+    /// <summary>预计剩余时间。</summary>
+    public TimeSpan EstimatedRemaining { get; set; }
+
+    /// <summary>进度百分比（0-100）。</summary>
+    public double ProgressPercent => TotalEpochs > 0 ? (double)CurrentEpoch / TotalEpochs * 100 : 0;
+
+    /// <summary>状态消息。</summary>
+    public string StatusMessage { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 训练结果。
+/// </summary>
+public class TrainingResult
+{
+    /// <summary>是否成功。</summary>
+    public bool Success { get; set; }
+
+    /// <summary>输出模型路径。</summary>
+    public string ModelPath { get; set; } = string.Empty;
+
+    /// <summary>最终 mAP@0.5。</summary>
+    public double FinalMap50 { get; set; }
+
+    /// <summary>最终 mAP@0.5:0.95。</summary>
+    public double FinalMap50_95 { get; set; }
+
+    /// <summary>总训练时间。</summary>
+    public TimeSpan TotalTime { get; set; }
+
+    /// <summary>错误信息（如果失败）。</summary>
+    public string ErrorMessage { get; set; } = string.Empty;
+}

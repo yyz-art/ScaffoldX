@@ -57,11 +57,11 @@ public static class PostProcessor
     {
         // 注意：& 必须最后处理，避免二次替换
         return content
-            .Replace("<", "<")
-            .Replace(">", ">")
+            .Replace("&lt;", "<")
+            .Replace("&gt;", ">")
             .Replace("&quot;", "\"")
-            .Replace("'", "'")
-            .Replace("&", "&");
+            .Replace("&apos;", "'")
+            .Replace("&amp;", "&");
     }
 
     /// <summary>

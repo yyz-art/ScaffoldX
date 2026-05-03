@@ -1,3 +1,5 @@
+##OUTPUT: src/{{ProjectName}}.Vision/Camera/Simulate/SimCameraService.cs
+##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 

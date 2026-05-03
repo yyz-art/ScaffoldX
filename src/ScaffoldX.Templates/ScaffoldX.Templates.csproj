@@ -9,7 +9,8 @@
 
   <!-- 将所有 .stpl 文件作为嵌入资源 -->
   <ItemGroup>
-    <EmbeddedResource Include="**\*.stpl" />
+    <None Remove="**\*.stpl" />
+    <EmbeddedResource Include="**\*.stpl" WithCulture="false" Culture="" />
   </ItemGroup>
 
 </Project>

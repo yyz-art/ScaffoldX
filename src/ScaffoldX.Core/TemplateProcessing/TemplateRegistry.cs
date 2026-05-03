@@ -258,21 +258,25 @@ public class TemplateRegistry
             return config.EnableUserManagement;
         }
 
-        if (name.Contains("ALARM"))
+        if (name.Contains("ROLE") || name.Contains("PERMISSION"))
         {
-            return config.EnableAlarmManagement;
+            return config.EnableRolePermission;
         }
 
-        if (name.Contains("LOG") || name.Contains("LOGGING"))
+        if (name.Contains("LOG") || name.Contains("AUDIT") || name.Contains("SYSTEMLOG"))
         {
-            return config.EnableDataLogging;
+            return config.EnableSystemLog;
         }
 
-        if (name.Contains("REPORT"))
+        if (name.Contains("THEME") || name.Contains("SWITCHER"))
         {
-            return config.EnableReporting;
+            return config.EnableThemeSwitcher;
         }
 
-        return true;
+        // 系统核心模板（UserRole、IMenuModule 等）：任一系统模块启用时包含
+        return config.EnableUserManagement
+            || config.EnableRolePermission
+            || config.EnableSystemLog
+            || config.EnableThemeSwitcher;
     }
 }

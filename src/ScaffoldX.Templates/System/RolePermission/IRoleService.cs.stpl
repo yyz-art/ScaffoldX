@@ -1,0 +1,58 @@
+##OUTPUT: src/{{ProjectName}}.System/RolePermission/IRoleService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.System.Core;
+
+namespace {{ NamespacePrefix }}.System.RolePermission
+{
+    /// <summary>
+    /// 角色权限管理服务接口，提供角色分配和权限查询功能。
+    /// </summary>
+    public interface IRoleService
+    {
+        /// <summary>
+        /// 获取系统中所有可用角色。
+        /// </summary>
+        /// <returns>角色列表。</returns>
+        Task<IReadOnlyList<RoleInfo>> GetAllRolesAsync();
+
+        /// <summary>
+        /// 获取指定角色拥有的权限列表。
+        /// </summary>
+        /// <param name="role">目标角色。</param>
+        /// <returns>权限列表。</returns>
+        Task<IReadOnlyList<string>> GetRolePermissionsAsync(UserRole role);
+
+        /// <summary>
+        /// 为用户分配角色。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        /// <param name="role">要分配的角色。</param>
+        Task AssignRoleAsync(string username, UserRole role);
+
+        /// <summary>
+        /// 撤销用户的角色（重置为 Viewer）。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        Task RevokeRoleAsync(string username);
+    }
+
+    /// <summary>
+    /// 角色信息描述。
+    /// </summary>
+    public sealed class RoleInfo
+    {
+        /// <summary>角色枚举值。</summary>
+        public UserRole Role { get; init; }
+
+        /// <summary>角色显示名称。</summary>
+        public string DisplayName { get; init; } = string.Empty;
+
+        /// <summary>角色描述。</summary>
+        public string Description { get; init; } = string.Empty;
+    }
+}

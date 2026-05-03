@@ -1,3 +1,5 @@
+##OUTPUT: src/{{ProjectName}}.Collection/Drivers/Simulation/SimDriver.cs
+##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 

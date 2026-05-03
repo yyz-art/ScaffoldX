@@ -64,14 +64,14 @@ public class ProjectConfig
     /// <summary>是否启用用户管理模块。</summary>
     public bool EnableUserManagement { get; set; }
 
-    /// <summary>是否启用报警管理模块。</summary>
-    public bool EnableAlarmManagement { get; set; }
+    /// <summary>是否启用角色权限模块。</summary>
+    public bool EnableRolePermission { get; set; }
 
-    /// <summary>是否启用数据记录模块。</summary>
-    public bool EnableDataLogging { get; set; }
+    /// <summary>是否启用审计日志模块。</summary>
+    public bool EnableSystemLog { get; set; }
 
-    /// <summary>是否启用报表模块。</summary>
-    public bool EnableReporting { get; set; }
+    /// <summary>是否启用主题切换模块。</summary>
+    public bool EnableThemeSwitcher { get; set; }
 
     /// <summary>数据库类型，如 "SQLite"、"SQLServer"、"MySQL"。</summary>
     public string DatabaseType { get; set; } = "SQLite";

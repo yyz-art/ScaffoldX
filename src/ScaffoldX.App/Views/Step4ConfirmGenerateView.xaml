@@ -45,7 +45,7 @@
                         BorderBrush="{StaticResource DividerBrush}"
                         BorderThickness="0,0,0,1">
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FolderTree"
+                        <materialDesign:PackIcon Kind="FolderMultiple"
                                                   Width="18" Height="18"
                                                   Foreground="{StaticResource PrimaryBrush}"
                                                   VerticalAlignment="Center"

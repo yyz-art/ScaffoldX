@@ -1,0 +1,205 @@
+<UserControl x:Class="ScaffoldX.App.Views.YoloTrainingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1000">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="350"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧：训练配置 -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24">
+                <!-- 环境检查 -->
+                <TextBlock Text="训练环境" FontWeight="Bold" FontSize="18" Margin="0,0,0,16"/>
+                <Border Background="#F5F5F5" Padding="16" CornerRadius="4" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding EnvironmentStatus}" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="检查环境" Command="{Binding CheckEnvironmentCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignFlatButton}"/>
+                            <Button Content="安装依赖" Command="{Binding InstallDependenciesCommand}"
+                                    Style="{StaticResource MaterialDesignFlatButton}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 数据集配置 -->
+                <TextBlock Text="数据集配置" FontWeight="Bold" FontSize="18" Margin="0,0,0,16"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="数据集路径:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DatasetPath, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="8,0" IsReadOnly="True"/>
+                    <Button Grid.Row="0" Grid.Column="2" Content="浏览" Command="{Binding BrowseDatasetCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="输出路径:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding OutputPath, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="8,8" IsReadOnly="True"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="浏览" Command="{Binding BrowseOutputCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}" Margin="0,8,0,0"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="类别数量:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding NumClasses}" Margin="8,8"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="类别名称:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ClassNamesText}" Margin="8,8"
+                             ToolTip="多个类别用逗号分隔，如: cat,dog,person"/>
+                </Grid>
+
+                <!-- 训练参数 -->
+                <TextBlock Text="训练参数" FontWeight="Bold" FontSize="18" Margin="0,0,0,16"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="预训练模型:" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableModels}"
+                              SelectedValue="{Binding PretrainedModel}" SelectedValuePath="Name"
+                              Margin="8,0" DisplayMemberPath="Name"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="训练轮数:" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding Epochs}" Margin="8,0"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="批次大小:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BatchSize}" Margin="8,8"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="图像尺寸:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding ImageSize}" Margin="8,8"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="学习率:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LearningRate}" Margin="8,8"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="工作线程:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                    <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding Workers}" Margin="8,8"/>
+
+                    <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="使用 GPU"
+                              IsChecked="{Binding UseGpu}" Margin="0,8,0,0"/>
+                </Grid>
+
+                <!-- 训练按钮 -->
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                    <Button Content="{Binding TrainingButtonText}" Command="{Binding StartTrainingCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#2196F3" Margin="0,0,8,0" Padding="24,8"/>
+                    <Button Content="取消训练" Command="{Binding CancelTrainingCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"/>
+                    <Button Content="导出 ONNX" Command="{Binding ExportOnnxCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}" Margin="16,0,0,0"/>
+                </StackPanel>
+
+                <!-- 状态消息 -->
+                <TextBlock Text="{Binding StatusMessage}" Margin="0,16,0,0" Foreground="#757575"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 右侧：训练监控 -->
+        <Border Grid.Column="1" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1,0,0,0">
+            <StackPanel Margin="16">
+                <TextBlock Text="训练监控" FontWeight="Bold" FontSize="18" Margin="0,0,0,16"/>
+
+                <!-- 进度条 -->
+                <TextBlock Text="训练进度" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="24" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding ProgressText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+                <!-- 训练指标 -->
+                <TextBlock Text="训练指标" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <Border Background="White" Padding="16" CornerRadius="4" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="损失值 (Loss):"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loss, StringFormat=F4}" FontWeight="SemiBold"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="mAP@0.5:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Map50, StringFormat=F3}" FontWeight="SemiBold"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="mAP@0.5:0.95:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Map50_95, StringFormat=F3}" FontWeight="SemiBold"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="耗时:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ElapsedText}" FontWeight="SemiBold"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 预训练模型信息 -->
+                <TextBlock Text="预训练模型" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <ListBox ItemsSource="{Binding AvailableModels}" Height="200"
+                         SelectedValue="{Binding PretrainedModel}" SelectedValuePath="Name">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Description}" Foreground="#757575" FontSize="12"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock Text="{Binding SizeMB, StringFormat='大小: {0:F1} MB'}" FontSize="11" Margin="0,0,16,0"/>
+                                    <TextBlock Text="{Binding Map50_95, StringFormat='mAP: {0:F1}'}" FontSize="11"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- 使用说明 -->
+                <TextBlock Text="使用说明" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                <TextBlock TextWrapping="Wrap" Foreground="#757575" FontSize="12">
+                    1. 检查并安装训练环境依赖
+                    2. 选择 YOLO 格式的数据集目录
+                    3. 配置训练参数（轮数、批次等）
+                    4. 点击"开始训练"启动训练
+                    5. 训练完成后导出 ONNX 模型
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,70 @@
+##OUTPUT: src/{{ProjectName}}.System/SystemLog/IAuditLogService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace {{ NamespacePrefix }}.System.SystemLog
+{
+    /// <summary>
+    /// 审计日志服务接口，记录系统操作和安全事件。
+    /// </summary>
+    public interface IAuditLogService
+    {
+        /// <summary>
+        /// 写入一条审计日志。
+        /// </summary>
+        /// <param name="entry">日志条目。</param>
+        Task LogAsync(AuditLogEntry entry);
+
+        /// <summary>
+        /// 分页查询审计日志。
+        /// </summary>
+        /// <param name="skip">跳过条数。</param>
+        /// <param name="take">获取条数。</param>
+        /// <returns>日志条目列表。</returns>
+        Task<IReadOnlyList<AuditLogEntry>> GetLogsAsync(int skip = 0, int take = 100);
+
+        /// <summary>
+        /// 按用户名查询审计日志。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        /// <param name="skip">跳过条数。</param>
+        /// <param name="take">获取条数。</param>
+        /// <returns>日志条目列表。</returns>
+        Task<IReadOnlyList<AuditLogEntry>> GetLogsByUserAsync(string username, int skip = 0, int take = 100);
+    }
+
+    /// <summary>
+    /// 审计日志条目，记录单次操作的详细信息。
+    /// </summary>
+    public sealed class AuditLogEntry
+    {
+        /// <summary>日志唯一标识符。</summary>
+        public string Id { get; init; } = Guid.NewGuid().ToString("N");
+
+        /// <summary>操作用户。</summary>
+        public string Username { get; init; } = string.Empty;
+
+        /// <summary>操作类型（如 Login、CreateUser、DeleteUser、ChangePassword）。</summary>
+        public string Action { get; init; } = string.Empty;
+
+        /// <summary>操作目标资源。</summary>
+        public string Resource { get; init; } = string.Empty;
+
+        /// <summary>操作详情。</summary>
+        public string Details { get; init; } = string.Empty;
+
+        /// <summary>操作时间（UTC）。</summary>
+        public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+
+        /// <summary>客户端 IP 地址。</summary>
+        public string IpAddress { get; init; } = string.Empty;
+
+        /// <summary>操作结果（Success / Failure）。</summary>
+        public string Result { get; init; } = "Success";
+    }
+}

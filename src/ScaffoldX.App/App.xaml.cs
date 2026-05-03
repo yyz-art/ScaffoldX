@@ -3,6 +3,7 @@ using Prism.Ioc;
 using ScaffoldX.App.Services;
 using ScaffoldX.App.ViewModels;
 using ScaffoldX.App.Views;
+using ScaffoldX.Core.TemplateProcessing;
 
 namespace ScaffoldX.App;
 
@@ -27,7 +28,11 @@ public partial class App : Prism.Unity.PrismApplication
         containerRegistry.RegisterSingleton<IValidationService, ValidationService>();
         containerRegistry.RegisterSingleton<IHistoryService, HistoryService>();
         containerRegistry.RegisterSingleton<ITemplateEngine, ScribanTemplateEngine>();
+        containerRegistry.RegisterSingleton<TemplateRegistry>();
         containerRegistry.RegisterSingleton<IProjectGenerator, ProjectGenerator>();
+        containerRegistry.RegisterSingleton<IAnnotationService, AnnotationService>();
+        containerRegistry.RegisterSingleton<IAutoLabelingService, AutoLabelingService>();
+        containerRegistry.RegisterSingleton<IYoloTrainingService, YoloTrainingService>();
 
         // ViewModel 注册（单例，在步骤间共享状态）
         containerRegistry.RegisterSingleton<ProjectHistoryViewModel>();
@@ -36,6 +41,8 @@ public partial class App : Prism.Unity.PrismApplication
         containerRegistry.RegisterSingleton<Step3ViewModel>();
         containerRegistry.RegisterSingleton<Step4ViewModel>();
         containerRegistry.RegisterSingleton<MainWindowViewModel>();
+        containerRegistry.RegisterSingleton<AnnotationViewModel>();
+        containerRegistry.RegisterSingleton<YoloTrainingViewModel>();
 
         // 视图导航注册
         containerRegistry.RegisterForNavigation<ProjectHistoryView>();
@@ -43,5 +50,7 @@ public partial class App : Prism.Unity.PrismApplication
         containerRegistry.RegisterForNavigation<Step2BasicInfoView>();
         containerRegistry.RegisterForNavigation<Step3SpecificConfigView>();
         containerRegistry.RegisterForNavigation<Step4ConfirmGenerateView>();
+        containerRegistry.RegisterForNavigation<AnnotationView>();
+        containerRegistry.RegisterForNavigation<YoloTrainingView>();
     }
 }

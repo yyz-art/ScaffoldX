@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using ScaffoldX.Core.TemplateProcessing;
 
 namespace ScaffoldX.App.Services;
 
@@ -11,9 +12,6 @@ public class ValidationService : IValidationService
 {
     private static readonly Regex _projectNameRegex =
         new(@"^[A-Za-z][A-Za-z0-9_]{0,49}$", RegexOptions.Compiled);
-
-    private static readonly Regex _splitRegex =
-        new(@"[_\-\s]+", RegexOptions.Compiled);
 
     /// <summary>
     /// 验证项目名称是否符合规范（^[A-Za-z][A-Za-z0-9_]{0,49}$）。
@@ -75,36 +73,11 @@ public class ValidationService : IValidationService
     }
 
     /// <summary>
-    /// 将任意字符串转换为 PascalCase，按下划线、连字符和空格分割，每段首字母大写其余小写。
+    /// 将任意字符串转换为 PascalCase，委托给 <see cref="VariableResolver.ToPascalCase"/>。
     /// </summary>
     /// <param name="input">原始输入字符串。</param>
     /// <returns>PascalCase 格式的字符串。</returns>
-    public string ToPascalCase(string input)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return string.Empty;
-        }
-
-        string[] parts = _splitRegex.Split(input.Trim());
-        var builder = new System.Text.StringBuilder(input.Length);
-
-        foreach (string part in parts)
-        {
-            if (part.Length == 0)
-            {
-                continue;
-            }
-
-            builder.Append(char.ToUpperInvariant(part[0]));
-            if (part.Length > 1)
-            {
-                builder.Append(part[1..].ToLowerInvariant());
-            }
-        }
-
-        return builder.ToString();
-    }
+    public string ToPascalCase(string input) => VariableResolver.ToPascalCase(input);
 
     /// <summary>
     /// 验证 IPv4 地址格式是否合法。

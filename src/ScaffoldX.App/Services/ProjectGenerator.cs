@@ -2,18 +2,21 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using ScaffoldX.App.Models;
+using ScaffoldX.Core.TemplateProcessing;
 
 namespace ScaffoldX.App.Services;
 
 /// <summary>
-/// <see cref="IProjectGenerator"/> 的默认实现。
-/// 按照"验证 → 构建上下文 → 选择模板 → 渲染 → 后处理 → 记录历史"六步流程生成项目骨架。
+/// <see cref="IProjectGenerator"/> 的实现。
+/// 按照 PRD §10.4 定义的六步流程生成项目骨架：
+/// 验证 → 构建上下文 → 选择模板 → 渲染 → 后处理 → 记录历史。
 /// </summary>
 public class ProjectGenerator : IProjectGenerator
 {
     private readonly ITemplateEngine _templateEngine;
     private readonly IHistoryService _historyService;
     private readonly IValidationService _validationService;
+    private readonly TemplateRegistry _templateRegistry;
 
     /// <summary>
     /// 初始化 <see cref="ProjectGenerator"/>，通过构造函数注入所有依赖。
@@ -21,18 +24,21 @@ public class ProjectGenerator : IProjectGenerator
     /// <param name="templateEngine">Scriban 模板引擎。</param>
     /// <param name="historyService">历史记录服务。</param>
     /// <param name="validationService">输入验证服务。</param>
+    /// <param name="templateRegistry">模板注册表，管理所有 .stpl 模板的加载与查询。</param>
     public ProjectGenerator(
         ITemplateEngine templateEngine,
         IHistoryService historyService,
-        IValidationService validationService)
+        IValidationService validationService,
+        TemplateRegistry templateRegistry)
     {
         _templateEngine = templateEngine;
         _historyService = historyService;
         _validationService = validationService;
+        _templateRegistry = templateRegistry;
     }
 
     /// <summary>
-    /// 异步执行项目生成流程：验证配置 → 构建变量上下文 → 选择模板 → 渲染模板 → 后处理 → 记录历史。
+    /// 异步执行项目生成流程。
     /// </summary>
     /// <param name="config">项目生成配置。</param>
     /// <param name="progress">进度回调，用于向 UI 层报告当前步骤和百分比。</param>
@@ -60,52 +66,23 @@ public class ProjectGenerator : IProjectGenerator
                 return GenerationResult.Fail($"输出路径验证失败：{pathResult.ErrorMessage}");
             }
 
-            // 步骤 2：构建变量上下文
+            // 步骤 2：构建变量上下文（通过 Core 层 VariableResolver）
             progress.Report(new GenerationProgress("正在构建变量上下文…", 15));
-            string namespacePrefix = string.IsNullOrWhiteSpace(config.NamespacePrefix)
-                ? _validationService.ToPascalCase(config.ProjectName)
-                : config.NamespacePrefix;
+            var coreConfig = MapToCoreConfig(config);
+            var variables = VariableResolver.BuildVariableContext(coreConfig);
 
-            string targetFramework = config.DotNetVersion switch
+            // 步骤 3：加载并选择模板集合
+            progress.Report(new GenerationProgress("正在加载模板…", 25));
+            await _templateRegistry.LoadFromAssemblyAsync().ConfigureAwait(false);
+            var templates = _templateRegistry.GetTemplatesForConfig(coreConfig);
+
+            if (templates.Count == 0)
             {
-                ".NET 6" => config.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
-                _        => config.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
-            };
-
-            var variables = new Dictionary<string, object>
-            {
-                ["project_name"]       = config.ProjectName,
-                ["namespace_prefix"]   = namespacePrefix,
-                ["output_path"]        = config.OutputPath,
-                ["ui_framework"]       = config.UIFramework,
-                ["dot_net_version"]    = config.DotNetVersion,
-                ["target_framework"]   = targetFramework,
-                ["project_type"]       = config.ProjectType,
-                ["project_description"]= config.ProjectDescription,
-                ["selected_drivers"]   = config.SelectedDrivers,
-                ["enable_simulation"]  = config.EnableSimulationDriver,
-                ["default_plc_ip"]     = config.DefaultPLCIp,
-                ["default_plc_port"]   = config.DefaultPLCPort,
-                ["s7_rack"]            = config.S7Rack,
-                ["s7_slot"]            = config.S7Slot,
-                ["opcua_endpoint"]     = config.OpcUaEndpoint,
-                ["camera_brand"]       = config.CameraBrand,
-                ["model_type"]         = config.ModelType,
-                ["model_path"]         = config.ModelPath,
-                ["enable_pipeline"]    = config.EnablePipeline,
-                ["selected_modules"]   = config.SelectedModules,
-                ["enable_login_window"]= config.EnableLoginWindow,
-                ["enable_cross_platform"] = config.EnableCrossPlatform,
-                ["force_password_change"] = config.ForcePasswordChange
-            };
-
-            // 步骤 3：选择模板集合
-            progress.Report(new GenerationProgress("正在选择模板…", 30));
-            IReadOnlyList<(string RelativePath, string TemplateContent)> templates =
-                SelectTemplates(config);
+                return GenerationResult.Fail("没有匹配当前配置的模板，请检查项目类型和功能选项。");
+            }
 
             // 步骤 4：渲染模板并写入文件
-            progress.Report(new GenerationProgress("正在渲染并写入文件…", 45));
+            progress.Report(new GenerationProgress("正在渲染并写入文件…", 40));
             string projectRoot = Path.Combine(config.OutputPath, config.ProjectName);
             Directory.CreateDirectory(projectRoot);
 
@@ -114,10 +91,18 @@ public class ProjectGenerator : IProjectGenerator
 
             for (int i = 0; i < total; i++)
             {
-                (string relativePath, string templateContent) = templates[i];
-                string renderedPath = _templateEngine.Render(relativePath, variables);
-                string renderedContent = _templateEngine.Render(templateContent, variables);
+                var template = templates[i];
 
+                // 渲染输出路径（路径中可能包含 Scriban 变量）
+                string renderedPath = _templateEngine.Render(template.OutputPathTemplate, variables);
+
+                // 渲染模板内容
+                string renderedContent = _templateEngine.Render(template.Content, variables);
+
+                // 后处理：行尾规范化、XML 实体还原、尾部空白清理
+                renderedContent = PostProcessor.Process(renderedContent, renderedPath, coreConfig);
+
+                // 写入文件
                 string fullPath = Path.Combine(projectRoot, renderedPath);
                 string? dir = Path.GetDirectoryName(fullPath);
                 if (!string.IsNullOrEmpty(dir))
@@ -128,11 +113,11 @@ public class ProjectGenerator : IProjectGenerator
                 await File.WriteAllTextAsync(fullPath, renderedContent).ConfigureAwait(false);
                 fileCount++;
 
-                int percent = 45 + (int)((i + 1) / (double)total * 35);
+                int percent = 40 + (int)((i + 1) / (double)total * 40);
                 progress.Report(new GenerationProgress($"已写入：{renderedPath}", percent));
             }
 
-            // 步骤 5：后处理（占位，可扩展为格式化、dotnet restore 等）
+            // 步骤 5：后处理（dotnet restore 等扩展步骤）
             progress.Report(new GenerationProgress("正在执行后处理…", 85));
             await PostProcessAsync(projectRoot, config).ConfigureAwait(false);
 
@@ -143,6 +128,12 @@ public class ProjectGenerator : IProjectGenerator
                 WriteIndented = false,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
+
+            string targetFramework = config.DotNetVersion switch
+            {
+                ".NET 6" => config.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
+                _        => config.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
+            };
 
             await _historyService.SaveAsync(new ProjectHistory
             {
@@ -168,105 +159,51 @@ public class ProjectGenerator : IProjectGenerator
     }
 
     /// <summary>
-    /// 根据项目类型返回对应的模板集合（相对路径 + 模板内容）。
-    /// 当前为最小骨架实现，后续可替换为从嵌入资源或磁盘加载。
+    /// 将 App 层的 <see cref="Models.ProjectConfig"/> 映射为 Core 层的 <see cref="Core.Models.ProjectConfig"/>。
+    /// 两层的配置模型字段命名和结构不同，此方法负责桥接。
     /// </summary>
-    /// <param name="config">项目配置，用于区分项目类型。</param>
-    /// <returns>模板列表，每项包含相对路径模板和文件内容模板。</returns>
-    private static IReadOnlyList<(string RelativePath, string TemplateContent)> SelectTemplates(
-        ProjectConfig config)
+    /// <param name="appConfig">App 层的项目配置。</param>
+    /// <returns>Core 层的项目配置。</returns>
+    private static Core.Models.ProjectConfig MapToCoreConfig(Models.ProjectConfig appConfig)
     {
-        return config.ProjectType switch
+        string targetFramework = appConfig.DotNetVersion switch
         {
-            "Collection" => CollectionTemplates(),
-            "Vision"     => VisionTemplates(),
-            "System"     => SystemTemplates(),
-            _            => CollectionTemplates()
+            ".NET 6" => appConfig.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
+            _        => appConfig.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
         };
-    }
 
-    /// <summary>
-    /// 采集类项目的最小模板集合。
-    /// </summary>
-    private static List<(string, string)> CollectionTemplates()
-    {
-        return new List<(string, string)>
+        return new Core.Models.ProjectConfig
         {
-            (
-                "{{project_name}}.sln",
-                "# {{project_name}} Solution\n# Generated by ScaffoldX\n"
-            ),
-            (
-                "src/{{project_name}}/{{project_name}}.csproj",
-                "<Project Sdk=\"Microsoft.NET.Sdk\">\n" +
-                "  <PropertyGroup>\n" +
-                "    <TargetFramework>{{target_framework}}</TargetFramework>\n" +
-                "    <RootNamespace>{{namespace_prefix}}</RootNamespace>\n" +
-                "    <Nullable>enable</Nullable>\n" +
-                "    <ImplicitUsings>enable</ImplicitUsings>\n" +
-                "  </PropertyGroup>\n" +
-                "</Project>\n"
-            ),
-            (
-                "src/{{project_name}}/Program.cs",
-                "// {{project_name}} - {{project_description}}\n" +
-                "// Generated by ScaffoldX\n\n" +
-                "namespace {{namespace_prefix}};\n\n" +
-                "internal static class Program\n{\n" +
-                "    [STAThread]\n" +
-                "    private static void Main()\n    {\n" +
-                "        // Entry point\n    }\n}\n"
-            )
-        };
-    }
+            ProjectName     = appConfig.ProjectName,
+            NamespacePrefix = appConfig.NamespacePrefix,
+            TargetFramework = targetFramework,
+            UIFramework     = appConfig.UIFramework,
+            OutputDirectory = appConfig.OutputPath,
+            Author          = string.Empty,
+            Company         = string.Empty,
+            Description     = appConfig.ProjectDescription,
 
-    /// <summary>
-    /// 视觉类项目的最小模板集合。
-    /// </summary>
-    private static List<(string, string)> VisionTemplates()
-    {
-        return new List<(string, string)>
-        {
-            (
-                "{{project_name}}.sln",
-                "# {{project_name}} Vision Solution\n# Generated by ScaffoldX\n"
-            ),
-            (
-                "src/{{project_name}}/{{project_name}}.csproj",
-                "<Project Sdk=\"Microsoft.NET.Sdk\">\n" +
-                "  <PropertyGroup>\n" +
-                "    <TargetFramework>{{target_framework}}</TargetFramework>\n" +
-                "    <RootNamespace>{{namespace_prefix}}</RootNamespace>\n" +
-                "    <Nullable>enable</Nullable>\n" +
-                "    <ImplicitUsings>enable</ImplicitUsings>\n" +
-                "  </PropertyGroup>\n" +
-                "</Project>\n"
-            )
-        };
-    }
+            // 采集类：从 SelectedDrivers 列表映射到布尔标志
+            EnableSiemensS7    = appConfig.SelectedDrivers.Contains("S7Net"),
+            EnableModbusTcp    = appConfig.SelectedDrivers.Contains("ModbusTcp"),
+            EnableOpcUa        = appConfig.SelectedDrivers.Contains("OpcUa"),
+            EnableMitsubishiMc = appConfig.SelectedDrivers.Contains("MitsubishiMc"),
+            EnableOmronFins    = appConfig.SelectedDrivers.Contains("OmronFins"),
 
-    /// <summary>
-    /// 系统类项目的最小模板集合。
-    /// </summary>
-    private static List<(string, string)> SystemTemplates()
-    {
-        return new List<(string, string)>
-        {
-            (
-                "{{project_name}}.sln",
-                "# {{project_name}} System Solution\n# Generated by ScaffoldX\n"
-            ),
-            (
-                "src/{{project_name}}/{{project_name}}.csproj",
-                "<Project Sdk=\"Microsoft.NET.Sdk\">\n" +
-                "  <PropertyGroup>\n" +
-                "    <TargetFramework>{{target_framework}}</TargetFramework>\n" +
-                "    <RootNamespace>{{namespace_prefix}}</RootNamespace>\n" +
-                "    <Nullable>enable</Nullable>\n" +
-                "    <ImplicitUsings>enable</ImplicitUsings>\n" +
-                "  </PropertyGroup>\n" +
-                "</Project>\n"
-            )
+            // 视觉类
+            EnableVision = appConfig.ProjectType == "Vision",
+            CameraBrand  = appConfig.CameraBrand,
+            ModelType    = appConfig.ModelType,
+
+            // 系统类
+            EnableUserManagement  = appConfig.SelectedModules.Contains("UserManagement"),
+            EnableRolePermission  = appConfig.SelectedModules.Contains("RolePermission"),
+            EnableSystemLog       = appConfig.SelectedModules.Contains("SystemLog"),
+            EnableThemeSwitcher   = appConfig.SelectedModules.Contains("ThemeSwitcher"),
+
+            // 其他
+            InitGitRepository     = true,
+            GeneratePublishScripts = true
         };
     }
 

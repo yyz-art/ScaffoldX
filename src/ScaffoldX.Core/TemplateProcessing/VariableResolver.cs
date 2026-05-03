@@ -4,13 +4,12 @@ namespace ScaffoldX.Core.TemplateProcessing;
 
 /// <summary>
 /// 将 <see cref="ProjectConfig"/> 转换为 Scriban 模板变量字典。
-/// 实现 PRD §10.4 中的 BuildVariableContext 逻辑。
+/// 变量键采用 PascalCase，与 .stpl 模板中的占位符一致。
 /// </summary>
 public static class VariableResolver
 {
     /// <summary>
     /// 根据项目配置构建完整的 Scriban 变量上下文字典。
-    /// 所有键均为 snake_case，与 Scriban 默认成员访问风格一致。
     /// </summary>
     /// <param name="config">用户在向导中填写的项目配置。</param>
     /// <returns>可直接传入 Scriban ScriptObject 的键值字典。</returns>
@@ -24,67 +23,65 @@ public static class VariableResolver
 
         var ctx = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
+        // ── 脚手架元数据 ──────────────────────────────────────────────────
+        ctx["ScaffoldXVersion"] = "1.0.0";
+        ctx["GeneratedAt"]      = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
         // ── 基础变量 ──────────────────────────────────────────────────────
-        ctx["project_name"]       = projectNamePascal;
-        ctx["namespace_prefix"]   = namespacePrefix;
-        ctx["target_framework"]   = config.TargetFramework;
-        ctx["ui_framework"]       = config.UIFramework;
-        ctx["author"]             = config.Author;
-        ctx["company"]            = config.Company;
-        ctx["description"]        = config.Description;
-        ctx["database_type"]      = config.DatabaseType;
-        ctx["year"]               = DateTime.Now.Year.ToString();
+        ctx["ProjectName"]       = projectNamePascal;
+        ctx["NamespacePrefix"]   = namespacePrefix;
+        ctx["TargetFramework"]   = config.TargetFramework;
+        ctx["UIFramework"]       = config.UIFramework;
+        ctx["Author"]            = config.Author;
+        ctx["Company"]           = config.Company;
+        ctx["Description"]       = config.Description;
+        ctx["DatabaseType"]      = config.DatabaseType;
+        ctx["Year"]              = DateTime.Now.Year.ToString();
+
+        ctx["IsWPF"]      = config.UIFramework.Equals("WPF", StringComparison.OrdinalIgnoreCase);
+        ctx["IsAvalonia"] = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
 
         // ── 采集类变量 ────────────────────────────────────────────────────
-        ctx["enable_siemens_s7"]    = config.EnableSiemensS7;
-        ctx["enable_modbus_tcp"]    = config.EnableModbusTcp;
-        ctx["enable_opc_ua"]        = config.EnableOpcUa;
-        ctx["enable_mitsubishi_mc"] = config.EnableMitsubishiMc;
-        ctx["enable_omron_fins"]    = config.EnableOmronFins;
-
-        // 是否启用了任意采集驱动
-        ctx["has_any_collection"] = config.EnableSiemensS7
+        ctx["EnableSiemensS7"]    = config.EnableSiemensS7;
+        ctx["EnableModbusTcp"]    = config.EnableModbusTcp;
+        ctx["EnableOpcUa"]        = config.EnableOpcUa;
+        ctx["EnableMitsubishiMc"] = config.EnableMitsubishiMc;
+        ctx["EnableOmronFins"]    = config.EnableOmronFins;
+        ctx["HasAnyCollection"]   = config.EnableSiemensS7
             || config.EnableModbusTcp
             || config.EnableOpcUa
             || config.EnableMitsubishiMc
             || config.EnableOmronFins;
 
         // ── 视觉类变量 ────────────────────────────────────────────────────
-        ctx["enable_vision"] = config.EnableVision;
-        ctx["camera_brand"]  = config.CameraBrand;
-        ctx["model_type"]    = config.ModelType;
-
-        ctx["camera_brand_pascal"] = ToPascalCase(config.CameraBrand);
-        ctx["model_type_pascal"]   = ToPascalCase(config.ModelType);
+        ctx["EnableVision"]    = config.EnableVision;
+        ctx["CameraBrand"]     = config.CameraBrand;
+        ctx["ModelType"]       = config.ModelType;
+        ctx["CameraBrandPascal"] = ToPascalCase(config.CameraBrand);
+        ctx["ModelTypePascal"]   = ToPascalCase(config.ModelType);
 
         // ── 系统类变量 ────────────────────────────────────────────────────
-        ctx["enable_user_management"]  = config.EnableUserManagement;
-        ctx["enable_alarm_management"] = config.EnableAlarmManagement;
-        ctx["enable_data_logging"]     = config.EnableDataLogging;
-        ctx["enable_reporting"]        = config.EnableReporting;
+        ctx["EnableUserManagement"]  = config.EnableUserManagement;
+        ctx["EnableRolePermission"]  = config.EnableRolePermission;
+        ctx["EnableSystemLog"]       = config.EnableSystemLog;
+        ctx["EnableThemeSwitcher"]   = config.EnableThemeSwitcher;
 
         // ── XAML 文件名变量 ───────────────────────────────────────────────
         var isAvalonia = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
 
-        // XAML 文件扩展名（WPF 和 Avalonia 均为 .axaml 或 .xaml）
-        ctx["xaml_ext"] = isAvalonia ? "axaml" : "xaml";
-
-        // XAML 命名空间声明前缀
-        ctx["xaml_ns"] = isAvalonia
+        ctx["XamlExt"]    = isAvalonia ? "axaml" : "xaml";
+        ctx["XamlCodeBehindExt"] = isAvalonia ? ".axaml.cs" : ".xaml.cs";
+        ctx["XamlNs"]     = isAvalonia
             ? "xmlns=\"https://github.com/avaloniaui\""
             : "xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"";
-
-        // XAML x: 命名空间
-        ctx["xaml_x_ns"] = "xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"";
-
-        // 代码隐藏基类
-        ctx["window_base_class"] = isAvalonia ? "Window" : "Window";
-        ctx["user_control_base"] = isAvalonia ? "UserControl" : "UserControl";
+        ctx["XamlXNs"]    = "xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"";
+        ctx["WindowBaseClass"]   = "Window";
+        ctx["UserControlBase"]   = "UserControl";
 
         // ── 派生便利变量 ──────────────────────────────────────────────────
-        ctx["solution_name"]    = projectNamePascal;
-        ctx["root_namespace"]   = namespacePrefix;
-        ctx["assembly_name"]    = projectNamePascal;
+        ctx["SolutionName"]  = projectNamePascal;
+        ctx["RootNamespace"] = namespacePrefix;
+        ctx["AssemblyName"]  = projectNamePascal;
 
         return ctx;
     }
@@ -117,7 +114,15 @@ public static class VariableResolver
 
             if (segment.Length > 1)
             {
-                result.Append(segment[1..]);
+                var remainder = segment[1..];
+                if (remainder == remainder.ToUpperInvariant())
+                {
+                    result.Append(remainder.ToLowerInvariant());
+                }
+                else
+                {
+                    result.Append(remainder);
+                }
             }
         }
 

@@ -1,0 +1,132 @@
+##OUTPUT: src/{{ProjectName}}.System/UserManagement/IUserService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.System.Core;
+
+namespace {{ NamespacePrefix }}.System.UserManagement
+{
+    /// <summary>
+    /// 用户管理服务接口，提供用户认证、CRUD 和密码管理功能。
+    /// </summary>
+    public interface IUserService
+    {
+        /// <summary>
+        /// 使用用户名和密码进行身份验证。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        /// <param name="password">明文密码。</param>
+        /// <returns>验证成功返回用户对象，失败返回 <c>null</c>。</returns>
+        Task<User?> AuthenticateAsync(string username, string password);
+
+        /// <summary>
+        /// 根据用户名获取用户信息。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        /// <returns>用户对象，不存在返回 <c>null</c>。</returns>
+        Task<User?> GetUserAsync(string username);
+
+        /// <summary>
+        /// 获取所有用户列表。
+        /// </summary>
+        /// <returns>用户列表。</returns>
+        Task<IReadOnlyList<User>> GetAllUsersAsync();
+
+        /// <summary>
+        /// 创建新用户。
+        /// </summary>
+        /// <param name="user">用户信息。</param>
+        /// <param name="password">初始密码。</param>
+        /// <returns>创建成功的用户对象。</returns>
+        Task<User> CreateUserAsync(User user, string password);
+
+        /// <summary>
+        /// 更新用户信息（不含密码）。
+        /// </summary>
+        /// <param name="user">更新后的用户信息。</param>
+        Task UpdateUserAsync(User user);
+
+        /// <summary>
+        /// 删除指定用户。
+        /// </summary>
+        /// <param name="username">要删除的用户名。</param>
+        Task DeleteAsync(string username);
+
+        /// <summary>
+        /// 修改用户密码。
+        /// </summary>
+        /// <param name="username">用户名。</param>
+        /// <param name="oldPassword">旧密码。</param>
+        /// <param name="newPassword">新密码。</param>
+        /// <returns>修改成功返回 <c>true</c>。</returns>
+        Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword);
+    }
+
+    /// <summary>
+    /// 用户实体，存储用户基本信息和角色。
+    /// </summary>
+    public sealed class User
+    {
+        /// <summary>用户名（唯一标识符）。</summary>
+        public string Username { get; init; } = string.Empty;
+
+        /// <summary>显示名称。</summary>
+        public string DisplayName { get; init; } = string.Empty;
+
+        /// <summary>用户角色。</summary>
+        public UserRole Role { get; init; } = UserRole.Viewer;
+
+        /// <summary>是否激活。</summary>
+        public bool IsActive { get; init; } = true;
+
+        /// <summary>是否强制下次登录修改密码。</summary>
+        public bool MustChangePassword { get; init; }
+
+        /// <summary>最后登录时间。</summary>
+        public DateTime? LastLoginAt { get; set; }
+
+        /// <summary>创建时间。</summary>
+        public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// 默认种子数据，用于初始化系统内置用户。
+    /// </summary>
+    public static class SeedData
+    {
+        /// <summary>
+        /// 获取默认用户列表（admin、engineer、operator）。
+        /// </summary>
+        public static IReadOnlyList<User> DefaultUsers => new List<User>
+        {
+            new()
+            {
+                Username = "admin",
+                DisplayName = "系统管理员",
+                Role = UserRole.Administrator,
+                IsActive = true,
+                MustChangePassword = true
+            },
+            new()
+            {
+                Username = "engineer",
+                DisplayName = "工程师",
+                Role = UserRole.Engineer,
+                IsActive = true,
+                MustChangePassword = false
+            },
+            new()
+            {
+                Username = "operator",
+                DisplayName = "操作员",
+                Role = UserRole.Operator,
+                IsActive = true,
+                MustChangePassword = false
+            }
+        };
+    }
+}

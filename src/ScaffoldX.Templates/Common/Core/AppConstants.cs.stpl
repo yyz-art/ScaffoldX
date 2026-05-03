@@ -1,3 +1,4 @@
+##OUTPUT: src/{{ProjectName}}.Core/Models/AppConstants.cs
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 

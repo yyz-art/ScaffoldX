@@ -1,0 +1,56 @@
+##OUTPUT: src/{{ProjectName}}.App/Shell/HomePageViewModel.cs
+##REQUIRED: true
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using Prism.Mvvm;
+
+namespace {{ NamespacePrefix }}.App.Shell
+{
+    /// <summary>
+    /// 首页 ViewModel，展示系统概览和运行状态。
+    /// </summary>
+    public class HomePageViewModel : BindableBase
+    {
+        private string _welcomeText = "欢迎使用 {{ ProjectName }}";
+        private string _runningStatus = "正常";
+        private string _pluginCount = "0";
+        private string _alarmCount = "0";
+        private string _footerText = "{{ ProjectName }} — 由 ScaffoldX {{ ScaffoldXVersion }} 生成";
+
+        /// <summary>欢迎文本。</summary>
+        public string WelcomeText
+        {
+            get => _welcomeText;
+            set => SetProperty(ref _welcomeText, value);
+        }
+
+        /// <summary>系统运行状态。</summary>
+        public string RunningStatus
+        {
+            get => _runningStatus;
+            set => SetProperty(ref _runningStatus, value);
+        }
+
+        /// <summary>已加载插件数量。</summary>
+        public string PluginCount
+        {
+            get => _pluginCount;
+            set => SetProperty(ref _pluginCount, value);
+        }
+
+        /// <summary>今日告警数量。</summary>
+        public string AlarmCount
+        {
+            get => _alarmCount;
+            set => SetProperty(ref _alarmCount, value);
+        }
+
+        /// <summary>底部版权信息。</summary>
+        public string FooterText
+        {
+            get => _footerText;
+            set => SetProperty(ref _footerText, value);
+        }
+    }
+}
