@@ -3,6 +3,8 @@
 // 请勿手动修改此文件
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Prism.Events;
 using Serilog;
@@ -10,12 +12,13 @@ using Serilog;
 namespace {{ NamespacePrefix }}.Core.Abstractions
 {
     /// <summary>
-    /// 插件抽象基类，提供状态机管理和生命周期模板方法。
+    /// 插件抽象基类，提供状态机管理、生命周期模板方法和线程安全的状态转换。
     /// 所有插件应继承此类而非直接实现 <see cref="IPlugin"/>。
     /// </summary>
-    public abstract class PluginBase : IPlugin
+    public abstract class PluginBase : IPlugin, IAsyncDisposable
     {
-        private readonly PluginStateMachine _stateMachine;
+        private readonly PluginStateMachine _stateMachine = new();
+        private readonly SemaphoreSlim _stateLock = new(1, 1);
 
         /// <inheritdoc/>
         public abstract string Id { get; }
@@ -41,32 +44,40 @@ namespace {{ NamespacePrefix }}.Core.Abstractions
         /// <summary>日志记录器，初始化后可用。</summary>
         protected ILogger Logger { get; private set; }
 
-        /// <summary>
-        /// 初始化 <see cref="PluginBase"/> 实例，状态设为 <see cref="PluginState.Created"/>。
-        /// </summary>
-        protected PluginBase()
-        {
-            _stateMachine = new PluginStateMachine();
-        }
-
         /// <inheritdoc/>
         public async Task InitializeAsync(IEventAggregator eventAggregator, IConfigService configService, ILogger logger)
         {
-            _stateMachine.Transition(PluginState.Initializing);
+            await _stateLock.WaitAsync();
             try
             {
-                EventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
-                ConfigService = configService ?? throw new ArgumentNullException(nameof(configService));
-                Logger = logger?.ForContext(GetType()) ?? throw new ArgumentNullException(nameof(logger));
+                _stateMachine.TransitionTo(PluginState.Normal);
+            }
+            finally
+            {
+                _stateLock.Release();
+            }
 
-                await OnInitializeAsync();
+            EventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
+            ConfigService = configService ?? throw new ArgumentNullException(nameof(configService));
+            Logger = logger?.ForContext(GetType()) ?? throw new ArgumentNullException(nameof(logger));
 
-                _stateMachine.Transition(PluginState.Running);
+            try
+            {
+                await InitializePluginAsync();
                 Logger.Information("插件 [{PluginId}] 初始化完成", Id);
             }
             catch (Exception ex)
             {
-                _stateMachine.Transition(PluginState.Faulted);
+                await _stateLock.WaitAsync();
+                try
+                {
+                    _stateMachine.TransitionTo(PluginState.Faulted);
+                }
+                finally
+                {
+                    _stateLock.Release();
+                }
+
                 Logger?.Error(ex, "插件 [{PluginId}] 初始化失败", Id);
                 throw;
             }
@@ -75,34 +86,98 @@ namespace {{ NamespacePrefix }}.Core.Abstractions
         /// <inheritdoc/>
         public async Task ShutdownAsync()
         {
-            if (State == PluginState.Stopped || State == PluginState.Created)
+            if (State == PluginState.Offline)
             {
                 return;
             }
 
-            _stateMachine.Transition(PluginState.Stopping);
             try
             {
-                await OnShutdownAsync();
-                _stateMachine.Transition(PluginState.Stopped);
+                await DisposeResourcesAsync();
+
+                await _stateLock.WaitAsync();
+                try
+                {
+                    _stateMachine.TransitionTo(PluginState.Offline);
+                }
+                finally
+                {
+                    _stateLock.Release();
+                }
+
                 Logger?.Information("插件 [{PluginId}] 已停止", Id);
             }
             catch (Exception ex)
             {
-                _stateMachine.Transition(PluginState.Faulted);
+                await _stateLock.WaitAsync();
+                try
+                {
+                    _stateMachine.TransitionTo(PluginState.Faulted);
+                }
+                finally
+                {
+                    _stateLock.Release();
+                }
+
                 Logger?.Error(ex, "插件 [{PluginId}] 停止时发生错误", Id);
                 throw;
             }
         }
 
         /// <summary>
+        /// 异步释放资源（IAsyncDisposable 实现），超时 5 秒。
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try
+            {
+                await ShutdownAsync().WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger?.Warning("插件 [{PluginId}] 释放资源超时", Id);
+            }
+
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// 确保插件处于 Normal 状态，否则抛出异常。
+        /// 应在公共方法入口处调用。
+        /// </summary>
+        /// <param name="callerName">调用方方法名（自动填充）。</param>
+        /// <exception cref="InvalidOperationException">插件不在 Normal 状态。</exception>
+        protected void EnsureNormalState([CallerMemberName] string callerName = "")
+        {
+            if (State != PluginState.Normal)
+            {
+                throw new InvalidOperationException(
+                    $"插件 [{Id}] 的 {callerName} 方法要求状态为 Normal，当前状态为 {State}");
+            }
+        }
+
+        /// <summary>
         /// 子类实现具体初始化逻辑。在基类完成依赖注入后调用。
         /// </summary>
-        protected abstract Task OnInitializeAsync();
+        protected abstract Task InitializePluginAsync();
 
         /// <summary>
         /// 子类实现具体关闭逻辑。释放托管和非托管资源。
         /// </summary>
-        protected abstract Task OnShutdownAsync();
+        protected abstract Task DisposeResourcesAsync();
+
+        /// <summary>
+        /// 释放托管资源。子类可重写。
+        /// </summary>
+        /// <param name="disposing">是否正在释放托管资源。</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _stateLock?.Dispose();
+            }
+        }
     }
 }

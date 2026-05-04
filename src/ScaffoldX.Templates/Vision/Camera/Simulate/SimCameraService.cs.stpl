@@ -1,9 +1,10 @@
-##OUTPUT: src/{{ProjectName}}.Vision/Camera/Simulate/SimCameraService.cs
+##OUTPUT: src/{{ProjectName}}.Vision.Camera.Simulate/SimCameraService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
 using System;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using {{ NamespacePrefix }}.Vision.Core;
@@ -11,124 +12,78 @@ using {{ NamespacePrefix }}.Vision.Core;
 namespace {{ NamespacePrefix }}.Vision.Camera.Simulate
 {
     /// <summary>
-    /// 模拟相机服务，生成随机噪声图像，用于开发和测试阶段。
-    /// 无需真实相机硬件即可验证视觉处理流程。
+    /// 模拟相机服务（PRD 对齐），生成随机噪声图像，用于开发和测试阶段。
     /// </summary>
     public sealed class SimCameraService : ICameraService
     {
         private readonly Random _random = new();
         private CameraConfig _config;
-        private bool _isConnected;
-        private bool _isContinuousGrabbing;
-        private CancellationTokenSource _grabCts;
-        private long _frameIndex;
+        private bool _isOpen;
 
         /// <inheritdoc/>
-        public string CameraId => "SimCamera";
+        public bool IsOpen => _isOpen;
 
         /// <inheritdoc/>
-        public string CameraName => "Simulation Camera";
-
-        /// <inheritdoc/>
-        public bool IsConnected => _isConnected;
-
-        /// <inheritdoc/>
-        public event EventHandler<FrameCapturedEventArgs> FrameCaptured;
-
-        /// <inheritdoc/>
-        public Task<bool> ConnectAsync(CameraConfig config)
+        public Task OpenAsync(CameraConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _isConnected = true;
-            _frameIndex = 0;
-            return Task.FromResult(true);
-        }
-
-        /// <inheritdoc/>
-        public Task DisconnectAsync()
-        {
-            StopContinuousGrabAsync().GetAwaiter().GetResult();
-            _isConnected = false;
+            _isOpen = true;
             return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
-        public Task<FrameCapturedEventArgs> GrabFrameAsync()
+        public Task CloseAsync()
         {
-            if (!_isConnected)
-            {
-                throw new InvalidOperationException("相机未连接");
-            }
-
-            var frame = GenerateNoiseFrame();
-            return Task.FromResult(frame);
-        }
-
-        /// <inheritdoc/>
-        public Task StartContinuousGrabAsync()
-        {
-            if (_isContinuousGrabbing)
-            {
-                return Task.CompletedTask;
-            }
-
-            _isContinuousGrabbing = true;
-            _grabCts = new CancellationTokenSource();
-            var token = _grabCts.Token;
-
-            Task.Run(async () =>
-            {
-                var intervalMs = _config.MaxFps > 0
-                    ? (int)(1000.0 / _config.MaxFps)
-                    : 33;
-
-                while (!token.IsCancellationRequested)
-                {
-                    var frame = GenerateNoiseFrame();
-                    FrameCaptured?.Invoke(this, frame);
-                    await Task.Delay(intervalMs, token).ConfigureAwait(false);
-                }
-            }, token);
-
+            _isOpen = false;
             return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
-        public Task StopContinuousGrabAsync()
+        public Task<Bitmap> CaptureAsync()
         {
-            if (!_isContinuousGrabbing)
-            {
-                return Task.CompletedTask;
-            }
+            if (!_isOpen)
+                throw new InvalidOperationException("相机未打开");
 
-            _grabCts?.Cancel();
-            _grabCts?.Dispose();
-            _grabCts = null;
-            _isContinuousGrabbing = false;
-            return Task.CompletedTask;
+            return Task.FromResult(GenerateNoiseBitmap());
+        }
+
+        /// <inheritdoc/>
+        public async Task StartContinuousCaptureAsync(Action<Bitmap> frameCallback, CancellationToken cancellationToken = default)
+        {
+            if (!_isOpen)
+                throw new InvalidOperationException("相机未打开");
+
+            var intervalMs = _config?.FrameRate > 0 ? 1000 / _config.FrameRate : 33;
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var frame = GenerateNoiseBitmap();
+                frameCallback(frame);
+                await Task.Delay(intervalMs, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
-        /// 生成指定尺寸的随机噪声 BGR 图像帧。
+        /// 生成指定尺寸的随机噪声 Bitmap。
         /// </summary>
-        /// <returns>包含噪声图像数据的帧事件参数。</returns>
-        private FrameCapturedEventArgs GenerateNoiseFrame()
+        private Bitmap GenerateNoiseBitmap()
         {
             var width = _config?.Width ?? 640;
             var height = _config?.Height ?? 480;
-            var dataSize = width * height * 3; // BGR8
-            var data = new byte[dataSize];
+            var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+
+            var data = new byte[width * height * 3];
             _random.NextBytes(data);
 
-            return new FrameCapturedEventArgs
-            {
-                ImageData = data,
-                Width = width,
-                Height = height,
-                PixelFormat = "BGR8",
-                FrameIndex = Interlocked.Increment(ref _frameIndex) - 1,
-                Timestamp = DateTime.UtcNow
-            };
+            var bitmapData = bitmap.LockBits(
+                new Rectangle(0, 0, width, height),
+                System.Drawing.Imaging.ImageLockMode.WriteOnly,
+                bitmap.PixelFormat);
+
+            System.Runtime.InteropServices.Marshal.Copy(data, 0, bitmapData.Scan0, data.Length);
+            bitmap.UnlockBits(bitmapData);
+
+            return bitmap;
         }
     }
 }

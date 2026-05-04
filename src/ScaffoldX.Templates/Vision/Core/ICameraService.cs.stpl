@@ -4,104 +4,63 @@
 // 请勿手动修改此文件
 
 using System;
+using System.Drawing;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace {{ NamespacePrefix }}.Vision.Core
 {
     /// <summary>
-    /// 相机服务接口，抽象相机硬件的连接、采图和配置能力。
+    /// 相机服务接口（PRD 对齐），提供相机连接、采集和流式捕获功能。
     /// </summary>
     public interface ICameraService
     {
-        /// <summary>相机唯一标识符。</summary>
-        string CameraId { get; }
-
-        /// <summary>相机显示名称。</summary>
-        string CameraName { get; }
-
-        /// <summary>当前连接状态。</summary>
-        bool IsConnected { get; }
-
-        /// <summary>帧采集事件，每次成功采图后触发。</summary>
-        event EventHandler<FrameCapturedEventArgs> FrameCaptured;
+        /// <summary>相机是否已打开。</summary>
+        bool IsOpen { get; }
 
         /// <summary>
-        /// 异步连接相机。
+        /// 打开相机连接。
         /// </summary>
-        /// <param name="config">相机配置参数。</param>
-        /// <returns>连接成功返回 <c>true</c>，否则 <c>false</c>。</returns>
-        Task<bool> ConnectAsync(CameraConfig config);
+        /// <param name="config">相机配置。</param>
+        Task OpenAsync(CameraConfig config);
 
         /// <summary>
-        /// 异步断开相机连接。
+        /// 关闭相机连接，释放资源。
         /// </summary>
-        Task DisconnectAsync();
+        Task CloseAsync();
 
         /// <summary>
-        /// 异步触发单次采图。
+        /// 采集单帧图像。
         /// </summary>
-        /// <returns>采集到的图像帧数据。</returns>
-        Task<FrameCapturedEventArgs> GrabFrameAsync();
+        /// <returns>采集到的图像。</returns>
+        Task<Bitmap> CaptureAsync();
 
         /// <summary>
-        /// 启动连续采图模式。
+        /// 启动连续采集模式。
         /// </summary>
-        Task StartContinuousGrabAsync();
-
-        /// <summary>
-        /// 停止连续采图模式。
-        /// </summary>
-        Task StopContinuousGrabAsync();
+        /// <param name="frameCallback">每帧回调。</param>
+        /// <param name="cancellationToken">取消令牌。</param>
+        Task StartContinuousCaptureAsync(Action<Bitmap> frameCallback, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
-    /// 相机配置参数。
+    /// 相机配置（PRD 对齐）。
     /// </summary>
     public sealed class CameraConfig
     {
-        /// <summary>相机序列号或设备索引。</summary>
-        public string DeviceId { get; init; }
+        /// <summary>设备标识符。</summary>
+        public string DeviceId { get; init; } = string.Empty;
 
-        /// <summary>图像宽度（像素）。</summary>
+        /// <summary>图像宽度。</summary>
         public int Width { get; init; } = 1920;
 
-        /// <summary>图像高度（像素）。</summary>
+        /// <summary>图像高度。</summary>
         public int Height { get; init; } = 1080;
 
-        /// <summary>曝光时间（微秒）。</summary>
-        public double ExposureUs { get; init; } = 10000;
+        /// <summary>帧率。</summary>
+        public int FrameRate { get; init; } = 30;
 
-        /// <summary>增益（dB）。</summary>
-        public double GainDb { get; init; } = 0;
-
-        /// <summary>帧率上限（fps），0 表示不限制。</summary>
-        public double MaxFps { get; init; } = 30;
-
-        /// <summary>触发模式：true 为外触发，false 为自由运行。</summary>
-        public bool ExternalTrigger { get; init; } = false;
-    }
-
-    /// <summary>
-    /// 帧采集事件参数，携带图像数据和元信息。
-    /// </summary>
-    public sealed class FrameCapturedEventArgs : EventArgs
-    {
-        /// <summary>图像原始字节数据（BGR 或 Mono 格式）。</summary>
-        public byte[] ImageData { get; init; }
-
-        /// <summary>图像宽度（像素）。</summary>
-        public int Width { get; init; }
-
-        /// <summary>图像高度（像素）。</summary>
-        public int Height { get; init; }
-
-        /// <summary>像素格式描述，如 "BGR8"、"Mono8"。</summary>
-        public string PixelFormat { get; init; }
-
-        /// <summary>帧序号，从 0 开始递增。</summary>
-        public long FrameIndex { get; init; }
-
-        /// <summary>采集时间戳（UTC）。</summary>
-        public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+        /// <summary>扩展参数（协议特定配置）。</summary>
+        public Dictionary<string, string> ExtraParams { get; init; } = new();
     }
 }

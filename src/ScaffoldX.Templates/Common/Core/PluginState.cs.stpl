@@ -3,31 +3,23 @@
 // 请勿手动修改此文件
 
 using System;
+using System.Collections.Generic;
 
 namespace {{ NamespacePrefix }}.Core.Abstractions
 {
     /// <summary>
-    /// 插件生命周期状态枚举。
+    /// 插件生命周期状态枚举（PRD 对齐：Normal / Faulted / Offline）。
     /// </summary>
     public enum PluginState
     {
-        /// <summary>插件已创建，尚未初始化。</summary>
-        Created = 0,
+        /// <summary>正常运行。</summary>
+        Normal = 0,
 
-        /// <summary>插件正在初始化。</summary>
-        Initializing = 1,
+        /// <summary>发生错误，处于故障状态。</summary>
+        Faulted = 1,
 
-        /// <summary>插件已初始化并正常运行。</summary>
-        Running = 2,
-
-        /// <summary>插件正在停止。</summary>
-        Stopping = 3,
-
-        /// <summary>插件已停止。</summary>
-        Stopped = 4,
-
-        /// <summary>插件发生错误，处于故障状态。</summary>
-        Faulted = 5
+        /// <summary>离线（已断开或未连接）。</summary>
+        Offline = 2
     }
 
     /// <summary>
@@ -35,19 +27,20 @@ namespace {{ NamespacePrefix }}.Core.Abstractions
     /// </summary>
     public sealed class PluginStateMachine
     {
-        private PluginState _current = PluginState.Created;
-        private readonly object _lock = new object();
+        private static readonly Dictionary<PluginState, HashSet<PluginState>> AllowedTransitions = new()
+        {
+            [PluginState.Normal]  = new() { PluginState.Faulted, PluginState.Offline },
+            [PluginState.Faulted] = new() { PluginState.Normal, PluginState.Offline },
+            [PluginState.Offline] = new() { PluginState.Normal }
+        };
+
+        private PluginState _current = PluginState.Offline;
+        private readonly object _lock = new();
 
         /// <summary>当前状态。</summary>
         public PluginState Current
         {
-            get
-            {
-                lock (_lock)
-                {
-                    return _current;
-                }
-            }
+            get { lock (_lock) return _current; }
         }
 
         /// <summary>
@@ -55,38 +48,17 @@ namespace {{ NamespacePrefix }}.Core.Abstractions
         /// </summary>
         /// <param name="target">目标状态。</param>
         /// <exception cref="InvalidOperationException">当前状态不允许转换到目标状态。</exception>
-        public void Transition(PluginState target)
+        public void TransitionTo(PluginState target)
         {
             lock (_lock)
             {
-                if (!IsValidTransition(_current, target))
+                if (!AllowedTransitions.TryGetValue(_current, out var allowed) || !allowed.Contains(target))
                 {
                     throw new InvalidOperationException(
                         $"插件状态机：不允许从 {_current} 转换到 {target}");
                 }
                 _current = target;
             }
-        }
-
-        /// <summary>
-        /// 判断从 <paramref name="from"/> 到 <paramref name="to"/> 的转换是否合法。
-        /// </summary>
-        /// <param name="from">源状态。</param>
-        /// <param name="to">目标状态。</param>
-        /// <returns>合法返回 <c>true</c>，否则 <c>false</c>。</returns>
-        private static bool IsValidTransition(PluginState from, PluginState to)
-        {
-            return (from, to) switch
-            {
-                (PluginState.Created, PluginState.Initializing) => true,
-                (PluginState.Initializing, PluginState.Running) => true,
-                (PluginState.Initializing, PluginState.Faulted) => true,
-                (PluginState.Running, PluginState.Stopping) => true,
-                (PluginState.Running, PluginState.Faulted) => true,
-                (PluginState.Stopping, PluginState.Stopped) => true,
-                (PluginState.Stopping, PluginState.Faulted) => true,
-                _ => false
-            };
         }
     }
 
