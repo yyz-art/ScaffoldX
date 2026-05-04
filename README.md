@@ -11,7 +11,7 @@
   - **采集类 (Collection)**：Siemens S7、Modbus TCP、OPC-UA、Mitsubishi MC、Omron FINS 驱动
   - **视觉类 (Vision)**：相机集成、图像处理 Pipeline、ONNX 推理引擎
   - **系统类 (System)**：用户管理、角色权限、审计日志、主题切换
-- **Scriban 模板引擎**：32+ 个 `.stpl` 模板文件，支持条件生成
+- **Scriban 模板引擎**：61 个 `.stpl` 模板文件，支持条件生成
 - **双 UI 框架**：WPF (.NET 8) / Avalonia 跨平台
 - **生成历史管理**：保存、加载、删除历史项目配置
 
