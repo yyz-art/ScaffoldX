@@ -45,6 +45,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.O
 EndProject
 {{ end }}
 
+{{ if EnableMitsubishiMc }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.MitsubishiMc", "src\{{ ProjectName }}.Drivers.MitsubishiMc\{{ ProjectName }}.Drivers.MitsubishiMc.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-600000000004}"
+EndProject
+{{ end }}
+
+{{ if EnableOmronFins }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.OmronFins", "src\{{ ProjectName }}.Drivers.OmronFins\{{ ProjectName }}.Drivers.OmronFins.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-600000000005}"
+EndProject
+{{ end }}
+
 {{ if EnableVision }}
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Vision.Camera.Simulate", "src\{{ ProjectName }}.Vision.Camera.Simulate\{{ ProjectName }}.Vision.Camera.Simulate.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-700000000001}"
 EndProject

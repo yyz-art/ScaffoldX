@@ -1,0 +1,70 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.MitsubishiMc/MitsubishiMcDriver.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Drivers.MitsubishiMc
+{
+    /// <summary>
+    /// 三菱 MC 协议数据采集驱动。
+    /// 推荐使用 NuGet 包：McProtocol 或 HslCommunication
+    /// </summary>
+    public sealed class MitsubishiMcDriver : IDriver
+    {
+        private bool _isConnected;
+
+        /// <inheritdoc/>
+        public string DriverId => "MitsubishiMc";
+
+        /// <inheritdoc/>
+        public string ProtocolName => "Mitsubishi MC";
+
+        /// <inheritdoc/>
+        public bool IsConnected => _isConnected;
+
+        /// <inheritdoc/>
+        public Task<bool> ConnectAsync(ConnectionParams parameters)
+        {
+            // TODO: [ScaffoldX] 初始化三菱 MC 协议连接
+            // 参数示例：
+            //   Host = parameters.Host          (默认: 192.168.1.1)
+            //   Port = parameters.Port          (默认: 5000)
+            //
+            // 示例代码（需安装 NuGet: HslCommunication）：
+            // var client = new HslCommunication.Profinet.Melsec.MelsecMcNet(parameters.Host, parameters.Port);
+            // var connect = await client.ConnectServerAsync();
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现三菱 MC 驱动连接逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task DisconnectAsync()
+        {
+            _isConnected = false;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<DataValue> ReadAsync(Tag tag)
+        {
+            // TODO: [ScaffoldX] 解析 tag.Address（如 "D100" 表示 D 寄存器地址 100）
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现三菱 MC 驱动读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<Dictionary<string, DataValue>> ReadBatchAsync(IEnumerable<Tag> tags)
+        {
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现三菱 MC 驱动批量读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> WriteAsync(Tag tag, object value)
+        {
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现三菱 MC 驱动写入逻辑");
+        }
+    }
+}

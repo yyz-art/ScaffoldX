@@ -1,0 +1,74 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.ModbusTcp/ModbusTcpDriver.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Drivers.ModbusTcp
+{
+    /// <summary>
+    /// Modbus TCP 数据采集驱动。
+    /// 推荐使用 NuGet 包：NModbus4
+    /// </summary>
+    public sealed class ModbusTcpDriver : IDriver
+    {
+        private bool _isConnected;
+
+        /// <inheritdoc/>
+        public string DriverId => "ModbusTcp";
+
+        /// <inheritdoc/>
+        public string ProtocolName => "Modbus TCP";
+
+        /// <inheritdoc/>
+        public bool IsConnected => _isConnected;
+
+        /// <inheritdoc/>
+        public Task<bool> ConnectAsync(ConnectionParams parameters)
+        {
+            // TODO: [ScaffoldX] 初始化 Modbus TCP 连接
+            // 参数示例：
+            //   Host = parameters.Host          (默认: {{ DefaultPLCIp }})
+            //   Port = parameters.Port          (默认: 502)
+            //
+            // 示例代码（需安装 NuGet: NModbus4）：
+            // var factory = new ModbusFactory();
+            // var client = factory.CreateTcpClient(parameters.Host, parameters.Port);
+            // _master = factory.CreateMaster(client);
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 Modbus TCP 驱动连接逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task DisconnectAsync()
+        {
+            _isConnected = false;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<DataValue> ReadAsync(Tag tag)
+        {
+            // TODO: [ScaffoldX] 解析 tag.Address（如 "H100" 表示 Holding Register 地址 100）
+            // 并调用 _master.ReadHoldingRegisters / ReadInputRegisters / ReadCoils 等
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 Modbus TCP 驱动读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<Dictionary<string, DataValue>> ReadBatchAsync(IEnumerable<Tag> tags)
+        {
+            // TODO: [ScaffoldX] 使用 Modbus 批量读取优化性能
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 Modbus TCP 驱动批量读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> WriteAsync(Tag tag, object value)
+        {
+            // TODO: [ScaffoldX] 解析 tag.Address 并调用 _master.WriteSingleRegister / WriteSingleCoil 等
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 Modbus TCP 驱动写入逻辑");
+        }
+    }
+}

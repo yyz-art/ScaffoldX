@@ -1,0 +1,72 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.OpcUa/OpcUaDriver.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Drivers.OpcUa
+{
+    /// <summary>
+    /// OPC-UA 数据采集驱动。
+    /// 推荐使用 NuGet 包：OPCFoundation.NetStandard.Opc.Ua
+    /// </summary>
+    public sealed class OpcUaDriver : IDriver
+    {
+        private bool _isConnected;
+
+        /// <inheritdoc/>
+        public string DriverId => "OpcUa";
+
+        /// <inheritdoc/>
+        public string ProtocolName => "OPC-UA";
+
+        /// <inheritdoc/>
+        public bool IsConnected => _isConnected;
+
+        /// <inheritdoc/>
+        public Task<bool> ConnectAsync(ConnectionParams parameters)
+        {
+            // TODO: [ScaffoldX] 初始化 OPC-UA 连接
+            // 参数示例：
+            //   EndpointUrl = parameters.EndpointUrl  (默认: opc.tcp://localhost:4840)
+            //
+            // 示例代码（需安装 NuGet: OPCFoundation.NetStandard.Opc.Ua）：
+            // var config = new ApplicationConfiguration { ... };
+            // var endpoint = parameters.EndpointUrl;
+            // var session = await Session.Create(config, endpoint, false, "ScaffoldX", 60000, ...);
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 OPC-UA 驱动连接逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task DisconnectAsync()
+        {
+            _isConnected = false;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<DataValue> ReadAsync(Tag tag)
+        {
+            // TODO: [ScaffoldX] 使用 tag.Address 作为 NodeId 调用 session.ReadValue
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 OPC-UA 驱动读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<Dictionary<string, DataValue>> ReadBatchAsync(IEnumerable<Tag> tags)
+        {
+            // TODO: [ScaffoldX] 使用 ReadValues 批量读取
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 OPC-UA 驱动批量读取逻辑");
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> WriteAsync(Tag tag, object value)
+        {
+            // TODO: [ScaffoldX] 使用 session.Write 写入节点值
+            throw new NotImplementedException("TODO: [ScaffoldX] 请实现 OPC-UA 驱动写入逻辑");
+        }
+    }
+}
