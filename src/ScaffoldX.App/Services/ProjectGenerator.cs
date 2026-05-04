@@ -190,16 +190,29 @@ public class ProjectGenerator : IProjectGenerator
             EnableMitsubishiMc = appConfig.SelectedDrivers.Contains("MitsubishiMc"),
             EnableOmronFins    = appConfig.SelectedDrivers.Contains("OmronFins"),
 
+            // 采集扩展
+            EnableSimulationDriver = appConfig.EnableSimulationDriver,
+            DefaultPLCIp          = appConfig.DefaultPLCIp,
+            DefaultPLCPort        = appConfig.DefaultPLCPort,
+            S7Rack                = appConfig.S7Rack,
+            S7Slot                = appConfig.S7Slot,
+            OpcUaEndpoint         = appConfig.OpcUaEndpoint,
+
             // 视觉类
-            EnableVision = appConfig.ProjectType == "Vision",
-            CameraBrand  = appConfig.CameraBrand,
-            ModelType    = appConfig.ModelType,
+            EnableVision    = appConfig.ProjectType == "Vision",
+            CameraBrand     = appConfig.CameraBrand,
+            ModelType       = appConfig.ModelType,
+            EnablePipeline  = appConfig.EnablePipeline,
+            ModelPath       = appConfig.ModelPath,
 
             // 系统类
             EnableUserManagement  = appConfig.SelectedModules.Contains("UserManagement"),
             EnableRolePermission  = appConfig.SelectedModules.Contains("RolePermission"),
             EnableSystemLog       = appConfig.SelectedModules.Contains("SystemLog"),
             EnableThemeSwitcher   = appConfig.SelectedModules.Contains("ThemeSwitcher"),
+            EnableLoginWindow     = appConfig.EnableLoginWindow,
+            EnableCrossPlatform   = appConfig.EnableCrossPlatform,
+            ForcePasswordChange   = appConfig.ForcePasswordChange,
 
             // 其他
             InitGitRepository     = true,

@@ -76,6 +76,45 @@ public class ProjectConfig
     /// <summary>数据库类型，如 "SQLite"、"SQLServer"、"MySQL"。</summary>
     public string DatabaseType { get; set; } = "SQLite";
 
+    // ── 采集扩展选项 ──────────────────────────────────────────────────────
+
+    /// <summary>是否生成仿真驱动。</summary>
+    public bool EnableSimulationDriver { get; set; } = true;
+
+    /// <summary>默认 PLC IP 地址。</summary>
+    public string DefaultPLCIp { get; set; } = "192.168.1.1";
+
+    /// <summary>默认 PLC 端口。</summary>
+    public int DefaultPLCPort { get; set; } = 102;
+
+    /// <summary>S7 机架号。</summary>
+    public int S7Rack { get; set; } = 0;
+
+    /// <summary>S7 槽号。</summary>
+    public int S7Slot { get; set; } = 1;
+
+    /// <summary>OPC-UA 端点 URL。</summary>
+    public string OpcUaEndpoint { get; set; } = "opc.tcp://localhost:4840";
+
+    // ── 视觉扩展选项 ──────────────────────────────────────────────────────
+
+    /// <summary>是否启用图像处理 Pipeline。</summary>
+    public bool EnablePipeline { get; set; }
+
+    /// <summary>推理模型文件路径。</summary>
+    public string ModelPath { get; set; } = string.Empty;
+
+    // ── 系统扩展选项 ──────────────────────────────────────────────────────
+
+    /// <summary>是否生成独立登录窗口。</summary>
+    public bool EnableLoginWindow { get; set; }
+
+    /// <summary>是否启用跨平台支持。</summary>
+    public bool EnableCrossPlatform { get; set; }
+
+    /// <summary>是否强制首次登录修改密码。</summary>
+    public bool ForcePasswordChange { get; set; }
+
     // ── 其他 ──────────────────────────────────────────────────────────────
 
     /// <summary>是否生成 Git 仓库初始化文件（.gitignore 等）。</summary>

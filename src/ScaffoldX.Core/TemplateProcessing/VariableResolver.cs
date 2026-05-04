@@ -28,15 +28,17 @@ public static class VariableResolver
         ctx["GeneratedAt"]      = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
         // ── 基础变量 ──────────────────────────────────────────────────────
-        ctx["ProjectName"]       = projectNamePascal;
-        ctx["NamespacePrefix"]   = namespacePrefix;
-        ctx["TargetFramework"]   = config.TargetFramework;
-        ctx["UIFramework"]       = config.UIFramework;
-        ctx["Author"]            = config.Author;
-        ctx["Company"]           = config.Company;
-        ctx["Description"]       = config.Description;
-        ctx["DatabaseType"]      = config.DatabaseType;
-        ctx["Year"]              = DateTime.Now.Year.ToString();
+        ctx["ProjectName"]         = projectNamePascal;
+        ctx["NamespacePrefix"]     = namespacePrefix;
+        ctx["TargetFramework"]     = config.TargetFramework;
+        ctx["TargetFrameworkShort"] = config.TargetFramework.Replace("-windows", "");
+        ctx["UIFramework"]         = config.UIFramework;
+        ctx["Author"]              = config.Author;
+        ctx["Company"]             = config.Company;
+        ctx["Description"]         = config.Description;
+        ctx["ProjectDescription"]  = config.Description;
+        ctx["DatabaseType"]        = config.DatabaseType;
+        ctx["Year"]                = DateTime.Now.Year.ToString();
 
         ctx["IsWPF"]      = config.UIFramework.Equals("WPF", StringComparison.OrdinalIgnoreCase);
         ctx["IsAvalonia"] = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
@@ -65,6 +67,23 @@ public static class VariableResolver
         ctx["EnableRolePermission"]  = config.EnableRolePermission;
         ctx["EnableSystemLog"]       = config.EnableSystemLog;
         ctx["EnableThemeSwitcher"]   = config.EnableThemeSwitcher;
+
+        // ── 采集扩展变量 ──────────────────────────────────────────────────
+        ctx["EnableSimulationDriver"] = config.EnableSimulationDriver;
+        ctx["DefaultPLCIp"]          = config.DefaultPLCIp;
+        ctx["DefaultPLCPort"]        = config.DefaultPLCPort;
+        ctx["S7Rack"]                = config.S7Rack;
+        ctx["S7Slot"]                = config.S7Slot;
+        ctx["OpcUaEndpoint"]         = config.OpcUaEndpoint;
+
+        // ── 视觉扩展变量 ──────────────────────────────────────────────────
+        ctx["EnablePipeline"] = config.EnablePipeline;
+        ctx["ModelPath"]      = config.ModelPath;
+
+        // ── 系统扩展变量 ──────────────────────────────────────────────────
+        ctx["EnableLoginWindow"]     = config.EnableLoginWindow;
+        ctx["EnableCrossPlatform"]   = config.EnableCrossPlatform;
+        ctx["ForcePasswordChange"]   = config.ForcePasswordChange;
 
         // ── XAML 文件名变量 ───────────────────────────────────────────────
         var isAvalonia = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
