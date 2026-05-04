@@ -7,28 +7,28 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using {{ NamespacePrefix }}.System.Core;
+using BCrypt.Net;
 
 namespace {{ NamespacePrefix }}.System.UserManagement
 {
     /// <summary>
-    /// <see cref="IUserService"/> 的骨架实现。
-    /// TODO: [ScaffoldX] 替换为真实的数据库存储和密码哈希逻辑。
+    /// <see cref="IUserService"/> 的实现，使用 BCrypt 哈希存储密码。
+    /// TODO: [ScaffoldX] 替换为数据库存储（当前为内存存储）。
     /// </summary>
     public sealed class UserService : IUserService
     {
         private readonly Dictionary<string, User> _users = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, string> _passwords = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _passwordHashes = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// 初始化 UserService，加载种子数据。
+        /// 初始化 UserService，加载种子数据并使用 BCrypt 哈希默认密码。
         /// </summary>
         public UserService()
         {
             foreach (var user in SeedData.DefaultUsers)
             {
                 _users[user.Username] = user;
-                // TODO: [ScaffoldX] 使用 BCrypt 哈希存储密码
-                _passwords[user.Username] = "default_password";
+                _passwordHashes[user.Username] = BCrypt.Net.BCrypt.HashPassword("admin123");
             }
         }
 
@@ -36,8 +36,8 @@ namespace {{ NamespacePrefix }}.System.UserManagement
         public Task<User?> AuthenticateAsync(string username, string password)
         {
             if (_users.TryGetValue(username, out var user)
-                && _passwords.TryGetValue(username, out var storedPassword)
-                && storedPassword == password)
+                && _passwordHashes.TryGetValue(username, out var storedHash)
+                && BCrypt.Net.BCrypt.Verify(password, storedHash))
             {
                 user.LastLoginAt = DateTime.UtcNow;
                 return Task.FromResult<User?>(user);
@@ -69,7 +69,7 @@ namespace {{ NamespacePrefix }}.System.UserManagement
             }
 
             _users[user.Username] = user;
-            _passwords[user.Username] = password;
+            _passwordHashes[user.Username] = BCrypt.Net.BCrypt.HashPassword(password);
             return Task.FromResult(user);
         }
 
@@ -89,20 +89,20 @@ namespace {{ NamespacePrefix }}.System.UserManagement
         public Task DeleteAsync(string username)
         {
             _users.Remove(username);
-            _passwords.Remove(username);
+            _passwordHashes.Remove(username);
             return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
         public Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword)
         {
-            if (!_passwords.TryGetValue(username, out var storedPassword)
-                || storedPassword != oldPassword)
+            if (!_passwordHashes.TryGetValue(username, out var storedHash)
+                || !BCrypt.Net.BCrypt.Verify(oldPassword, storedHash))
             {
                 return Task.FromResult(false);
             }
 
-            _passwords[username] = newPassword;
+            _passwordHashes[username] = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
             if (_users.TryGetValue(username, out var user))
             {
