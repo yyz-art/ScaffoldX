@@ -1,0 +1,11 @@
+##OUTPUT: src/{{ProjectName}}.App/App.xaml.cs
+using System.Windows;
+
+namespace {{ NamespacePrefix }}.App;
+
+/// <summary>
+/// 应用程序入口。
+/// </summary>
+public partial class App : Application
+{
+}

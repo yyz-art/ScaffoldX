@@ -1,0 +1,15 @@
+##OUTPUT: src/{{ProjectName}}.App/MainWindow.xaml.cs
+using System.Windows;
+
+namespace {{ NamespacePrefix }}.App;
+
+/// <summary>
+/// 主窗口。
+/// </summary>
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+    }
+}

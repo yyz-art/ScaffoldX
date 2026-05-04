@@ -1,0 +1,17 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.Simulation/{{ProjectName}}.Drivers.Simulation.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Drivers.Simulation</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Drivers.Simulation</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+  </ItemGroup>
+
+</Project>

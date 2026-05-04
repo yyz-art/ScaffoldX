@@ -1,0 +1,45 @@
+##OUTPUT: README.md
+# {{ ProjectName }}
+
+由 ScaffoldX {{ ScaffoldXVersion }} 自动生成的工业自动化项目。
+
+## 项目简介
+
+{{ Description }}
+
+## 技术栈
+
+- **框架**: {{ TargetFramework }}
+- **UI**: {{ UIFramework }}
+- **架构**: Prism MVVM + 模块化插件
+
+## 快速开始
+
+```bash
+# 还原依赖
+dotnet restore
+
+# 编译
+dotnet build
+
+# 运行
+dotnet run --project src/{{ ProjectName }}.App
+```
+
+## 项目结构
+
+```
+{{ ProjectName }}/
+├── src/
+│   ├── {{ ProjectName }}.App/              # 应用程序入口
+│   ├── {{ ProjectName }}.Core/             # 核心库（接口、模型、服务）
+│   ├── {{ ProjectName }}.Modules.Shell/    # Shell 模块（侧边栏、状态栏）
+│   └── {{ ProjectName }}.Modules.Diagnostic/ # 诊断模块
+└── tests/
+    └── {{ ProjectName }}.Core.Tests/       # 单元测试
+```
+
+## 生成信息
+
+- **生成时间**: {{ GeneratedAt }}
+- **ScaffoldX 版本**: {{ ScaffoldXVersion }}

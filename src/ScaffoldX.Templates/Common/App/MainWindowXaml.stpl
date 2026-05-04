@@ -1,0 +1,21 @@
+##OUTPUT: src/{{ProjectName}}.App/MainWindow.{{XamlExt}}
+<Window x:Class="{{ NamespacePrefix }}.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:prism="http://prismlibrary.com/"
+        Title="{{ ProjectName }}" Height="768" Width="1280"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 侧边栏 -->
+        <ContentControl Grid.Column="0" prism:RegionManager.RegionName="SidebarRegion"/>
+
+        <!-- 主内容区 -->
+        <ContentControl Grid.Column="1" prism:RegionManager.RegionName="MainRegion"/>
+    </Grid>
+</Window>

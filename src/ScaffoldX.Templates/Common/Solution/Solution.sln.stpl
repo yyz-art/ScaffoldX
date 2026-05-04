@@ -1,0 +1,113 @@
+##OUTPUT: {{ProjectName}}.sln
+# 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+# 请勿手动修改此文件
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+
+{{ if IsWPF }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.App", "src\{{ ProjectName }}.App\{{ ProjectName }}.App.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}"
+EndProject
+{{ end }}
+{{ if IsAvalonia }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.App", "src\{{ ProjectName }}.App\{{ ProjectName }}.App.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}"
+EndProject
+{{ end }}
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Core", "src\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-222222222222}"
+EndProject
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Shell", "src\{{ ProjectName }}.Modules.Shell\{{ ProjectName }}.Shell.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-333333333333}"
+EndProject
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Diagnostic", "src\{{ ProjectName }}.Modules.Diagnostic\{{ ProjectName }}.Diagnostic.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-444444444444}"
+EndProject
+
+{{ if HasAnyCollection }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.Simulation", "src\{{ ProjectName }}.Drivers.Simulation\{{ ProjectName }}.Drivers.Simulation.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-555555555555}"
+EndProject
+{{ end }}
+
+{{ if EnableSiemensS7 }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.SiemensS7", "src\{{ ProjectName }}.Drivers.SiemensS7\{{ ProjectName }}.Drivers.SiemensS7.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-600000000001}"
+EndProject
+{{ end }}
+
+{{ if EnableModbusTcp }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.ModbusTcp", "src\{{ ProjectName }}.Drivers.ModbusTcp\{{ ProjectName }}.Drivers.ModbusTcp.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-600000000002}"
+EndProject
+{{ end }}
+
+{{ if EnableOpcUa }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Drivers.OpcUa", "src\{{ ProjectName }}.Drivers.OpcUa\{{ ProjectName }}.Drivers.OpcUa.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-600000000003}"
+EndProject
+{{ end }}
+
+{{ if EnableVision }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Vision.Camera.Simulate", "src\{{ ProjectName }}.Vision.Camera.Simulate\{{ ProjectName }}.Vision.Camera.Simulate.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-700000000001}"
+EndProject
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Vision.Inference", "src\{{ ProjectName }}.Vision.Inference\{{ ProjectName }}.Vision.Inference.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-700000000002}"
+EndProject
+{{ end }}
+
+{{ if EnableUserManagement }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Modules.UserManagement", "src\{{ ProjectName }}.Modules.UserManagement\{{ ProjectName }}.Modules.UserManagement.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-800000000001}"
+EndProject
+{{ end }}
+
+{{ if EnableRolePermission }}
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Modules.RolePermission", "src\{{ ProjectName }}.Modules.RolePermission\{{ ProjectName }}.Modules.RolePermission.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-800000000002}"
+EndProject
+{{ end }}
+
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AAAAAAAA-BBBB-CCCC-DDDD-999999999999}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		global.json = global.json
+		README.md = README.md
+	EndProjectSection
+EndProject
+
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0001}"
+EndProject
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "{{ ProjectName }}.Core.Tests", "tests\{{ ProjectName }}.Core.Tests\{{ ProjectName }}.Core.Tests.csproj", "{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002}"
+EndProject
+
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-111111111111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-222222222222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-222222222222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-222222222222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-222222222222}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-333333333333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-333333333333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-333333333333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-333333333333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-444444444444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-444444444444}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-444444444444}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-444444444444}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0002} = {AAAAAAAA-BBBB-CCCC-DDDD-AAAAAAAA0001}
+	EndGlobalSection
+EndGlobal

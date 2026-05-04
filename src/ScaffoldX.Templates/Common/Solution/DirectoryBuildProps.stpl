@@ -1,0 +1,13 @@
+##OUTPUT: Directory.Build.props
+<Project>
+  <PropertyGroup>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <Authors>{{ Author }}</Authors>
+    <Company>{{ Company }}</Company>
+    <Description>{{ Description }}</Description>
+    <Copyright>Copyright {{ Year }} {{ Author }}</Copyright>
+  </PropertyGroup>
+</Project>

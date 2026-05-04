@@ -1,0 +1,21 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.SiemensS7/{{ProjectName}}.Drivers.SiemensS7.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Drivers.SiemensS7</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Drivers.SiemensS7</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="S7netplus" Version="0.20.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+  </ItemGroup>
+
+</Project>

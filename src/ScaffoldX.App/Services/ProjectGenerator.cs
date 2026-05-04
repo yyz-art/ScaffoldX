@@ -208,14 +208,38 @@ public class ProjectGenerator : IProjectGenerator
     }
 
     /// <summary>
-    /// 生成后处理步骤，当前为占位实现（可扩展为 dotnet restore、格式化等）。
+    /// 生成后处理步骤：执行 dotnet restore 恢复 NuGet 包。
     /// </summary>
     /// <param name="projectRoot">生成的项目根目录。</param>
     /// <param name="config">项目配置。</param>
-    private static Task PostProcessAsync(string projectRoot, ProjectConfig config)
+    private static async Task PostProcessAsync(string projectRoot, ProjectConfig config)
     {
-        _ = projectRoot;
-        _ = config;
-        return Task.CompletedTask;
+        var slnFile = Path.Combine(projectRoot, $"{config.ProjectName}.sln");
+        if (!File.Exists(slnFile))
+            return;
+
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"restore \"{slnFile}\"",
+                    WorkingDirectory = projectRoot,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            await process.WaitForExitAsync();
+        }
+        catch
+        {
+            // dotnet restore 失败不阻塞生成流程
+        }
     }
 }

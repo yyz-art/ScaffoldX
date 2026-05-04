@@ -1,0 +1,20 @@
+##OUTPUT: publish.sh
+#!/bin/bash
+# 由 ScaffoldX {{ ScaffoldXVersion }} 自动生成
+# 发布 {{ ProjectName }} 应用程序
+
+echo "正在发布 {{ ProjectName }}..."
+
+dotnet publish src/{{ ProjectName }}.App/{{ ProjectName }}.App.csproj \
+    -c Release \
+    -r linux-x64 \
+    --self-contained true \
+    -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -o publish/
+
+if [ $? -eq 0 ]; then
+    echo "发布完成！输出目录: publish/"
+else
+    echo "发布失败，请检查错误信息。"
+fi

@@ -1,0 +1,17 @@
+##OUTPUT: tests/{{ProjectName}}.Core.Tests/SampleTest.cs
+using Xunit;
+
+namespace {{ NamespacePrefix }}.Core.Tests;
+
+/// <summary>
+/// 示例单元测试，验证项目结构正确。
+/// </summary>
+public class SampleTest
+{
+    [Fact]
+    public void ProjectName_ShouldNotBeEmpty()
+    {
+        var projectName = "{{ ProjectName }}";
+        Assert.False(string.IsNullOrWhiteSpace(projectName));
+    }
+}

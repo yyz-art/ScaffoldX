@@ -1,0 +1,21 @@
+##OUTPUT: src/{{ProjectName}}.Drivers.ModbusTcp/{{ProjectName}}.Drivers.ModbusTcp.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Drivers.ModbusTcp</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Drivers.ModbusTcp</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NModbus4" Version="2.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+  </ItemGroup>
+
+</Project>

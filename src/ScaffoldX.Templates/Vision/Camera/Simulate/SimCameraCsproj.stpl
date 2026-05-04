@@ -1,0 +1,17 @@
+##OUTPUT: src/{{ProjectName}}.Vision.Camera.Simulate/{{ProjectName}}.Vision.Camera.Simulate.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Vision.Camera.Simulate</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Vision.Camera.Simulate</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+  </ItemGroup>
+
+</Project>

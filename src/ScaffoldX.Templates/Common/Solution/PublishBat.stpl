@@ -1,0 +1,22 @@
+##OUTPUT: publish.bat
+@echo off
+REM 由 ScaffoldX {{ ScaffoldXVersion }} 自动生成
+REM 发布 {{ ProjectName }} 应用程序
+
+echo 正在发布 {{ ProjectName }}...
+
+dotnet publish src/{{ ProjectName }}.App/{{ ProjectName }}.App.csproj ^
+    -c Release ^
+    -r win-x64 ^
+    --self-contained true ^
+    -p:PublishSingleFile=true ^
+    -p:IncludeNativeLibrariesForSelfExtract=true ^
+    -o publish/
+
+if %ERRORLEVEL% EQU 0 (
+    echo 发布完成！输出目录: publish/
+) else (
+    echo 发布失败，请检查错误信息。
+)
+
+pause
