@@ -1,0 +1,101 @@
+##OUTPUT: src/{{ProjectName}}.Modules.Diagnostic/LogViewerViewModel.cs
+##REQUIRED: true
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.IO;
+using System.Linq;
+using Prism.Mvvm;
+
+namespace {{ NamespacePrefix }}.Modules.Diagnostic
+{
+    /// <summary>
+    /// 日志查看器 ViewModel，加载并显示应用程序日志内容。
+    /// </summary>
+    public class LogViewerViewModel : BindableBase
+    {
+        private string _logContent = string.Empty;
+        private bool _isFilterAll = true;
+        private bool _isFilterInfo;
+        private bool _isFilterWarning;
+        private bool _isFilterError;
+
+        /// <summary>
+        /// 初始化日志查看器，加载最新日志文件。
+        /// </summary>
+        public LogViewerViewModel()
+        {
+            LoadLatestLog();
+        }
+
+        /// <summary>日志内容文本。</summary>
+        public string LogContent
+        {
+            get => _logContent;
+            set => SetProperty(ref _logContent, value);
+        }
+
+        /// <summary>是否过滤显示全部日志。</summary>
+        public bool IsFilterAll
+        {
+            get => _isFilterAll;
+            set => SetProperty(ref _isFilterAll, value);
+        }
+
+        /// <summary>是否仅显示信息级别日志。</summary>
+        public bool IsFilterInfo
+        {
+            get => _isFilterInfo;
+            set => SetProperty(ref _isFilterInfo, value);
+        }
+
+        /// <summary>是否仅显示警告级别日志。</summary>
+        public bool IsFilterWarning
+        {
+            get => _isFilterWarning;
+            set => SetProperty(ref _isFilterWarning, value);
+        }
+
+        /// <summary>是否仅显示错误级别日志。</summary>
+        public bool IsFilterError
+        {
+            get => _isFilterError;
+            set => SetProperty(ref _isFilterError, value);
+        }
+
+        /// <summary>
+        /// 加载最新的日志文件内容。
+        /// </summary>
+        private void LoadLatestLog()
+        {
+            try
+            {
+                var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+                if (!Directory.Exists(logDir))
+                {
+                    LogContent = "日志目录不存在。";
+                    return;
+                }
+
+                var latestFile = new DirectoryInfo(logDir)
+                    .GetFiles("app-*.log")
+                    .OrderByDescending(f => f.LastWriteTime)
+                    .FirstOrDefault();
+
+                if (latestFile != null)
+                {
+                    LogContent = File.ReadAllText(latestFile.FullName);
+                }
+                else
+                {
+                    LogContent = "暂无日志文件。";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogContent = $"加载日志失败：{ex.Message}";
+            }
+        }
+    }
+}

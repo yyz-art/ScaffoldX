@@ -1,13 +1,13 @@
-##OUTPUT: src/{{ProjectName}}.System/RolePermission/IRoleService.cs
+##OUTPUT: src/{{ProjectName}}.Modules.RolePermission/IRoleService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using {{ NamespacePrefix }}.System.Core;
+using {{ NamespacePrefix }}.Core.Models;
 
-namespace {{ NamespacePrefix }}.System.RolePermission
+namespace {{ NamespacePrefix }}.Modules.RolePermission
 {
     /// <summary>
     /// 角色权限管理服务接口，提供角色分配和权限查询功能。

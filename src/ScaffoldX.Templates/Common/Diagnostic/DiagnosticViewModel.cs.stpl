@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.App/Diagnostic/DiagnosticViewModel.cs
+##OUTPUT: src/{{ProjectName}}.Modules.Diagnostic/DiagnosticViewModel.cs
 ##REQUIRED: true
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -6,9 +6,10 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using Prism.Mvvm;
 
-namespace {{ NamespacePrefix }}.App.Diagnostic
+namespace {{ NamespacePrefix }}.Modules.Diagnostic
 {
     /// <summary>
     /// 诊断模块 ViewModel，提供插件状态查看和日志查看功能。
@@ -110,23 +111,5 @@ namespace {{ NamespacePrefix }}.App.Diagnostic
                 LogContent = $"加载日志失败：{ex.Message}";
             }
         }
-    }
-
-    /// <summary>
-    /// 插件状态信息，用于 DataGrid 绑定。
-    /// </summary>
-    public class PluginStatusInfo
-    {
-        /// <summary>插件标识符。</summary>
-        public string Id { get; init; } = string.Empty;
-
-        /// <summary>插件名称。</summary>
-        public string Name { get; init; } = string.Empty;
-
-        /// <summary>插件版本。</summary>
-        public string Version { get; init; } = string.Empty;
-
-        /// <summary>插件运行状态。</summary>
-        public string State { get; init; } = string.Empty;
     }
 }

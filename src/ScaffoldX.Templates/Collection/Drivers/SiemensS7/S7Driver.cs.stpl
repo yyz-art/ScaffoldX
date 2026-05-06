@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.Collection/Drivers/SiemensS7/S7Driver.cs
+##OUTPUT: src/{{ProjectName}}.Drivers.SiemensS7/S7Driver.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using {{ NamespacePrefix }}.Collection.Core;
 
-namespace {{ NamespacePrefix }}.Collection.Drivers.SiemensS7
+namespace {{ NamespacePrefix }}.Drivers.SiemensS7
 {
     /// <summary>
     /// Siemens S7 系列 PLC 数据采集驱动。

@@ -3,7 +3,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>{{ TargetFramework }}</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>{{ NamespacePrefix }}.Vision.Inference</RootNamespace>
@@ -16,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+    <ProjectReference Include="..\{{ ProjectName }}.Vision.Core\{{ ProjectName }}.Vision.Core.csproj" />
   </ItemGroup>
 
 </Project>

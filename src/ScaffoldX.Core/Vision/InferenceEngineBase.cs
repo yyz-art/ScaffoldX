@@ -1,4 +1,8 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace ScaffoldX.Core.Vision;
 
@@ -7,6 +11,8 @@ namespace ScaffoldX.Core.Vision;
 /// </summary>
 public abstract class InferenceEngineBase : IDisposable
 {
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
+
     /// <summary>模型文件路径。</summary>
     protected string ModelPath { get; private set; } = string.Empty;
 
@@ -40,7 +46,7 @@ public abstract class InferenceEngineBase : IDisposable
     }
 
     /// <summary>
-    /// 异步加载 ONNX 模型。
+    /// 异步加载 ONNX 模型。使用信号量防止并发加载。
     /// </summary>
     /// <param name="modelPath">模型文件路径。</param>
     /// <param name="cancellationToken">取消令牌。</param>
@@ -49,9 +55,17 @@ public abstract class InferenceEngineBase : IDisposable
         if (!File.Exists(modelPath))
             throw new FileNotFoundException("模型文件不存在", modelPath);
 
-        ModelPath = modelPath;
-        await Task.Run(() => LoadModelInternal(modelPath), cancellationToken);
-        IsLoaded = true;
+        await _loadLock.WaitAsync(cancellationToken);
+        try
+        {
+            ModelPath = modelPath;
+            await Task.Run(() => LoadModelInternal(modelPath), cancellationToken);
+            IsLoaded = true;
+        }
+        finally
+        {
+            _loadLock.Release();
+        }
     }
 
     /// <summary>
@@ -61,6 +75,8 @@ public abstract class InferenceEngineBase : IDisposable
     /// <returns>推理结果列表。</returns>
     public virtual List<InferenceResult> Run(Bitmap image)
     {
+        ArgumentNullException.ThrowIfNull(image);
+
         if (!IsLoaded)
             throw new InvalidOperationException("模型未加载，请先调用 LoadModel 方法");
 
@@ -77,6 +93,8 @@ public abstract class InferenceEngineBase : IDisposable
     /// <returns>推理结果列表。</returns>
     public virtual async Task<List<InferenceResult>> RunAsync(Bitmap image, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(image);
+
         if (!IsLoaded)
             throw new InvalidOperationException("模型未加载，请先调用 LoadModel 方法");
 
@@ -86,6 +104,81 @@ public abstract class InferenceEngineBase : IDisposable
             var outputs = RunInference(preprocessed);
             return Postprocess(outputs, image.Width, image.Height);
         }, cancellationToken);
+    }
+
+    /// <summary>
+    /// 将图像缩放到指定尺寸，使用高质量双三次插值。
+    /// </summary>
+    /// <param name="image">原始图像。</param>
+    /// <param name="width">目标宽度。</param>
+    /// <param name="height">目标高度。</param>
+    /// <returns>缩放后的新 Bitmap（调用方负责释放）。</returns>
+    protected static Bitmap ResizeImage(Bitmap image, int width, int height)
+    {
+        var result = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+
+        using (var graphics = Graphics.FromImage(result))
+        {
+            graphics.CompositingMode = CompositingMode.SourceCopy;
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.SmoothingMode = SmoothingMode.HighQuality;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+            using (var wrapMode = new ImageAttributes())
+            {
+                wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                graphics.DrawImage(image, new Rectangle(0, 0, width, height),
+                    0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 根据中心坐标和尺寸创建检测结果，执行坐标缩放和边界裁剪。
+    /// </summary>
+    /// <param name="cx">中心点 X（模型输入坐标系）。</param>
+    /// <param name="cy">中心点 Y（模型输入坐标系）。</param>
+    /// <param name="w">宽度（模型输入坐标系）。</param>
+    /// <param name="h">高度（模型输入坐标系）。</param>
+    /// <param name="maxClassIndex">最高分类别索引。</param>
+    /// <param name="maxScore">最高置信度分数。</param>
+    /// <param name="originalWidth">原始图像宽度。</param>
+    /// <param name="originalHeight">原始图像高度。</param>
+    /// <param name="scaleX">X 方向缩放因子。</param>
+    /// <param name="scaleY">Y 方向缩放因子。</param>
+    /// <param name="classNames">类别名称列表，用于解析类别索引。</param>
+    /// <returns>包含缩放后边界框的推理结果。</returns>
+    protected static InferenceResult CreateDetectionResult(
+        float cx, float cy, float w, float h,
+        int maxClassIndex, float maxScore,
+        int originalWidth, int originalHeight,
+        float scaleX, float scaleY,
+        IReadOnlyList<string> classNames)
+    {
+        var x = (cx - w / 2) * scaleX;
+        var y = (cy - h / 2) * scaleY;
+        var width = w * scaleX;
+        var height = h * scaleY;
+
+        x = Math.Max(0, x);
+        y = Math.Max(0, y);
+        width = Math.Min(width, originalWidth - x);
+        height = Math.Min(height, originalHeight - y);
+
+        var className = maxClassIndex < classNames.Count
+            ? classNames[maxClassIndex]
+            : $"class_{maxClassIndex}";
+
+        return new InferenceResult
+        {
+            ClassIndex = maxClassIndex,
+            ClassName = className,
+            Confidence = maxScore,
+            BoundingBox = new RectangleF(x, y, width, height)
+        };
     }
 
     /// <summary>
@@ -134,7 +227,10 @@ public abstract class InferenceEngineBase : IDisposable
     /// <param name="disposing">是否正在释放托管资源。</param>
     protected virtual void Dispose(bool disposing)
     {
-        // 子类可以重写此方法来释放资源
+        if (disposing)
+        {
+            _loadLock.Dispose();
+        }
     }
 }
 

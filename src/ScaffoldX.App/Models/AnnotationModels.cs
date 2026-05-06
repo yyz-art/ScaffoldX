@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Text.Json.Serialization;
 
 namespace ScaffoldX.App.Models;
@@ -18,6 +19,18 @@ public class AnnotationData
 
     /// <summary>该图像的所有边界框标注。</summary>
     public List<BoundingBoxAnnotation> Boxes { get; set; } = new();
+
+    /// <summary>该图像的所有多边形标注。</summary>
+    public List<PolygonAnnotation> Polygons { get; set; } = new();
+
+    /// <summary>该图像的所有旋转边界框（OBB）标注。</summary>
+    public List<OrientedBoundingBoxAnnotation> OrientedBoxes { get; set; } = new();
+
+    /// <summary>该图像的所有折线标注。</summary>
+    public List<PolylineAnnotation> Polylines { get; set; } = new();
+
+    /// <summary>该图像的所有圆形标注。</summary>
+    public List<CircleAnnotation> Circles { get; set; } = new();
 }
 
 /// <summary>
@@ -42,6 +55,99 @@ public class BoundingBoxAnnotation
 
     /// <summary>边界框高度（归一化到 0-1）。</summary>
     public double Height { get; set; }
+}
+
+/// <summary>
+/// 单个多边形标注，包含类别和归一化的多边形顶点坐标。
+/// </summary>
+public class PolygonAnnotation
+{
+    /// <summary>唯一标识符。</summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>多边形顶点列表（归一化到 0-1 的坐标）。</summary>
+    public List<PointF> Points { get; set; } = new();
+}
+
+/// <summary>
+/// 单个旋转边界框（Oriented Bounding Box）标注，包含类别、归一化中心坐标、宽高和旋转角度。
+/// </summary>
+public class OrientedBoundingBoxAnnotation
+{
+    /// <summary>唯一标识符。</summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>边界框中心 X 坐标（归一化到 0-1）。</summary>
+    public float CenterX { get; set; }
+
+    /// <summary>边界框中心 Y 坐标（归一化到 0-1）。</summary>
+    public float CenterY { get; set; }
+
+    /// <summary>边界框宽度（归一化到 0-1）。</summary>
+    public float Width { get; set; }
+
+    /// <summary>边界框高度（归一化到 0-1）。</summary>
+    public float Height { get; set; }
+
+    /// <summary>旋转角度（弧度，从水平方向顺时针）。</summary>
+    public float Angle { get; set; }
+}
+
+/// <summary>
+/// 单个折线标注，包含类别、归一化的折线顶点坐标和闭合标志。
+/// </summary>
+public class PolylineAnnotation
+{
+    /// <summary>唯一标识符。</summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>折线顶点列表（归一化到 0-1 的坐标）。</summary>
+    public List<PointF> Points { get; set; } = new();
+
+    /// <summary>是否闭合（false 为折线，true 为类多边形闭合形状）。</summary>
+    public bool IsClosed { get; set; }
+}
+
+/// <summary>
+/// 单个圆形标注，包含类别、归一化的圆心坐标和半径。
+/// </summary>
+public class CircleAnnotation
+{
+    /// <summary>唯一标识符。</summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>圆心 X 坐标（归一化到 0-1）。</summary>
+    public float CenterX { get; set; }
+
+    /// <summary>圆心 Y 坐标（归一化到 0-1）。</summary>
+    public float CenterY { get; set; }
+
+    /// <summary>半径（归一化到 0-1，相对于图像宽度）。</summary>
+    public float Radius { get; set; }
 }
 
 /// <summary>

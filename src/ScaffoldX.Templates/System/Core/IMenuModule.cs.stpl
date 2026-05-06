@@ -1,11 +1,11 @@
-##OUTPUT: src/{{ProjectName}}.System/Core/IMenuModule.cs
+##OUTPUT: src/{{ProjectName}}.Core/Abstractions/IMenuModule.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
-using {{ NamespacePrefix }}.System.Core;
+using {{ NamespacePrefix }}.Core.Models;
 
-namespace {{ NamespacePrefix }}.System.Core
+namespace {{ NamespacePrefix }}.Core.Abstractions
 {
     /// <summary>
     /// 菜单模块接口，插件通过实现此接口向侧边栏注册菜单项（PRD 对齐）。

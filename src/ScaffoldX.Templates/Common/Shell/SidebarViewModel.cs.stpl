@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.App/Shell/SidebarViewModel.cs
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/SidebarViewModel.cs
 ##REQUIRED: true
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -8,7 +8,7 @@ using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Regions;
 
-namespace {{ NamespacePrefix }}.App.Shell
+namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
     /// 侧边栏 ViewModel，管理菜单项列表和导航逻辑。

@@ -1,0 +1,132 @@
+using ScaffoldX.App.Models;
+using Serilog;
+
+namespace ScaffoldX.App.Services;
+
+/// <summary>
+/// Orchestrates export operations for annotation projects across multiple formats
+/// (YOLO, COCO, Pascal VOC). Extracted from AnnotationViewModel to separate
+/// export coordination from UI state management.
+/// </summary>
+public class AnnotationExportService
+{
+    private readonly IAnnotationService _annotationService;
+    private readonly ILogger _logger = Log.ForContext<AnnotationExportService>();
+
+    /// <summary>
+    /// Initializes the export service with the annotation data service.
+    /// </summary>
+    /// <param name="annotationService">The annotation service that performs the actual export.</param>
+    public AnnotationExportService(IAnnotationService annotationService)
+    {
+        _annotationService = annotationService;
+    }
+
+    /// <summary>
+    /// Validates that the project has exportable annotations.
+    /// </summary>
+    /// <param name="project">The annotation project to validate.</param>
+    /// <returns>True if the project has annotations to export.</returns>
+    public static bool CanExport(AnnotationProject? project)
+        => project is { Annotations.Count: > 0 };
+
+    /// <summary>
+    /// Exports the project in YOLO format to the specified directory.
+    /// </summary>
+    /// <param name="project">The annotation project.</param>
+    /// <param name="outputDirectory">The target output directory.</param>
+    /// <returns>True if export succeeded, false otherwise.</returns>
+    public async Task<bool> ExportYoloAsync(AnnotationProject project, string outputDirectory)
+    {
+        try
+        {
+            await _annotationService.ExportYoloDatasetAsync(project, outputDirectory);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "导出 YOLO 数据集失败");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Exports the project in COCO JSON format to the specified directory.
+    /// </summary>
+    /// <param name="project">The annotation project.</param>
+    /// <param name="outputDirectory">The target output directory.</param>
+    /// <returns>True if export succeeded, false otherwise.</returns>
+    public async Task<bool> ExportCocoAsync(AnnotationProject project, string outputDirectory)
+    {
+        try
+        {
+            await _annotationService.ExportCocoDatasetAsync(project, outputDirectory);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "导出 COCO 数据集失败");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Exports the project in Pascal VOC XML format to the specified directory.
+    /// </summary>
+    /// <param name="project">The annotation project.</param>
+    /// <param name="outputDirectory">The target output directory.</param>
+    /// <returns>True if export succeeded, false otherwise.</returns>
+    public async Task<bool> ExportVocAsync(AnnotationProject project, string outputDirectory)
+    {
+        try
+        {
+            await _annotationService.ExportVocDatasetAsync(project, outputDirectory);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "导出 VOC 数据集失败");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Exports the project in DOTA format (oriented bounding boxes) to the specified directory.
+    /// </summary>
+    /// <param name="project">The annotation project.</param>
+    /// <param name="outputDirectory">The target output directory.</param>
+    /// <returns>True if export succeeded, false otherwise.</returns>
+    public async Task<bool> ExportDotAsync(AnnotationProject project, string outputDirectory)
+    {
+        try
+        {
+            await _annotationService.ExportDotDatasetAsync(project, outputDirectory);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "导出 DOTA 数据集失败");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Exports the project in MOT Challenge format (multi-object tracking) to the specified directory.
+    /// </summary>
+    /// <param name="project">The annotation project.</param>
+    /// <param name="outputDirectory">The target output directory.</param>
+    /// <returns>True if export succeeded, false otherwise.</returns>
+    public async Task<bool> ExportMotAsync(AnnotationProject project, string outputDirectory)
+    {
+        try
+        {
+            await _annotationService.ExportMotDatasetAsync(project, outputDirectory);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "导出 MOT 数据集失败");
+            return false;
+        }
+    }
+}

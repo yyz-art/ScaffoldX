@@ -3,7 +3,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>{{ TargetFramework }}</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>{{ NamespacePrefix }}.Vision.Camera.Simulate</RootNamespace>
@@ -11,7 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Vision.Core\{{ ProjectName }}.Vision.Core.csproj" />
   </ItemGroup>
 
 </Project>

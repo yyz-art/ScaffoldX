@@ -208,7 +208,7 @@ public class FullGenerationFlowTests
         // Assert
         templates.Should().Contain(t => t.Category == "Common");
         templates.Should().Contain(t => t.Name.Contains("Plugin"));
-        templates.Should().Contain(t => t.Name.Contains("Bootstrapper"));
+        templates.Should().Contain(t => t.Name.Contains("ConfigService"));
     }
 
     /// <summary>

@@ -91,16 +91,20 @@ public class AnnotationServiceTests
     // ── FromYoloFormat ───────────────────────────────────────────────────────
 
     [Fact]
-    public void FromYoloFormat_ShouldReturnEmptyList_WhenNoLines()
+    public void FromYoloFormat_ShouldReturnEmptyLists_WhenNoLines()
     {
         // Arrange
         var classNames = new List<string> { "cat", "dog" };
 
         // Act
-        var result = _sut.FromYoloFormat(Array.Empty<string>(), 640, 480, classNames);
+        var (boxes, polygons, polylines, circles, orientedBoxes) = _sut.FromYoloFormat(Array.Empty<string>(), 640, 480, classNames);
 
         // Assert
-        result.Should().BeEmpty();
+        boxes.Should().BeEmpty();
+        polygons.Should().BeEmpty();
+        polylines.Should().BeEmpty();
+        circles.Should().BeEmpty();
+        orientedBoxes.Should().BeEmpty();
     }
 
     [Fact]
@@ -111,16 +115,20 @@ public class AnnotationServiceTests
         var classNames = new List<string> { "cat", "dog" };
 
         // Act
-        var result = _sut.FromYoloFormat(lines, 640, 480, classNames);
+        var (boxes, polygons, polylines, circles, orientedBoxes) = _sut.FromYoloFormat(lines, 640, 480, classNames);
 
         // Assert
-        result.Should().HaveCount(1);
-        result[0].ClassIndex.Should().Be(0);
-        result[0].ClassName.Should().Be("cat");
-        result[0].CenterX.Should().Be(0.5);
-        result[0].CenterY.Should().Be(0.5);
-        result[0].Width.Should().Be(0.2);
-        result[0].Height.Should().Be(0.3);
+        boxes.Should().HaveCount(1);
+        polygons.Should().BeEmpty();
+        polylines.Should().BeEmpty();
+        circles.Should().BeEmpty();
+        orientedBoxes.Should().BeEmpty();
+        boxes[0].ClassIndex.Should().Be(0);
+        boxes[0].ClassName.Should().Be("cat");
+        boxes[0].CenterX.Should().Be(0.5);
+        boxes[0].CenterY.Should().Be(0.5);
+        boxes[0].Width.Should().Be(0.2);
+        boxes[0].Height.Should().Be(0.3);
     }
 
     [Fact]
@@ -131,11 +139,15 @@ public class AnnotationServiceTests
         var classNames = new List<string> { "cat", "dog" };
 
         // Act
-        var result = _sut.FromYoloFormat(lines, 640, 480, classNames);
+        var (boxes, polygons, polylines, circles, orientedBoxes) = _sut.FromYoloFormat(lines, 640, 480, classNames);
 
         // Assert
-        result.Should().HaveCount(1);
-        result[0].ClassIndex.Should().Be(1);
+        boxes.Should().HaveCount(1);
+        boxes[0].ClassIndex.Should().Be(1);
+        polygons.Should().BeEmpty();
+        polylines.Should().BeEmpty();
+        circles.Should().BeEmpty();
+        orientedBoxes.Should().BeEmpty();
     }
 
     [Fact]
@@ -146,10 +158,11 @@ public class AnnotationServiceTests
         var classNames = new List<string> { "cat" };
 
         // Act
-        var result = _sut.FromYoloFormat(lines, 640, 480, classNames);
+        var (boxes, polygons, _, _, _) = _sut.FromYoloFormat(lines, 640, 480, classNames);
 
         // Assert
-        result.Should().HaveCount(1);
+        boxes.Should().HaveCount(1);
+        polygons.Should().BeEmpty();
     }
 
     [Fact]
@@ -160,11 +173,12 @@ public class AnnotationServiceTests
         var classNames = new List<string> { "cat", "dog" }; // 只有 2 个类别
 
         // Act
-        var result = _sut.FromYoloFormat(lines, 640, 480, classNames);
+        var (boxes, polygons, _, _, _) = _sut.FromYoloFormat(lines, 640, 480, classNames);
 
         // Assert
-        result.Should().HaveCount(1);
-        result[0].ClassName.Should().Be("class_5");
+        boxes.Should().HaveCount(1);
+        boxes[0].ClassName.Should().Be("class_5");
+        polygons.Should().BeEmpty();
     }
 
     [Fact]
@@ -180,13 +194,14 @@ public class AnnotationServiceTests
         var classNames = new List<string> { "cat", "dog" };
 
         // Act
-        var result = _sut.FromYoloFormat(lines, 640, 480, classNames);
+        var (boxes, polygons, _, _, _) = _sut.FromYoloFormat(lines, 640, 480, classNames);
 
         // Assert
-        result.Should().HaveCount(3);
-        result[0].ClassName.Should().Be("cat");
-        result[1].ClassName.Should().Be("dog");
-        result[2].ClassName.Should().Be("cat");
+        boxes.Should().HaveCount(3);
+        polygons.Should().BeEmpty();
+        boxes[0].ClassName.Should().Be("cat");
+        boxes[1].ClassName.Should().Be("dog");
+        boxes[2].ClassName.Should().Be("cat");
     }
 
     // ── Round-trip: ToYolo → FromYolo ────────────────────────────────────────
@@ -210,10 +225,11 @@ public class AnnotationServiceTests
 
         // Act
         var yoloLines = _sut.ToYoloFormat(original);
-        var restored = _sut.FromYoloFormat(yoloLines, 1920, 1080, classNames);
+        var (restored, polygons, _, _, _) = _sut.FromYoloFormat(yoloLines, 1920, 1080, classNames);
 
         // Assert
         restored.Should().HaveCount(2);
+        polygons.Should().BeEmpty();
         restored[0].ClassIndex.Should().Be(0);
         restored[0].ClassName.Should().Be("defect");
         restored[0].CenterX.Should().Be(0.25);

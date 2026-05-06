@@ -1,11 +1,11 @@
-##OUTPUT: src/{{ProjectName}}.App/Shell/HomePageViewModel.cs
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/HomePageViewModel.cs
 ##REQUIRED: true
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
 using Prism.Mvvm;
 
-namespace {{ NamespacePrefix }}.App.Shell
+namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
     /// 首页 ViewModel，展示系统概览和运行状态。

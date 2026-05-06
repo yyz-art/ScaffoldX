@@ -39,6 +39,9 @@ public static class VariableResolver
         ctx["ProjectDescription"]  = config.Description;
         ctx["DatabaseType"]        = config.DatabaseType;
         ctx["Year"]                = DateTime.Now.Year.ToString();
+        ctx["ProjectType"]         = config.ProjectType;
+        ctx["AppTitle"]            = projectNamePascal;
+        ctx["AppVersion"]          = "1.0.0";
 
         ctx["IsWPF"]      = config.UIFramework.Equals("WPF", StringComparison.OrdinalIgnoreCase);
         ctx["IsAvalonia"] = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
@@ -84,6 +87,14 @@ public static class VariableResolver
         ctx["EnableLoginWindow"]     = config.EnableLoginWindow;
         ctx["EnableCrossPlatform"]   = config.EnableCrossPlatform;
         ctx["ForcePasswordChange"]   = config.ForcePasswordChange;
+
+        // ── 模块列表变量（供模板 for 循环使用）────────────────────────────
+        var selectedModules = new List<string>();
+        if (config.EnableUserManagement) selectedModules.Add("UserManagement");
+        if (config.EnableRolePermission) selectedModules.Add("RolePermission");
+        if (config.EnableSystemLog)      selectedModules.Add("SystemLog");
+        if (config.EnableThemeSwitcher)  selectedModules.Add("ThemeSwitcher");
+        ctx["SelectedModules"] = selectedModules;
 
         // ── XAML 文件名变量 ───────────────────────────────────────────────
         var isAvalonia = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);

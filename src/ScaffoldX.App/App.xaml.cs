@@ -33,6 +33,11 @@ public partial class App : Prism.Unity.PrismApplication
         containerRegistry.RegisterSingleton<IAnnotationService, AnnotationService>();
         containerRegistry.RegisterSingleton<IAutoLabelingService, AutoLabelingService>();
         containerRegistry.RegisterSingleton<IYoloTrainingService, YoloTrainingService>();
+        containerRegistry.RegisterSingleton<IVideoFrameService, VideoFrameService>();
+        containerRegistry.RegisterSingleton<IModelZooService>(sp => new ModelZooService());
+        containerRegistry.RegisterSingleton<IAnnotationInterpolationService, AnnotationInterpolationService>();
+        containerRegistry.RegisterSingleton<IExportReportService, ExportReportService>();
+        containerRegistry.RegisterSingleton<IRecentFilesService, RecentFilesService>();
 
         // ViewModel 注册（单例，在步骤间共享状态）
         containerRegistry.RegisterSingleton<ProjectHistoryViewModel>();

@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.Collection/Drivers/Simulation/SimDriver.cs
+##OUTPUT: src/{{ProjectName}}.Drivers.Simulation/SimDriver.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using {{ NamespacePrefix }}.Collection.Core;
 
-namespace {{ NamespacePrefix }}.Collection.Drivers.Simulation
+namespace {{ NamespacePrefix }}.Drivers.Simulation
 {
     /// <summary>
     /// 模拟数据采集驱动，用于开发和测试阶段，无需真实硬件。

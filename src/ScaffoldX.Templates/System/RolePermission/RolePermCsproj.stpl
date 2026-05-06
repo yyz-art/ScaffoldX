@@ -1,0 +1,21 @@
+##OUTPUT: src/{{ProjectName}}.Modules.RolePermission/{{ProjectName}}.Modules.RolePermission.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <UseWPF>{{ if IsWPF }}true{{ else }}false{{ end }}</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Modules.RolePermission</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Modules.RolePermission</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Prism.Unity" Version="8.1.97" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+  </ItemGroup>
+
+</Project>

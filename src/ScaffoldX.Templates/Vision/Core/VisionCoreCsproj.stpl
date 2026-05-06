@@ -1,0 +1,16 @@
+##OUTPUT: src/{{ProjectName}}.Vision.Core/{{ProjectName}}.Vision.Core.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Vision.Core</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Vision.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

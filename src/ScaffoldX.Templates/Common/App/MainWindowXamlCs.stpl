@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.App/MainWindow.xaml.cs
+##OUTPUT: src/{{ProjectName}}.App/MainWindow{{XamlCodeBehindExt}}
 using System.Windows;
 
 namespace {{ NamespacePrefix }}.App;

@@ -7,6 +7,9 @@ public class ProjectConfig
 {
     // ── 基础信息 ──────────────────────────────────────────────────────────
 
+    /// <summary>项目类型："Collection"（采集）| "Vision"（视觉）| "System"（系统）。</summary>
+    public string ProjectType { get; set; } = string.Empty;
+
     /// <summary>项目名称，用于生成命名空间、程序集名称和目录名。</summary>
     public string ProjectName { get; set; } = string.Empty;
 

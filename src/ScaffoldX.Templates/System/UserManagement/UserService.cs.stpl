@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.System/UserManagement/UserService.cs
+##OUTPUT: src/{{ProjectName}}.Modules.UserManagement/UserService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -6,10 +6,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using {{ NamespacePrefix }}.System.Core;
+using {{ NamespacePrefix }}.Core.Models;
 using BCrypt.Net;
 
-namespace {{ NamespacePrefix }}.System.UserManagement
+namespace {{ NamespacePrefix }}.Modules.UserManagement
 {
     /// <summary>
     /// <see cref="IUserService"/> 的实现，使用 BCrypt 哈希存储密码。

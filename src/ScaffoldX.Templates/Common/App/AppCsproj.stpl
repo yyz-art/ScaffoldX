@@ -3,7 +3,6 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>{{ TargetFramework }}</TargetFramework>
     <UseWPF>{{ if IsWPF }}true{{ else }}false{{ end }}</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -1,11 +1,56 @@
-##OUTPUT: src/{{ProjectName}}.App/App.xaml.cs
+##OUTPUT: src/{{ProjectName}}.App/App{{XamlCodeBehindExt}}
 using System.Windows;
+using Prism.Ioc;
+using Prism.Unity;
+using {{ NamespacePrefix }}.App.Views;
+using {{ NamespacePrefix }}.Modules.Shell;
+using {{ NamespacePrefix }}.Modules.Diagnostic;
+using {{ NamespacePrefix }}.Core.Abstractions;
+using {{ NamespacePrefix }}.Core.Services;
+using Serilog;
 
-namespace {{ NamespacePrefix }}.App;
-
-/// <summary>
-/// 应用程序入口。
-/// </summary>
-public partial class App : Application
+namespace {{ NamespacePrefix }}.App
 {
+    public partial class App : PrismApplication
+    {
+        protected override Window CreateShell() => Container.Resolve<MainWindow>();
+
+        protected override void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+            // 核心服务注册
+            containerRegistry.RegisterSingleton<IConfigService, ConfigService>();
+            // TODO: [ScaffoldX] 根据项目需求注册额外的服务
+
+            // 注册视图
+            containerRegistry.RegisterForNavigation<MainWindow>();
+            containerRegistry.RegisterForNavigation<SidebarView>();
+            containerRegistry.RegisterForNavigation<StatusBarView>();
+            containerRegistry.RegisterForNavigation<HomePageView>();
+            containerRegistry.RegisterForNavigation<LogViewerView>();
+            containerRegistry.RegisterForNavigation<PluginStatusView>();
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            ConfigureLogging();
+            Log.ForContext<App>().Information("应用程序启动");
+        }
+
+        private static void ConfigureLogging()
+        {
+            var logDir = System.IO.Path.Combine(
+                System.AppDomain.CurrentDomain.BaseDirectory, "Logs");
+            System.IO.Directory.CreateDirectory(logDir);
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File(
+                    System.IO.Path.Combine(logDir, "app-.log"),
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 30)
+                .CreateLogger();
+        }
+    }
 }

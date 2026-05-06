@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.System/ThemeSwitcher/IThemeService.cs
+##OUTPUT: src/{{ProjectName}}.Core/Abstractions/IThemeService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -6,7 +6,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace {{ NamespacePrefix }}.System.ThemeSwitcher
+namespace {{ NamespacePrefix }}.Core.Abstractions
 {
     /// <summary>
     /// 主题切换服务接口，管理应用程序的明暗主题。

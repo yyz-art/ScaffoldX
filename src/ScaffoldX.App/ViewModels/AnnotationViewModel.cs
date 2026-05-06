@@ -19,71 +19,157 @@ namespace ScaffoldX.App.ViewModels;
 public class AnnotationViewModel : BindableBase
 {
     private readonly IAnnotationService _annotationService;
-    private readonly IAutoLabelingService _autoLabelingService;
+    private readonly IVideoFrameService _videoFrameService;
     private readonly ILogger _logger = Log.ForContext<AnnotationViewModel>();
+    private readonly DrawingStateManager _drawingState = new();
+
+    private readonly AutoLabelingCommandHandler _autoLabelingHandler;
+    private readonly ImageNavigationHandler _imageNavigationHandler;
+    private readonly ClassManagementHandler _classManagementHandler;
+    private readonly PolygonDrawingHandler _polygonDrawingHandler;
+    private readonly ObbDrawingHandler _obbDrawingHandler;
+    private readonly UndoRedoHandler _undoRedoHandler;
+    private readonly ExportCommandHandler _exportHandler;
+    private readonly ReviewCommandHandler _reviewHandler;
 
     private AnnotationProject? _project;
     private AnnotationData? _currentAnnotation;
-    private BitmapImage? _currentImage;
-    private int _currentImageIndex = -1;
-    private int _selectedClassIndex;
     private bool _isDrawing;
-    private Point _drawStartPoint;
-    private Point _drawEndPoint;
     private BoundingBoxAnnotation? _selectedBox;
     private string _statusMessage = "就绪";
     private string _projectName = string.Empty;
     private int _totalImages;
     private int _annotatedImages;
     private int _currentBoxCount;
-    private bool _isAutoDetecting;
-    private float _confidenceThreshold = 0.5f;
-    private string _loadedModelName = string.Empty;
-    private int _autoDetectProgress;
-    private int _autoDetectTotal;
+
+    private double _zoomLevel = 1.0;
+
+    private int _totalBoxCount;
+    private int _totalPolygonCount;
+    private int _totalObbCount;
+    private int _totalPolylineCount;
+    private int _totalCircleCount;
+    private int _totalAnnotationCount;
+    private string _classDistributionText = string.Empty;
+    private int _annotatedImageCount;
 
     /// <summary>
     /// 初始化标注 ViewModel，注册命令。
     /// </summary>
     /// <param name="annotationService">标注服务。</param>
     /// <param name="autoLabelingService">自动标注服务。</param>
-    public AnnotationViewModel(IAnnotationService annotationService, IAutoLabelingService autoLabelingService)
+    /// <param name="videoFrameService">视频帧提取服务。</param>
+    public AnnotationViewModel(IAnnotationService annotationService, IAutoLabelingService autoLabelingService, IVideoFrameService videoFrameService)
     {
         _annotationService = annotationService;
-        _autoLabelingService = autoLabelingService;
+        _videoFrameService = videoFrameService;
 
-        // 命令注册
+        _imageNavigationHandler = new ImageNavigationHandler(
+            annotationService,
+            getProject: () => Project,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            setCurrentAnnotation: value => CurrentAnnotation = value,
+            getTotalImages: () => TotalImages,
+            setStatusMessage: value => StatusMessage = value,
+            updateBoxesList: UpdateBoxesList,
+            updateStatistics: UpdateStatistics);
+
+        _autoLabelingHandler = new AutoLabelingCommandHandler(
+            autoLabelingService,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            getProject: () => Project,
+            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
+            setStatusMessage: value => StatusMessage = value,
+            pushUndoSnapshot: PushUndoSnapshot,
+            updateBoxesList: UpdateBoxesList,
+            updateClassDistribution: UpdateClassDistribution,
+            updateStatistics: UpdateStatistics);
+
+        _classManagementHandler = new ClassManagementHandler(
+            getProject: () => Project,
+            updateClassesList: UpdateClassesList,
+            setStatusMessage: value => StatusMessage = value);
+
+        _undoRedoHandler = new UndoRedoHandler(
+            getCurrentAnnotation: () => CurrentAnnotation,
+            updateBoxesList: UpdateBoxesList,
+            updateClassDistribution: UpdateClassDistribution,
+            setStatusMessage: value => StatusMessage = value);
+
+        _polygonDrawingHandler = new PolygonDrawingHandler(
+            _drawingState,
+            getProject: () => Project,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
+            getSelectedClassIndex: () => SelectedClassIndex,
+            getIsObbMode: () => _obbDrawingHandler.IsObbMode,
+            disableObbMode: () => _obbDrawingHandler.IsObbMode = false,
+            setStatusMessage: value => StatusMessage = value,
+            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
+            updateBoxesList: UpdateBoxesList,
+            updateClassDistribution: UpdateClassDistribution);
+
+        _obbDrawingHandler = new ObbDrawingHandler(
+            _drawingState,
+            getProject: () => Project,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
+            getSelectedClassIndex: () => SelectedClassIndex,
+            getIsPolygonMode: () => _polygonDrawingHandler.IsPolygonMode,
+            disablePolygonMode: () => _polygonDrawingHandler.IsPolygonMode = false,
+            setStatusMessage: value => StatusMessage = value,
+            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
+            updateBoxesList: UpdateBoxesList,
+            updateClassDistribution: UpdateClassDistribution);
+
+        _exportHandler = new ExportCommandHandler(
+            annotationService,
+            videoFrameService,
+            getProject: () => Project,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            getCurrentImageIndex: () => CurrentImageIndex,
+            loadFirstImage: () => _imageNavigationHandler.LoadImageAsync(0),
+            setStatusMessage: value => StatusMessage = value,
+            updateBoxesList: UpdateBoxesList,
+            updateStatistics: UpdateStatistics);
+
+        _reviewHandler = new ReviewCommandHandler(
+            getProject: () => Project,
+            getCurrentImageIndex: () => CurrentImageIndex,
+            loadImageAsync: index => _imageNavigationHandler.LoadImageAsync(index),
+            setStatusMessage: value => StatusMessage = value,
+            updateStatistics: UpdateStatistics,
+            getPolylineCount: () => TotalPolylineCount,
+            getCircleCount: () => TotalCircleCount);
+
+        _autoLabelingHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _imageNavigationHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _classManagementHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _polygonDrawingHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _obbDrawingHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _undoRedoHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _exportHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _reviewHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+
         NewProjectCommand = new DelegateCommand(ExecuteNewProject);
         OpenProjectCommand = new DelegateCommand(ExecuteOpenProject);
         SaveProjectCommand = new DelegateCommand(ExecuteSaveProject);
         AddImagesCommand = new DelegateCommand(ExecuteAddImages);
-        AddFolderCommand = new DelegateCommand(ExecuteAddFolder);
-        ExportYoloCommand = new DelegateCommand(ExecuteExportYolo);
-        ExportCocoCommand = new DelegateCommand(ExecuteExportCoco);
-        ExportVocCommand = new DelegateCommand(ExecuteExportVoc);
-
-        PreviousImageCommand = new DelegateCommand(ExecutePreviousImage, CanNavigateImage);
-        NextImageCommand = new DelegateCommand(ExecuteNextImage, CanNavigateImage);
-
-        AddClassCommand = new DelegateCommand(ExecuteAddClass);
-        RemoveClassCommand = new DelegateCommand(ExecuteRemoveClass, CanRemoveClass);
 
         DeleteSelectedBoxCommand = new DelegateCommand(ExecuteDeleteSelectedBox, CanDeleteSelectedBox);
         ClearAllBoxesCommand = new DelegateCommand(ExecuteClearAllBoxes, () => HasBoxes);
 
-        ImageMouseDownCommand = new DelegateCommand<Point>(ExecuteImageMouseDown);
-        ImageMouseMoveCommand = new DelegateCommand<Point>(ExecuteImageMouseMove);
-        ImageMouseUpCommand = new DelegateCommand<Point>(ExecuteImageMouseUp);
+        ImageMouseDownCommand = new DelegateCommand<Point?>(p => { if (p.HasValue) ExecuteImageMouseDown(p.Value); });
+        ImageMouseMoveCommand = new DelegateCommand<Point?>(p => { if (p.HasValue) ExecuteImageMouseMove(p.Value); });
+        ImageMouseUpCommand = new DelegateCommand<Point?>(p => { if (p.HasValue) ExecuteImageMouseUp(p.Value); });
 
-        // 自动标注命令
-        LoadModelCommand = new DelegateCommand(ExecuteLoadModel);
-        UnloadModelCommand = new DelegateCommand(ExecuteUnloadModel, () => IsModelLoaded);
-        AutoDetectCurrentCommand = new DelegateCommand(ExecuteAutoDetectCurrent, CanAutoDetectCurrent);
-        AutoDetectAllCommand = new DelegateCommand(ExecuteAutoDetectAll, CanAutoDetectAll);
+        AddFolderCommand = new DelegateCommand(ExecuteAddFolder);
 
-        // 撤销/重做
-        UndoCommand = new DelegateCommand(ExecuteUndo, CanUndo);
-        RedoCommand = new DelegateCommand(ExecuteRedo, CanRedo);
+        SwitchToBboxModeCommand = new DelegateCommand(ExecuteSwitchToBboxMode);
+        SwitchToPolygonModeCommand = new DelegateCommand(ExecuteSwitchToPolygonMode);
+        SwitchToObbModeCommand = new DelegateCommand(ExecuteSwitchToObbMode);
+        CancelDrawingCommand = new DelegateCommand(ExecuteCancelDrawing);
+        ResetZoomCommand = new DelegateCommand(ExecuteResetZoom);
     }
 
     // ── 属性 ──────────────────────────────────────────────────────────────────
@@ -109,31 +195,17 @@ public class AnnotationViewModel : BindableBase
         }
     }
 
-    /// <summary>当前显示的图像。</summary>
-    public BitmapImage? CurrentImage
-    {
-        get => _currentImage;
-        private set => SetProperty(ref _currentImage, value);
-    }
+    /// <summary>当前显示的图像（转发至 ImageNavigationHandler）。</summary>
+    public BitmapImage? CurrentImage => _imageNavigationHandler.CurrentImage;
 
-    /// <summary>当前图像在列表中的索引。</summary>
-    public int CurrentImageIndex
-    {
-        get => _currentImageIndex;
-        private set
-        {
-            if (SetProperty(ref _currentImageIndex, value))
-            {
-                RaisePropertyChanged(nameof(ImageNavigationText));
-            }
-        }
-    }
+    /// <summary>当前图像在列表中的索引（转发至 ImageNavigationHandler）。</summary>
+    public int CurrentImageIndex => _imageNavigationHandler.CurrentImageIndex;
 
-    /// <summary>当前选中的类别索引。</summary>
+    /// <summary>当前选中的类别索引（转发至 ClassManagementHandler）。</summary>
     public int SelectedClassIndex
     {
-        get => _selectedClassIndex;
-        set => SetProperty(ref _selectedClassIndex, value);
+        get => _classManagementHandler.SelectedClassIndex;
+        set => _classManagementHandler.SelectedClassIndex = value;
     }
 
     /// <summary>是否正在绘制边界框。</summary>
@@ -146,15 +218,23 @@ public class AnnotationViewModel : BindableBase
     /// <summary>绘制起点。</summary>
     public Point DrawStartPoint
     {
-        get => _drawStartPoint;
-        private set => SetProperty(ref _drawStartPoint, value);
+        get => _drawingState.DrawStartPoint;
+        private set
+        {
+            _drawingState.DrawStartPoint = value;
+            RaisePropertyChanged();
+        }
     }
 
     /// <summary>绘制终点。</summary>
     public Point DrawEndPoint
     {
-        get => _drawEndPoint;
-        private set => SetProperty(ref _drawEndPoint, value);
+        get => _drawingState.DrawEndPoint;
+        private set
+        {
+            _drawingState.DrawEndPoint = value;
+            RaisePropertyChanged();
+        }
     }
 
     /// <summary>当前选中的边界框。</summary>
@@ -202,118 +282,296 @@ public class AnnotationViewModel : BindableBase
     /// <summary>当前图像的边界框集合（用于绑定）。</summary>
     public ObservableCollection<BoundingBoxAnnotation> CurrentBoxes { get; } = new();
 
+    /// <summary>当前图像的所有标注（边界框 + 多边形 + OBB）统一集合，用于 ListBox 绑定。</summary>
+    public ObservableCollection<object> AllAnnotations { get; } = new();
+
     /// <summary>是否有边界框。</summary>
     public bool HasBoxes => CurrentBoxes.Count > 0;
+
+    // ── 标注统计属性 ────────────────────────────────────────────────────────
+
+    /// <summary>当前图像的边界框数量。</summary>
+    public int TotalBoxCount
+    {
+        get => _totalBoxCount;
+        private set => SetProperty(ref _totalBoxCount, value);
+    }
+
+    /// <summary>当前图像的多边形数量。</summary>
+    public int TotalPolygonCount
+    {
+        get => _totalPolygonCount;
+        private set => SetProperty(ref _totalPolygonCount, value);
+    }
+
+    /// <summary>当前图像的 OBB 数量。</summary>
+    public int TotalObbCount
+    {
+        get => _totalObbCount;
+        private set => SetProperty(ref _totalObbCount, value);
+    }
+
+    /// <summary>当前图像的折线数量。</summary>
+    public int TotalPolylineCount
+    {
+        get => _totalPolylineCount;
+        private set => SetProperty(ref _totalPolylineCount, value);
+    }
+
+    /// <summary>当前图像的圆形数量。</summary>
+    public int TotalCircleCount
+    {
+        get => _totalCircleCount;
+        private set => SetProperty(ref _totalCircleCount, value);
+    }
+
+    /// <summary>当前图像的标注总数。</summary>
+    public int TotalAnnotationCount
+    {
+        get => _totalAnnotationCount;
+        private set => SetProperty(ref _totalAnnotationCount, value);
+    }
+
+    /// <summary>项目中各类别的标注数量汇总文本。</summary>
+    public string ClassDistributionText
+    {
+        get => _classDistributionText;
+        private set => SetProperty(ref _classDistributionText, value);
+    }
+
+    /// <summary>项目中已标注图像数量。</summary>
+    public int AnnotatedImageCount
+    {
+        get => _annotatedImageCount;
+        private set => SetProperty(ref _annotatedImageCount, value);
+    }
 
     /// <summary>类别列表。</summary>
     public ObservableCollection<AnnotationClass> Classes { get; } = new();
 
-    /// <summary>图像导航文字。</summary>
-    public string ImageNavigationText => Project == null
-        ? "无图像"
-        : $"{CurrentImageIndex + 1} / {TotalImages}";
+    /// <summary>图像导航文字（转发至 ImageNavigationHandler）。</summary>
+    public string ImageNavigationText => _imageNavigationHandler.ImageNavigationText;
 
     /// <summary>标注进度文字。</summary>
     public string AnnotationProgressText => Project == null
         ? string.Empty
         : $"已标注: {AnnotatedImages} / {TotalImages}";
 
-    // ── 自动标注属性 ────────────────────────────────────────────────────────
+    // ── 自动标注属性（转发至 AutoLabelingCommandHandler） ────────────────────
 
     /// <summary>模型是否已加载。</summary>
-    public bool IsModelLoaded
-    {
-        get => _autoLabelingService.IsModelLoaded;
-        private set
-        {
-            RaisePropertyChanged(nameof(IsModelLoaded));
-            RaisePropertyChanged(nameof(LoadedModelName));
-        }
-    }
+    public bool IsModelLoaded => _autoLabelingHandler.IsModelLoaded;
 
     /// <summary>已加载模型名称。</summary>
-    public string LoadedModelName
-    {
-        get
-        {
-            if (!_autoLabelingService.IsModelLoaded) return "未加载模型";
-            return Path.GetFileName(_autoLabelingService.LoadedModelPath ?? "未知模型");
-        }
-    }
+    public string LoadedModelName => _autoLabelingHandler.LoadedModelName;
 
     /// <summary>是否正在自动检测。</summary>
-    public bool IsAutoDetecting
-    {
-        get => _isAutoDetecting;
-        private set => SetProperty(ref _isAutoDetecting, value);
-    }
+    public bool IsAutoDetecting => _autoLabelingHandler.IsAutoDetecting;
 
     /// <summary>置信度阈值。</summary>
     public float ConfidenceThreshold
     {
-        get => _confidenceThreshold;
-        set => SetProperty(ref _confidenceThreshold, Math.Clamp(value, 0.1f, 0.95f));
+        get => _autoLabelingHandler.ConfidenceThreshold;
+        set => _autoLabelingHandler.ConfidenceThreshold = value;
     }
 
     /// <summary>自动检测进度当前值。</summary>
-    public int AutoDetectProgress
-    {
-        get => _autoDetectProgress;
-        private set => SetProperty(ref _autoDetectProgress, value);
-    }
+    public int AutoDetectProgress => _autoLabelingHandler.AutoDetectProgress;
 
     /// <summary>自动检测进度总数。</summary>
-    public int AutoDetectTotal
-    {
-        get => _autoDetectTotal;
-        private set => SetProperty(ref _autoDetectTotal, value);
-    }
+    public int AutoDetectTotal => _autoLabelingHandler.AutoDetectTotal;
 
     /// <summary>自动检测进度文字。</summary>
-    public string AutoDetectProgressText => IsAutoDetecting
-        ? $"自动标注中: {AutoDetectProgress} / {AutoDetectTotal}"
-        : string.Empty;
+    public string AutoDetectProgressText => _autoLabelingHandler.AutoDetectProgressText;
 
-    // ── 撤销/重做 ──────────────────────────────────────────────────────────
+    // ── 多边形模式属性（转发至 PolygonDrawingHandler） ──────────────────────
 
-    private readonly Stack<List<BoundingBoxAnnotation>> _undoStack = new();
-    private readonly Stack<List<BoundingBoxAnnotation>> _redoStack = new();
+    /// <summary>是否处于多边形绘制模式。</summary>
+    public bool IsPolygonMode
+    {
+        get => _polygonDrawingHandler.IsPolygonMode;
+        set => _polygonDrawingHandler.IsPolygonMode = value;
+    }
 
-    // ── 命令 ──────────────────────────────────────────────────────────────────
+    /// <summary>多边形模式切换按钮文字。</summary>
+    public string PolygonModeButtonText => _polygonDrawingHandler.PolygonModeButtonText;
+
+    /// <summary>当前正在绘制的多边形顶点集合（屏幕坐标）。</summary>
+    public ObservableCollection<System.Windows.Point> CurrentPolygonPoints => _polygonDrawingHandler.CurrentPolygonPoints;
+
+    // ── OBB 模式属性（转发至 ObbDrawingHandler） ────────────────────────────
+
+    /// <summary>是否处于 OBB（旋转边界框）绘制模式。</summary>
+    public bool IsObbMode
+    {
+        get => _obbDrawingHandler.IsObbMode;
+        set => _obbDrawingHandler.IsObbMode = value;
+    }
+
+    /// <summary>OBB 模式切换按钮文字。</summary>
+    public string ObbModeButtonText => _obbDrawingHandler.ObbModeButtonText;
+
+    /// <summary>是否正在绘制 OBB（定义尺寸阶段）。</summary>
+    public bool IsDrawingObb => _obbDrawingHandler.IsDrawingObb;
+
+    /// <summary>是否正在旋转 OBB（设置角度阶段）。</summary>
+    public bool IsRotatingObb => _obbDrawingHandler.IsRotatingObb;
+
+    /// <summary>OBB 中心点（屏幕坐标）。</summary>
+    public System.Windows.Point ObbCenter => _obbDrawingHandler.ObbCenter;
+
+    /// <summary>OBB 尺寸（屏幕坐标）。</summary>
+    public System.Windows.Size ObbSize => _obbDrawingHandler.ObbSize;
+
+    /// <summary>OBB 旋转角度（弧度）。</summary>
+    public double ObbAngle => _obbDrawingHandler.ObbAngle;
+
+    /// <summary>当前缩放级别（1.0 = 100%）。</summary>
+    public double ZoomLevel
+    {
+        get => _zoomLevel;
+        set
+        {
+            if (SetProperty(ref _zoomLevel, Math.Clamp(value, 0.1, 10.0)))
+            {
+                RaisePropertyChanged(nameof(ZoomLevelText));
+            }
+        }
+    }
+
+    /// <summary>缩放级别显示文本。</summary>
+    public string ZoomLevelText => $"{ZoomLevel * 100:F0}%";
+
+    /// <summary>视频导入进度文字（转发至 ExportCommandHandler）。</summary>
+    public string VideoImportProgress => _exportHandler.VideoImportProgress;
+
+    // ── 审查属性（转发至 ReviewCommandHandler） ──────────────────────────────
+
+    /// <summary>审查摘要文本。</summary>
+    public string ReviewSummaryText => _reviewHandler.ReviewSummaryText;
+
+    /// <summary>未标注图像数量。</summary>
+    public int UnannotatedImageCount => _reviewHandler.UnannotatedImageCount;
+
+    /// <summary>是否有未标注图像。</summary>
+    public bool HasUnannotatedImages => _reviewHandler.HasUnannotatedImages;
+
+    // ── 命令（转发至处理器） ────────────────────────────────────────────────
+
+    /// <summary>上一张图像命令。</summary>
+    public DelegateCommand PreviousImageCommand => _imageNavigationHandler.PreviousImageCommand;
+
+    /// <summary>下一张图像命令。</summary>
+    public DelegateCommand NextImageCommand => _imageNavigationHandler.NextImageCommand;
+
+    /// <summary>添加类别命令。</summary>
+    public DelegateCommand AddClassCommand => _classManagementHandler.AddClassCommand;
+
+    /// <summary>移除类别命令。</summary>
+    public DelegateCommand RemoveClassCommand => _classManagementHandler.RemoveClassCommand;
+
+    /// <summary>加载模型命令。</summary>
+    public DelegateCommand LoadModelCommand => _autoLabelingHandler.LoadModelCommand;
+
+    /// <summary>卸载模型命令。</summary>
+    public DelegateCommand UnloadModelCommand => _autoLabelingHandler.UnloadModelCommand;
+
+    /// <summary>自动检测当前图像命令。</summary>
+    public DelegateCommand AutoDetectCurrentCommand => _autoLabelingHandler.AutoDetectCurrentCommand;
+
+    /// <summary>自动检测所有图像命令。</summary>
+    public DelegateCommand AutoDetectAllCommand => _autoLabelingHandler.AutoDetectAllCommand;
+
+    /// <summary>按索引选择类别命令。</summary>
+    public DelegateCommand<int> SelectClassCommand => _classManagementHandler.SelectClassCommand;
+
+    /// <summary>撤销命令。</summary>
+    public DelegateCommand UndoCommand => _undoRedoHandler.UndoCommand;
+
+    /// <summary>重做命令。</summary>
+    public DelegateCommand RedoCommand => _undoRedoHandler.RedoCommand;
+
+    /// <summary>切换多边形模式命令。</summary>
+    public DelegateCommand TogglePolygonModeCommand => _polygonDrawingHandler.TogglePolygonModeCommand;
+
+    /// <summary>完成多边形绘制命令。</summary>
+    public DelegateCommand FinishPolygonCommand => _polygonDrawingHandler.FinishPolygonCommand;
+
+    /// <summary>取消多边形绘制命令。</summary>
+    public DelegateCommand CancelPolygonCommand => _polygonDrawingHandler.CancelPolygonCommand;
+
+    /// <summary>多边形模式鼠标按下命令。</summary>
+    public DelegateCommand<Point?> PolygonMouseDownCommand => _polygonDrawingHandler.PolygonMouseDownCommand;
+
+    /// <summary>多边形模式双击命令。</summary>
+    public DelegateCommand<Point?> PolygonDoubleClickCommand => _polygonDrawingHandler.PolygonDoubleClickCommand;
+
+    /// <summary>切换 OBB 模式命令。</summary>
+    public DelegateCommand ToggleObbModeCommand => _obbDrawingHandler.ToggleObbModeCommand;
+
+    /// <summary>完成 OBB 绘制命令。</summary>
+    public DelegateCommand FinishObbCommand => _obbDrawingHandler.FinishObbCommand;
+
+    /// <summary>取消 OBB 绘制命令。</summary>
+    public DelegateCommand CancelObbCommand => _obbDrawingHandler.CancelObbCommand;
+
+    /// <summary>OBB 模式鼠标按下命令。</summary>
+    public DelegateCommand<Point?> ObbMouseDownCommand => _obbDrawingHandler.ObbMouseDownCommand;
+
+    /// <summary>OBB 模式鼠标移动命令。</summary>
+    public DelegateCommand<Point?> ObbMouseMoveCommand => _obbDrawingHandler.ObbMouseMoveCommand;
+
+    /// <summary>OBB 模式鼠标抬起命令。</summary>
+    public DelegateCommand<Point?> ObbMouseUpCommand => _obbDrawingHandler.ObbMouseUpCommand;
+
+    /// <summary>导出 YOLO 数据集命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ExportYoloCommand => _exportHandler.ExportYoloCommand;
+
+    /// <summary>导出 COCO 数据集命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ExportCocoCommand => _exportHandler.ExportCocoCommand;
+
+    /// <summary>导出 VOC 数据集命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ExportVocCommand => _exportHandler.ExportVocCommand;
+
+    /// <summary>导出 DOTA 数据集命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ExportDotCommand => _exportHandler.ExportDotCommand;
+
+    /// <summary>导出 MOT 数据集命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ExportMotCommand => _exportHandler.ExportMotCommand;
+
+    /// <summary>导入标注命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ImportAnnotationsCommand => _exportHandler.ImportAnnotationsCommand;
+
+    /// <summary>导入视频命令（转发至 ExportCommandHandler）。</summary>
+    public DelegateCommand ImportVideoCommand => _exportHandler.ImportVideoCommand;
+
+    /// <summary>跳转到下一个未标注图像命令（转发至 ReviewCommandHandler）。</summary>
+    public DelegateCommand GotoNextUnannotatedCommand => _reviewHandler.GotoNextUnannotatedCommand;
+
+    /// <summary>刷新审查摘要命令（转发至 ReviewCommandHandler）。</summary>
+    public DelegateCommand RefreshReviewSummaryCommand => _reviewHandler.RefreshReviewSummaryCommand;
+
+    // ── 命令（ViewModel 持有） ───────────────────────────────────────────────
 
     public DelegateCommand NewProjectCommand { get; }
     public DelegateCommand OpenProjectCommand { get; }
     public DelegateCommand SaveProjectCommand { get; }
     public DelegateCommand AddImagesCommand { get; }
-    public DelegateCommand ExportYoloCommand { get; }
-
-    public DelegateCommand PreviousImageCommand { get; }
-    public DelegateCommand NextImageCommand { get; }
-
-    public DelegateCommand AddClassCommand { get; }
-    public DelegateCommand RemoveClassCommand { get; }
 
     public DelegateCommand DeleteSelectedBoxCommand { get; }
     public DelegateCommand ClearAllBoxesCommand { get; }
 
-    public DelegateCommand<Point> ImageMouseDownCommand { get; }
-    public DelegateCommand<Point> ImageMouseMoveCommand { get; }
-    public DelegateCommand<Point> ImageMouseUpCommand { get; }
+    public DelegateCommand<Point?> ImageMouseDownCommand { get; }
+    public DelegateCommand<Point?> ImageMouseMoveCommand { get; }
+    public DelegateCommand<Point?> ImageMouseUpCommand { get; }
 
-    // 自动标注命令
-    public DelegateCommand LoadModelCommand { get; }
-    public DelegateCommand UnloadModelCommand { get; }
-    public DelegateCommand AutoDetectCurrentCommand { get; }
-    public DelegateCommand AutoDetectAllCommand { get; }
-
-    // 导出命令
     public DelegateCommand AddFolderCommand { get; }
-    public DelegateCommand ExportCocoCommand { get; }
-    public DelegateCommand ExportVocCommand { get; }
 
-    // 撤销/重做
-    public DelegateCommand UndoCommand { get; }
-    public DelegateCommand RedoCommand { get; }
+    public DelegateCommand SwitchToBboxModeCommand { get; }
+    public DelegateCommand SwitchToPolygonModeCommand { get; }
+    public DelegateCommand SwitchToObbModeCommand { get; }
+    public DelegateCommand CancelDrawingCommand { get; }
+    public DelegateCommand ResetZoomCommand { get; }
 
     // ── 命令实现 ──────────────────────────────────────────────────────────────
 
@@ -331,7 +589,6 @@ public class AnnotationViewModel : BindableBase
         if (string.IsNullOrWhiteSpace(projectName))
             projectName = "AnnotationProject";
 
-        // 默认类别
         var defaultClasses = new List<AnnotationClass>
         {
             new() { Index = 0, Name = "object", Color = "#FF0000" }
@@ -369,7 +626,7 @@ public class AnnotationViewModel : BindableBase
 
             if (Project.Annotations.Count > 0)
             {
-                await LoadImageAsync(0);
+                await _imageNavigationHandler.LoadImageAsync(0);
             }
 
             StatusMessage = $"项目已加载: {Project.ProjectName}, 共 {Project.Annotations.Count} 张图像";
@@ -420,10 +677,9 @@ public class AnnotationViewModel : BindableBase
             await _annotationService.AddImagesAsync(Project, dialog.FileNames);
             UpdateStatistics();
 
-            // 如果是第一次添加图像，加载第一张
             if (CurrentImageIndex < 0 && Project.Annotations.Count > 0)
             {
-                await LoadImageAsync(0);
+                await _imageNavigationHandler.LoadImageAsync(0);
             }
 
             StatusMessage = $"已添加 {dialog.FileNames.Length} 张图像";
@@ -433,84 +689,6 @@ public class AnnotationViewModel : BindableBase
             _logger.Error(ex, "添加图像失败");
             StatusMessage = $"添加图像失败: {ex.Message}";
         }
-    }
-
-    private async void ExecuteExportYolo()
-    {
-        if (Project == null || Project.Annotations.Count == 0)
-        {
-            StatusMessage = "没有可导出的标注数据";
-            return;
-        }
-
-        var dialog = new VistaFolderBrowserDialog
-        {
-            Description = "选择 YOLO 数据集输出目录"
-        };
-
-        if (dialog.ShowDialog() != true)
-            return;
-
-        try
-        {
-            StatusMessage = "正在导出 YOLO 数据集...";
-            await _annotationService.ExportYoloDatasetAsync(Project, dialog.SelectedPath);
-            StatusMessage = $"YOLO 数据集已导出到: {dialog.SelectedPath}";
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "导出 YOLO 数据集失败");
-            StatusMessage = $"导出失败: {ex.Message}";
-        }
-    }
-
-    private bool CanNavigateImage() => Project != null && Project.Annotations.Count > 0;
-
-    private async void ExecutePreviousImage()
-    {
-        if (CurrentImageIndex > 0)
-        {
-            await SaveCurrentAnnotationAsync();
-            await LoadImageAsync(CurrentImageIndex - 1);
-        }
-    }
-
-    private async void ExecuteNextImage()
-    {
-        if (Project != null && CurrentImageIndex < Project.Annotations.Count - 1)
-        {
-            await SaveCurrentAnnotationAsync();
-            await LoadImageAsync(CurrentImageIndex + 1);
-        }
-    }
-
-    private void ExecuteAddClass()
-    {
-        if (Project == null) return;
-
-        var newIndex = Project.Classes.Count;
-        var newClass = new AnnotationClass
-        {
-            Index = newIndex,
-            Name = $"class_{newIndex}",
-            Color = GetColorForIndex(newIndex)
-        };
-
-        Project.Classes.Add(newClass);
-        UpdateClassesList();
-        StatusMessage = $"已添加类别: {newClass.Name}";
-    }
-
-    private bool CanRemoveClass() => Project != null && Project.Classes.Count > 1;
-
-    private void ExecuteRemoveClass()
-    {
-        if (Project == null || Project.Classes.Count <= 1) return;
-
-        var lastClass = Project.Classes.Last();
-        Project.Classes.Remove(lastClass);
-        UpdateClassesList();
-        StatusMessage = $"已移除类别: {lastClass.Name}";
     }
 
     private bool CanDeleteSelectedBox() => SelectedBox != null;
@@ -523,6 +701,7 @@ public class AnnotationViewModel : BindableBase
         CurrentAnnotation.Boxes.Remove(SelectedBox);
         SelectedBox = null;
         UpdateBoxesList();
+        UpdateClassDistribution();
         StatusMessage = "已删除选中的边界框";
     }
 
@@ -533,6 +712,7 @@ public class AnnotationViewModel : BindableBase
         PushUndoSnapshot();
         CurrentAnnotation.Boxes.Clear();
         UpdateBoxesList();
+        UpdateClassDistribution();
         StatusMessage = "已清空所有边界框";
     }
 
@@ -552,14 +732,13 @@ public class AnnotationViewModel : BindableBase
         DrawEndPoint = point;
     }
 
-    private async void ExecuteImageMouseUp(Point point)
+    private void ExecuteImageMouseUp(Point point)
     {
         if (!IsDrawing || Project == null || CurrentAnnotation == null) return;
 
         IsDrawing = false;
         DrawEndPoint = point;
 
-        // 计算归一化的边界框
         if (CurrentImage == null) return;
 
         var x1 = Math.Min(DrawStartPoint.X, DrawEndPoint.X);
@@ -567,17 +746,14 @@ public class AnnotationViewModel : BindableBase
         var x2 = Math.Max(DrawStartPoint.X, DrawEndPoint.X);
         var y2 = Math.Max(DrawStartPoint.Y, DrawEndPoint.Y);
 
-        // 忽略太小的框（可能是误点击）
         if (x2 - x1 < 5 || y2 - y1 < 5)
             return;
 
-        // 转换为归一化坐标
         var centerX = (x1 + x2) / 2 / CurrentImage.PixelWidth;
         var centerY = (y1 + y2) / 2 / CurrentImage.PixelHeight;
         var width = (x2 - x1) / CurrentImage.PixelWidth;
         var height = (y2 - y1) / CurrentImage.PixelHeight;
 
-        // 获取当前选中的类别
         var selectedClass = SelectedClassIndex < Project.Classes.Count
             ? Project.Classes[SelectedClassIndex]
             : Project.Classes.FirstOrDefault();
@@ -596,153 +772,10 @@ public class AnnotationViewModel : BindableBase
 
         CurrentAnnotation.Boxes.Add(box);
         UpdateBoxesList();
+        UpdateClassDistribution();
 
         StatusMessage = $"已添加边界框: {selectedClass.Name}";
     }
-
-    // ── 自动标注命令实现 ──────────────────────────────────────────────────────
-
-    private async void ExecuteLoadModel()
-    {
-        var dialog = new OpenFileDialog
-        {
-            Filter = "ONNX 模型|*.onnx|所有文件|*.*",
-            Title = "选择 ONNX 模型文件"
-        };
-
-        if (dialog.ShowDialog() != true) return;
-
-        // 尝试查找同目录下的 classes.txt
-        var modelDir = Path.GetDirectoryName(dialog.FileName) ?? string.Empty;
-        var classesFile = Path.Combine(modelDir, "classes.txt");
-        var classesPath = File.Exists(classesFile) ? classesFile : null;
-
-        try
-        {
-            StatusMessage = "正在加载模型...";
-            await _autoLabelingService.LoadModelAsync(dialog.FileName, classesPath);
-            IsModelLoaded = true;
-            StatusMessage = $"模型已加载: {Path.GetFileName(dialog.FileName)}";
-            _logger.Information("自动标注模型已加载: {Path}", dialog.FileName);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "加载模型失败");
-            StatusMessage = $"加载模型失败: {ex.Message}";
-        }
-    }
-
-    private void ExecuteUnloadModel()
-    {
-        _autoLabelingService.UnloadModel();
-        IsModelLoaded = false;
-        StatusMessage = "模型已卸载";
-    }
-
-    private bool CanAutoDetectCurrent()
-        => IsModelLoaded && CurrentAnnotation != null && CurrentImage != null && !IsAutoDetecting;
-
-    private async void ExecuteAutoDetectCurrent()
-    {
-        if (CurrentAnnotation == null) return;
-
-        try
-        {
-            IsAutoDetecting = true;
-            StatusMessage = "正在自动标注当前图像...";
-
-            // 保存当前框的快照用于撤销
-            PushUndoSnapshot();
-
-            var detections = await _autoLabelingService.DetectAsync(
-                CurrentAnnotation.ImagePath, ConfidenceThreshold);
-
-            // 将检测结果添加到当前标注
-            foreach (var box in detections)
-            {
-                CurrentAnnotation.Boxes.Add(box);
-            }
-
-            UpdateBoxesList();
-            StatusMessage = $"自动标注完成: 检测到 {detections.Count} 个目标";
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "自动标注失败");
-            StatusMessage = $"自动标注失败: {ex.Message}";
-        }
-        finally
-        {
-            IsAutoDetecting = false;
-        }
-    }
-
-    private bool CanAutoDetectAll()
-        => IsModelLoaded && Project != null && Project.Annotations.Count > 0 && !IsAutoDetecting;
-
-    private async void ExecuteAutoDetectAll()
-    {
-        if (Project == null) return;
-
-        // 过滤出未标注的图像
-        var unannotated = Project.Annotations
-            .Where(a => a.Boxes.Count == 0)
-            .Select(a => a.ImagePath)
-            .ToList();
-
-        if (unannotated.Count == 0)
-        {
-            StatusMessage = "所有图像均已标注，无需自动标注";
-            return;
-        }
-
-        try
-        {
-            IsAutoDetecting = true;
-            AutoDetectTotal = unannotated.Count;
-            AutoDetectProgress = 0;
-
-            var progress = new Progress<(int current, int total)>(p =>
-            {
-                AutoDetectProgress = p.current;
-                RaisePropertyChanged(nameof(AutoDetectProgressText));
-            });
-
-            StatusMessage = $"正在批量自动标注 {unannotated.Count} 张图像...";
-
-            var results = await _autoLabelingService.DetectBatchAsync(
-                unannotated, ConfidenceThreshold, progress);
-
-            // 将检测结果写入对应的标注数据
-            int totalDetections = 0;
-            foreach (var annotation in Project.Annotations)
-            {
-                if (results.TryGetValue(annotation.ImagePath, out var detections))
-                {
-                    foreach (var box in detections)
-                    {
-                        annotation.Boxes.Add(box);
-                    }
-                    totalDetections += detections.Count;
-                }
-            }
-
-            UpdateBoxesList();
-            UpdateStatistics();
-            StatusMessage = $"批量自动标注完成: {unannotated.Count} 张图像, 共 {totalDetections} 个目标";
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "批量自动标注失败");
-            StatusMessage = $"批量自动标注失败: {ex.Message}";
-        }
-        finally
-        {
-            IsAutoDetecting = false;
-        }
-    }
-
-    // ── 文件夹导入 ──────────────────────────────────────────────────────────
 
     private async void ExecuteAddFolder()
     {
@@ -776,9 +809,7 @@ public class AnnotationViewModel : BindableBase
             UpdateStatistics();
 
             if (CurrentImageIndex < 0 && Project.Annotations.Count > 0)
-            {
-                await LoadImageAsync(0);
-            }
+                await _imageNavigationHandler.LoadImageAsync(0);
 
             StatusMessage = $"已从文件夹导入 {imageFiles.Count} 张图像";
         }
@@ -789,171 +820,64 @@ public class AnnotationViewModel : BindableBase
         }
     }
 
-    // ── 多格式导出 ──────────────────────────────────────────────────────────
+    // ── 撤销/重做（委托至 UndoRedoHandler） ────────────────────────────────
 
-    private async void ExecuteExportCoco()
+    /// <summary>
+    /// 推送当前标注数据的快照到撤销栈。
+    /// </summary>
+    private void PushUndoSnapshot() => _undoRedoHandler.PushUndoSnapshot();
+
+    // ── 快捷键命令实现 ────────────────────────────────────────────────────────
+
+    private void ExecuteSwitchToBboxMode()
     {
-        if (Project == null || Project.Annotations.Count == 0)
-        {
-            StatusMessage = "没有可导出的标注数据";
-            return;
-        }
+        if (_polygonDrawingHandler.IsPolygonMode)
+            _polygonDrawingHandler.IsPolygonMode = false;
+        if (_obbDrawingHandler.IsObbMode)
+            _obbDrawingHandler.IsObbMode = false;
+        StatusMessage = "边界框模式";
+    }
 
-        var dialog = new VistaFolderBrowserDialog { Description = "选择 COCO 数据集输出目录" };
-        if (dialog.ShowDialog() != true) return;
-
-        try
+    private void ExecuteSwitchToPolygonMode()
+    {
+        if (!_polygonDrawingHandler.IsPolygonMode)
         {
-            StatusMessage = "正在导出 COCO 数据集...";
-            await _annotationService.ExportCocoDatasetAsync(Project, dialog.SelectedPath);
-            StatusMessage = $"COCO 数据集已导出到: {dialog.SelectedPath}";
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "导出 COCO 数据集失败");
-            StatusMessage = $"COCO 导出失败: {ex.Message}";
+            _polygonDrawingHandler.IsPolygonMode = true;
+            _obbDrawingHandler.IsObbMode = false;
+            StatusMessage = "多边形模式：单击添加顶点，双击完成";
         }
     }
 
-    private async void ExecuteExportVoc()
+    private void ExecuteSwitchToObbMode()
     {
-        if (Project == null || Project.Annotations.Count == 0)
+        if (!_obbDrawingHandler.IsObbMode)
         {
-            StatusMessage = "没有可导出的标注数据";
-            return;
-        }
-
-        var dialog = new VistaFolderBrowserDialog { Description = "选择 VOC 数据集输出目录" };
-        if (dialog.ShowDialog() != true) return;
-
-        try
-        {
-            StatusMessage = "正在导出 Pascal VOC 数据集...";
-            await _annotationService.ExportVocDatasetAsync(Project, dialog.SelectedPath);
-            StatusMessage = $"Pascal VOC 数据集已导出到: {dialog.SelectedPath}";
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "导出 VOC 数据集失败");
-            StatusMessage = $"VOC 导出失败: {ex.Message}";
+            _obbDrawingHandler.IsObbMode = true;
+            _polygonDrawingHandler.IsPolygonMode = false;
+            StatusMessage = "OBB 模式：拖拽定义中心和大小，松开后移动鼠标设置角度，单击确认";
         }
     }
 
-    // ── 撤销/重做 ──────────────────────────────────────────────────────────
-
-    private void PushUndoSnapshot()
+    private void ExecuteCancelDrawing()
     {
-        if (CurrentAnnotation == null) return;
-        _undoStack.Push(CurrentAnnotation.Boxes.Select(b => new BoundingBoxAnnotation
+        if (_drawingState.IsDrawingPolygon)
+            _polygonDrawingHandler.ExecuteCancelPolygon();
+        else if (_drawingState.IsDrawingObb || _drawingState.IsRotatingObb)
+            _obbDrawingHandler.ExecuteCancelObb();
+        else if (IsDrawing)
         {
-            ClassIndex = b.ClassIndex,
-            ClassName = b.ClassName,
-            CenterX = b.CenterX,
-            CenterY = b.CenterY,
-            Width = b.Width,
-            Height = b.Height
-        }).ToList());
-        _redoStack.Clear();
+            IsDrawing = false;
+            StatusMessage = "已取消绘制";
+        }
     }
 
-    private bool CanUndo() => _undoStack.Count > 0 && CurrentAnnotation != null;
-
-    private void ExecuteUndo()
+    private void ExecuteResetZoom()
     {
-        if (CurrentAnnotation == null || _undoStack.Count == 0) return;
-
-        // 保存当前状态到 redo 栈
-        _redoStack.Push(CurrentAnnotation.Boxes.Select(b => new BoundingBoxAnnotation
-        {
-            ClassIndex = b.ClassIndex,
-            ClassName = b.ClassName,
-            CenterX = b.CenterX,
-            CenterY = b.CenterY,
-            Width = b.Width,
-            Height = b.Height
-        }).ToList());
-
-        // 恢复上一个状态
-        var snapshot = _undoStack.Pop();
-        CurrentAnnotation.Boxes.Clear();
-        foreach (var box in snapshot) CurrentAnnotation.Boxes.Add(box);
-        UpdateBoxesList();
-        StatusMessage = "已撤销";
-    }
-
-    private bool CanRedo() => _redoStack.Count > 0 && CurrentAnnotation != null;
-
-    private void ExecuteRedo()
-    {
-        if (CurrentAnnotation == null || _redoStack.Count == 0) return;
-
-        // 保存当前状态到 undo 栈
-        _undoStack.Push(CurrentAnnotation.Boxes.Select(b => new BoundingBoxAnnotation
-        {
-            ClassIndex = b.ClassIndex,
-            ClassName = b.ClassName,
-            CenterX = b.CenterX,
-            CenterY = b.CenterY,
-            Width = b.Width,
-            Height = b.Height
-        }).ToList());
-
-        // 恢复 redo 状态
-        var snapshot = _redoStack.Pop();
-        CurrentAnnotation.Boxes.Clear();
-        foreach (var box in snapshot) CurrentAnnotation.Boxes.Add(box);
-        UpdateBoxesList();
-        StatusMessage = "已重做";
+        ZoomLevel = 1.0;
+        StatusMessage = "缩放已重置为 100%";
     }
 
     // ── 辅助方法 ──────────────────────────────────────────────────────────────
-
-    private async Task LoadImageAsync(int index)
-    {
-        if (Project == null || index < 0 || index >= Project.Annotations.Count)
-            return;
-
-        CurrentImageIndex = index;
-        CurrentAnnotation = Project.Annotations[index];
-
-        // 加载图像
-        try
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(CurrentAnnotation.ImagePath);
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-
-            CurrentImage = bitmap;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "加载图像失败: {ImagePath}", CurrentAnnotation.ImagePath);
-            CurrentImage = null;
-            StatusMessage = $"加载图像失败: {ex.Message}";
-            return;
-        }
-
-        // 如果图像尺寸为 0，更新尺寸
-        if (CurrentAnnotation.ImageWidth == 0 || CurrentAnnotation.ImageHeight == 0)
-        {
-            CurrentAnnotation.ImageWidth = CurrentImage.PixelWidth;
-            CurrentAnnotation.ImageHeight = CurrentImage.PixelHeight;
-        }
-
-        UpdateBoxesList();
-        StatusMessage = $"图像 {index + 1}/{Project.Annotations.Count}: {Path.GetFileName(CurrentAnnotation.ImagePath)}";
-    }
-
-    private async Task SaveCurrentAnnotationAsync()
-    {
-        if (Project == null || CurrentAnnotation == null) return;
-
-        await _annotationService.UpdateAnnotationAsync(Project, CurrentAnnotation);
-        UpdateStatistics();
-    }
 
     private void UpdateClassesList()
     {
@@ -961,23 +885,37 @@ public class AnnotationViewModel : BindableBase
         if (Project == null) return;
 
         foreach (var cls in Project.Classes)
-        {
             Classes.Add(cls);
-        }
     }
 
     private void UpdateBoxesList()
     {
         CurrentBoxes.Clear();
-        if (CurrentAnnotation == null) return;
+        AllAnnotations.Clear();
+
+        if (CurrentAnnotation == null)
+        {
+            CurrentBoxCount = 0;
+            UpdateAnnotationStatistics();
+            RaisePropertyChanged(nameof(HasBoxes));
+            return;
+        }
 
         foreach (var box in CurrentAnnotation.Boxes)
         {
             CurrentBoxes.Add(box);
+            AllAnnotations.Add(box);
         }
+
+        foreach (var polygon in CurrentAnnotation.Polygons)
+            AllAnnotations.Add(polygon);
+
+        foreach (var obb in CurrentAnnotation.OrientedBoxes)
+            AllAnnotations.Add(obb);
 
         CurrentBoxCount = CurrentBoxes.Count;
         RaisePropertyChanged(nameof(HasBoxes));
+        UpdateAnnotationStatistics();
     }
 
     private void UpdateStatistics()
@@ -985,19 +923,60 @@ public class AnnotationViewModel : BindableBase
         if (Project == null) return;
 
         TotalImages = Project.Annotations.Count;
-        AnnotatedImages = Project.Annotations.Count(a => a.Boxes.Count > 0);
+        AnnotatedImages = Project.Annotations.Count(a =>
+            a.Boxes.Count > 0 || a.Polygons.Count > 0 || a.OrientedBoxes.Count > 0 || a.Polylines.Count > 0 || a.Circles.Count > 0);
+        AnnotatedImageCount = AnnotatedImages;
         ProjectName = Project.ProjectName;
 
         RaisePropertyChanged(nameof(AnnotationProgressText));
+        UpdateClassDistribution();
     }
 
-    private static string GetColorForIndex(int index)
+    private void UpdateAnnotationStatistics()
     {
-        var colors = new[]
+        if (CurrentAnnotation == null)
         {
-            "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF",
-            "#00FFFF", "#FF8000", "#8000FF", "#0080FF", "#FF0080"
-        };
-        return colors[index % colors.Length];
+            TotalBoxCount = 0;
+            TotalPolygonCount = 0;
+            TotalObbCount = 0;
+            TotalPolylineCount = 0;
+            TotalCircleCount = 0;
+            TotalAnnotationCount = 0;
+            return;
+        }
+
+        TotalBoxCount = CurrentAnnotation.Boxes.Count;
+        TotalPolygonCount = CurrentAnnotation.Polygons.Count;
+        TotalObbCount = CurrentAnnotation.OrientedBoxes.Count;
+        TotalPolylineCount = CurrentAnnotation.Polylines.Count;
+        TotalCircleCount = CurrentAnnotation.Circles.Count;
+        TotalAnnotationCount = TotalBoxCount + TotalPolygonCount + TotalObbCount + TotalPolylineCount + TotalCircleCount;
+    }
+
+    private void UpdateClassDistribution()
+    {
+        if (Project == null)
+        {
+            ClassDistributionText = string.Empty;
+            return;
+        }
+
+        var distribution = new Dictionary<string, int>();
+
+        foreach (var annotation in Project.Annotations)
+        {
+            foreach (var box in annotation.Boxes)
+                distribution[box.ClassName] = distribution.GetValueOrDefault(box.ClassName) + 1;
+
+            foreach (var polygon in annotation.Polygons)
+                distribution[polygon.ClassName] = distribution.GetValueOrDefault(polygon.ClassName) + 1;
+
+            foreach (var obb in annotation.OrientedBoxes)
+                distribution[obb.ClassName] = distribution.GetValueOrDefault(obb.ClassName) + 1;
+        }
+
+        ClassDistributionText = distribution.Count == 0
+            ? "暂无标注数据"
+            : string.Join(", ", distribution.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key}: {kv.Value}"));
     }
 }

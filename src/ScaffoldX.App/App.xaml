@@ -31,6 +31,12 @@
             <DataTemplate DataType="{x:Type vm:Step4ViewModel}">
                 <views:Step4ConfirmGenerateView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AnnotationViewModel}">
+                <views:AnnotationView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:YoloTrainingViewModel}">
+                <views:YoloTrainingView />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </prism:PrismApplication>

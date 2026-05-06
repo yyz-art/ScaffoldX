@@ -1,8 +1,8 @@
-##OUTPUT: src/{{ProjectName}}.App/Shell/StatusBarView.{{XamlExt}}
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/StatusBarView.{{XamlExt}}
 ##REQUIRED: true
 <!-- 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }} -->
 <!-- 请勿手动修改此文件 -->
-<UserControl x:Class="{{ NamespacePrefix }}.App.Shell.StatusBarView"
+<UserControl x:Class="{{ NamespacePrefix }}.Modules.Shell.StatusBarView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"

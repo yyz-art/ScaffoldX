@@ -1,11 +1,11 @@
-##OUTPUT: src/{{ProjectName}}.System/Core/UserRole.cs
+##OUTPUT: src/{{ProjectName}}.Core/Models/UserRole.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
 using System;
 
-namespace {{ NamespacePrefix }}.System.Core
+namespace {{ NamespacePrefix }}.Core.Models
 {
     /// <summary>
     /// 用户角色枚举（PRD 对齐：None / Operator / Engineer / Administrator）。

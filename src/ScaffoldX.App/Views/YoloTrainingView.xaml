@@ -130,7 +130,7 @@
 
                 <!-- 进度条 -->
                 <TextBlock Text="训练进度" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="24" Margin="0,0,0,4"/>
+                <ProgressBar Value="{Binding ProgressPercent, Mode=OneWay}" Maximum="100" Height="24" Margin="0,0,0,4"/>
                 <TextBlock Text="{Binding ProgressText}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
 
                 <!-- 训练指标 -->

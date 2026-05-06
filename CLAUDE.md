@@ -51,8 +51,8 @@ ScaffoldX.slnx
 │   ├── ScaffoldX.Core/         # Business logic, template processing, vision inference
 │   └── ScaffoldX.Templates/    # Embedded .stpl template resources
 └── tests/
-    ├── ScaffoldX.App.Tests/        # App layer tests (64 tests, ValidationService, AnnotationService, ScribanTemplateEngine)
-    ├── ScaffoldX.Core.Tests/       # Core layer tests (51 tests, TemplateRegistry, VariableResolver, PostProcessor, FileTreeBuilder, Integration)
+    ├── ScaffoldX.App.Tests/        # App layer tests (204 tests, ValidationService, AnnotationService, ScribanTemplateEngine, Polygon/OBB/UndoRedo/Zoom/Keyboard/Statistics)
+    ├── ScaffoldX.Core.Tests/       # Core layer tests (79 tests, TemplateRegistry, VariableResolver, PostProcessor, FileTreeBuilder, Integration, OnnxDetector, InferenceRobustness, InferenceUtility, PreprocessPerformance)
     └── ScaffoldX.IntegrationTests/ # Integration tests (empty, needs implementation)
 ```
 
@@ -71,7 +71,7 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 **Template System:**
 - `.stpl` files in `ScaffoldX.Templates/` are embedded resources loaded at runtime
 - Template directives: `##OUTPUT:` (output path), `##REQUIRED:` (conditional generation)
-- Variables use `snake_case` naming convention
+- Variables use `PascalCase` naming convention (e.g., `{{ProjectName}}`, `{{EnableVision}}`)
 - PostProcessor handles line endings, XML entity restoration, trailing whitespace
 
 **Project Generation Flow (PRD §10.4):**
@@ -93,14 +93,42 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 **Vision Module (YOLO + ONNX):**
 - `AnnotationService` / `AnnotationView` — YOLO bounding-box annotation tool
 - `YoloTrainingService` — Python/Ultralytics training script generation and execution
-- `InferenceEngineBase` / `OnnxDetector` / `OnnxClassifier` — ONNX Runtime inference (reflection-based loading to avoid hard NuGet dependency)
+- `InferenceEngineBase` / `OnnxDetector` / `OnnxClassifier` — ONNX Runtime inference via direct `Microsoft.ML.OnnxRuntime` v1.20.0 NuGet reference, supporting YOLOv5/v8/v8-seg with BitmapData preprocessing
 - `AnnotationModels.cs` — Core data models for annotation, training config, and results
+
+**Annotation & Training Platform Features:**
+- Bounding box, polygon, oriented bounding box (OBB), polyline, and circle annotation
+- Auto-labeling with ONNX models (YOLOv5, YOLOv8, YOLOv8-seg)
+- Annotation interpolation between keyframes
+- YOLO, COCO, VOC, DOTA, MOT format export
+- Export report generation
+- Import annotations from YOLO format
+- Recent files tracking
+- Keyboard shortcuts: Delete, Ctrl+Z/Y (undo/redo), arrow keys (nudge), 1-9 (class select), Space (finish polygon), B (bbox mode), P (polygon mode), O (OBB mode)
+- Zoom/pan with mouse wheel and middle button
+- Undo/redo for all annotation types via generic `UndoRedoManager`
+- Annotation statistics and count tracking
+- Video frame extraction from video files
+- Model zoo with pretrained YOLO models for auto-labeling
+- UI accessibility support
 
 **Wizard Steps (MVVM):**
 - Step 1: Project type selection (Collection/Vision/System)
 - Step 2: Basic info (name, path, namespace, UI framework)
 - Step 3: Specific configuration (drivers, vision, modules)
 - Step 4: Preview file tree and generate
+
+### Annotation ViewModel Architecture (8 Handlers)
+
+The AnnotationViewModel delegates to 8 specialized handlers:
+- AutoLabelingCommandHandler (301 lines) — model load/unload, auto-detect
+- ImageNavigationHandler (202 lines) — previous/next, load/save
+- ClassManagementHandler (135 lines) — add/remove/select class
+- PolygonDrawingHandler (210 lines) — polygon mode, add/finish/cancel
+- ObbDrawingHandler (328 lines) — OBB mode, drag/rotate/finish
+- UndoRedoHandler (159 lines) — push/undo/redo snapshots
+- ExportCommandHandler — YOLO/COCO/VOC/DOTA/MOT export, import
+- ReviewCommandHandler — review summary, goto unannotated
 
 ### Design Patterns
 
@@ -130,6 +158,7 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 | FluentValidation | 11.9.0 | Input validation |
 | Ookii.Dialogs.Wpf | 4.0.0 | Native folder browser dialogs |
 | System.Drawing.Common | 8.0.0 | Bitmap processing for vision inference |
+| Microsoft.ML.OnnxRuntime | 1.20.0 | ONNX model inference for YOLO detection and classification |
 | xUnit | 2.6.2 | Test framework |
 | FluentAssertions | 6.12.0 | Test assertions |
 | Moq | 4.20.69 | Mocking framework |
@@ -199,19 +228,36 @@ dotnet test tests/ScaffoldX.Core.Tests/ --filter "ClassName~VariableResolverTest
 dotnet test tests/ScaffoldX.App.Tests/ --filter "ClassName~ValidationServiceTests"
 ```
 
-**Current test coverage (115 tests total):**
+**Current test coverage (283 tests total):**
 
-Core layer (51 tests):
+Core layer (79 tests):
 - `TemplateRegistryTests` — template loading, category filtering (Vision/System/Common)
 - `VariableResolverTests` — variable context building (PascalCase), ToPascalCase conversion, ScaffoldX metadata, system module variables
 - `PostProcessorTests` — line endings, XML entity restoration, trailing whitespace
 - `FileTreeBuilderTests` — file tree structure, conditional modules, gitignore, inference engine, system modules
 - `FullGenerationFlowTests` — integration tests: Collection/Vision/System project template selection, mixed config, Common templates always included, PostProcessor pipeline, variable context completeness
+- `OnnxDetectorTests` — YOLO postprocessing (YOLOv5, YOLOv8, YOLOv8 row-major, boundary clamping, confidence filtering)
+- `OnnxDetectorSegTests` — YOLOv8-seg segmentation mask parsing
+- `InferenceRobustnessTests` — null guards, model-not-loaded
+- `InferenceUtilityTests` — ResizeImage, CreateDetectionResult
+- `PreprocessPerformanceTests` — BitmapData preprocessing
 
-App layer (64 tests):
+App layer (204 tests):
 - `ValidationServiceTests` — project name validation, IP address validation, port validation, PascalCase conversion, output path validation
 - `AnnotationServiceTests` — YOLO format conversion (ToYoloFormat/FromYoloFormat), round-trip consistency, invalid input handling
 - `ScribanTemplateEngineTests` — template rendering, variable substitution, boolean/loop syntax, error handling
+- `PolygonAnnotationTests` — polygon model, round-trip
+- `OrientedBoundingBoxAnnotationTests` — OBB model
+- `AnnotationServicePolygonTests` — polygon YOLO export
+- `AnnotationServiceObbTests` — OBB YOLO export
+- `AnnotationImportTests` — import annotations
+- `AnnotationKeyboardTests` — keyboard shortcuts
+- `AnnotationZoomTests` — zoom/pan
+- `AnnotationUndoRedoTests` — undo/redo for all types
+- `AnnotationStatisticsTests` — annotation counts
+- `UndoRedoManagerTests` — generic undo/redo manager
+- `DrawingStateManagerTests` — drawing state
+- `VideoFrameServiceTests` — video frame extraction
 
 **Test conventions:**
 - Follow Arrange-Act-Assert pattern

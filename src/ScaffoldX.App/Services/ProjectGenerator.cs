@@ -174,6 +174,7 @@ public class ProjectGenerator : IProjectGenerator
 
         return new Core.Models.ProjectConfig
         {
+            ProjectType     = appConfig.ProjectType,
             ProjectName     = appConfig.ProjectName,
             NamespacePrefix = appConfig.NamespacePrefix,
             TargetFramework = targetFramework,

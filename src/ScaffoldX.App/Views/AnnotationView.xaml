@@ -4,12 +4,75 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:ScaffoldX.App.Converters"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1200">
 
     <UserControl.Resources>
         <!-- 边界框颜色转换器 -->
         <SolidColorBrush x:Key="BoxStrokeBrush" Color="#FF0000"/>
+
+        <!-- 弧度转角度转换器 -->
+        <converters:RadiansToDegreesConverter x:Key="RadiansToDegreesConverter"/>
+
+        <!-- 边界框标注模板 -->
+        <DataTemplate x:Key="BoundingBoxTemplate">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold">
+                    <Run Text="类别: "/>
+                    <Run Text="{Binding ClassName, Mode=OneWay}"/>
+                    <Run Text=" | 中心: ("/>
+                    <Run Text="{Binding CenterX, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                    <Run Text=", "/>
+                    <Run Text="{Binding CenterY, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                    <Run Text=")"/>
+                </TextBlock>
+                <TextBlock>
+                    <Run Text="尺寸: "/>
+                    <Run Text="{Binding Width, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                    <Run Text=" x "/>
+                    <Run Text="{Binding Height, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 多边形标注模板 -->
+        <DataTemplate x:Key="PolygonTemplate">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold">
+                    <Run Text="类别: "/>
+                    <Run Text="{Binding ClassName, Mode=OneWay}"/>
+                    <Run Text=" | 多边形: "/>
+                    <Run Text="{Binding Points.Count, Mode=OneWay}"/>
+                    <Run Text=" 个点"/>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- OBB 标注模板 -->
+        <DataTemplate x:Key="OrientedBoundingBoxTemplate">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold">
+                    <Run Text="类别: "/>
+                    <Run Text="{Binding ClassName, Mode=OneWay}"/>
+                    <Run Text=" | OBB: "/>
+                    <Run Text="{Binding Width, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                    <Run Text=" x "/>
+                    <Run Text="{Binding Height, StringFormat='{}{0:F3}', Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock>
+                    <Run Text="角度: "/>
+                    <Run Text="{Binding Angle, Converter={StaticResource RadiansToDegreesConverter}, Mode=OneWay}"/>
+                    <Run Text="°"/>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 标注模板选择器 -->
+        <converters:AnnotationTemplateSelector x:Key="AnnotationTemplateSelector"
+            BoundingBoxTemplate="{StaticResource BoundingBoxTemplate}"
+            PolygonTemplate="{StaticResource PolygonTemplate}"
+            OrientedBoundingBoxTemplate="{StaticResource OrientedBoundingBoxTemplate}"/>
     </UserControl.Resources>
 
     <Grid>
@@ -80,6 +143,37 @@
                             Style="{StaticResource MaterialDesignFlatButton}"/>
                 </StackPanel>
 
+                <!-- 绘制模式 -->
+                <TextBlock Text="绘制模式" FontWeight="Bold" FontSize="14" Margin="0,8,0,8"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="{Binding PolygonModeButtonText}"
+                            Command="{Binding TogglePolygonModeCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#4CAF50"/>
+                    <Button Content="完成多边形" Command="{Binding FinishPolygonCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            IsEnabled="{Binding IsPolygonMode}"/>
+                    <Button Content="取消" Command="{Binding CancelPolygonCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            IsEnabled="{Binding IsPolygonMode}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="{Binding ObbModeButtonText}"
+                            Command="{Binding ToggleObbModeCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="#FF9800"/>
+                    <Button Content="完成 OBB" Command="{Binding FinishObbCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            IsEnabled="{Binding IsRotatingObb}"/>
+                    <Button Content="取消" Command="{Binding CancelObbCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            IsEnabled="{Binding IsDrawingObb}"/>
+                </StackPanel>
+
+                <!-- 导入标注 -->
+                <Button Content="导入 YOLO 标注" Command="{Binding ImportAnnotationsCommand}" Margin="0,0,0,8"
+                        Style="{StaticResource MaterialDesignFlatButton}"/>
+
                 <!-- 导出 -->
                 <TextBlock Text="导出格式" FontWeight="Bold" FontSize="14" Margin="0,8,0,8"/>
                 <StackPanel Orientation="Horizontal">
@@ -87,8 +181,14 @@
                             Style="{StaticResource MaterialDesignRaisedButton}" Background="#4CAF50"/>
                     <Button Content="COCO" Command="{Binding ExportCocoCommand}" Margin="0,0,8,0"
                             Style="{StaticResource MaterialDesignRaisedButton}" Background="#2196F3"/>
-                    <Button Content="VOC" Command="{Binding ExportVocCommand}"
+                    <Button Content="VOC" Command="{Binding ExportVocCommand}" Margin="0,0,8,0"
                             Style="{StaticResource MaterialDesignRaisedButton}" Background="#FF9800"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Content="DOTA" Command="{Binding ExportDotCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource MaterialDesignRaisedButton}" Background="#E91E63"/>
+                    <Button Content="MOT" Command="{Binding ExportMotCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}" Background="#9C27B0"/>
                 </StackPanel>
 
                 <!-- 自动标注 -->
@@ -115,7 +215,7 @@
                         IsEnabled="{Binding IsModelLoaded}"/>
                 <!-- 自动标注进度 -->
                 <ProgressBar Minimum="0" Maximum="{Binding AutoDetectTotal}"
-                             Value="{Binding AutoDetectProgress}"
+                             Value="{Binding AutoDetectProgress, Mode=OneWay}"
                              Visibility="{Binding IsAutoDetecting, Converter={StaticResource BooleanToVisibilityConverter}}"
                              Height="8" Margin="0,0,0,4"/>
                 <TextBlock Text="{Binding AutoDetectProgressText}" FontSize="11"
@@ -157,33 +257,47 @@
                     <!-- 当前绘制的边界框 -->
                     <Rectangle x:Name="DrawingRect" Stroke="#FF0000" StrokeThickness="2"
                                StrokeDashArray="4 2" Visibility="Collapsed"/>
+
+                    <!-- 当前绘制的多边形 -->
+                    <Polyline x:Name="DrawingPolygon" Stroke="#00FF00" StrokeThickness="2"
+                              StrokeDashArray="4 2" Fill="#2200FF00"
+                              Visibility="Collapsed"/>
+
+                    <!-- 当前绘制的 OBB（旋转边界框） -->
+                    <Rectangle x:Name="DrawingObbRect" Stroke="#FF9800" StrokeThickness="2"
+                               StrokeDashArray="4 2" Fill="#22FF9800"
+                               Visibility="Collapsed"/>
                 </Canvas>
             </Border>
 
             <!-- 状态栏 -->
-            <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Margin="16,8"
-                       Foreground="#757575"/>
+            <Grid Grid.Row="2" Margin="16,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}"
+                           Foreground="#757575" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding ZoomLevelText}"
+                           Foreground="#757575" VerticalAlignment="Center"
+                           Margin="16,0,8,0" FontSize="12" FontWeight="SemiBold"/>
+                <Button Grid.Column="2" Content="重置缩放"
+                        Command="{Binding ResetZoomCommand}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        FontSize="11" Padding="4,2"/>
+            </Grid>
         </Grid>
 
-        <!-- 右侧面板：边界框列表 -->
+        <!-- 右侧面板：标注列表和统计 -->
         <Border Grid.Column="2" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="1,0,0,0">
             <StackPanel Margin="16">
-                <TextBlock Text="边界框列表" FontWeight="Bold" FontSize="16" Margin="0,0,0,12"/>
-                <TextBlock Text="{Binding CurrentBoxCount, StringFormat='数量: {0}'}" Margin="0,0,0,8"/>
+                <TextBlock Text="标注列表" FontWeight="Bold" FontSize="16" Margin="0,0,0,12"/>
+                <TextBlock Text="{Binding TotalAnnotationCount, StringFormat='数量: {0}'}" Margin="0,0,0,8"/>
 
-                <ListBox ItemsSource="{Binding CurrentBoxes}" SelectedItem="{Binding SelectedBox}"
-                         Height="400" Margin="0,0,0,8">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding ClassName, StringFormat='类别: {0}'}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding CenterX, StringFormat='中心: ({0:F3}, {1:F3})'}"
-                                           DataContext="{Binding}"/>
-                                <TextBlock Text="{Binding Width, StringFormat='尺寸: {0:F3} x {1:F3}'}"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <ListBox ItemsSource="{Binding AllAnnotations}" SelectedItem="{Binding SelectedBox}"
+                         ItemTemplateSelector="{StaticResource AnnotationTemplateSelector}"
+                         Height="320" Margin="0,0,0,8"/>
 
                 <StackPanel Orientation="Horizontal">
                     <Button Content="删除选中" Command="{Binding DeleteSelectedBoxCommand}" Margin="0,0,8,0"
@@ -192,8 +306,23 @@
                             Style="{StaticResource MaterialDesignFlatButton}"/>
                 </StackPanel>
 
+                <!-- 标注统计 -->
+                <TextBlock Text="标注统计" FontWeight="Bold" FontSize="14" Margin="0,16,0,8"/>
+                <TextBlock Text="{Binding TotalAnnotationCount, StringFormat='总计: {0}'}" Margin="0,0,0,2"/>
+                <TextBlock Text="{Binding TotalBoxCount, StringFormat='边界框: {0}'}" Margin="0,0,0,2"/>
+                <TextBlock Text="{Binding TotalPolygonCount, StringFormat='多边形: {0}'}" Margin="0,0,0,2"/>
+                <TextBlock Text="{Binding TotalObbCount, StringFormat='OBB: {0}'}" Margin="0,0,0,2"/>
+                <TextBlock Text="{Binding ClassDistributionText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <!-- 质量审查 -->
+                <TextBlock Text="质量审查" FontWeight="Bold" Margin="0,16,0,8"/>
+                <TextBlock Text="{Binding ReviewSummaryText}" TextWrapping="Wrap" FontSize="12"/>
+                <Button Content="跳转到未标注图像" Command="{Binding GotoNextUnannotatedCommand}"
+                        Margin="0,8,0,0" Style="{StaticResource MaterialDesignFlatButton}"
+                        IsEnabled="{Binding HasUnannotatedImages}"/>
+
                 <!-- 使用说明 -->
-                <TextBlock Text="使用说明" FontWeight="Bold" FontSize="14" Margin="0,24,0,8"/>
+                <TextBlock Text="使用说明" FontWeight="Bold" FontSize="14" Margin="0,8,0,8"/>
                 <TextBlock TextWrapping="Wrap" Foreground="#757575" FontSize="12">
                     1. 在左侧面板创建或打开项目
                     2. 添加图像文件到项目

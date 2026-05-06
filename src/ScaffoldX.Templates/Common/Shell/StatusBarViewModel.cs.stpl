@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.App/Shell/StatusBarViewModel.cs
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/StatusBarViewModel.cs
 ##REQUIRED: true
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Prism.Mvvm;
 
-namespace {{ NamespacePrefix }}.App.Shell
+namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
     /// 底部状态栏 ViewModel，显示连接状态、当前用户和时间。

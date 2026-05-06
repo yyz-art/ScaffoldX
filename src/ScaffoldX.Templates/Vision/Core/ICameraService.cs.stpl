@@ -4,6 +4,7 @@
 // 请勿手动修改此文件
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +42,21 @@ namespace {{ NamespacePrefix }}.Vision.Core
         /// <param name="frameCallback">每帧回调。</param>
         /// <param name="cancellationToken">取消令牌。</param>
         Task StartContinuousCaptureAsync(Action<Bitmap> frameCallback, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// 帧捕获事件参数，封装采集到的图像帧及元数据。
+    /// </summary>
+    public sealed class FrameCapturedEventArgs : EventArgs
+    {
+        /// <summary>采集到的图像帧。</summary>
+        public Bitmap Frame { get; init; }
+
+        /// <summary>帧序号（从 0 开始递增）。</summary>
+        public long FrameIndex { get; init; }
+
+        /// <summary>帧捕获时间戳。</summary>
+        public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
     }
 
     /// <summary>

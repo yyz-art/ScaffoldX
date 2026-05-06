@@ -1,0 +1,54 @@
+##OUTPUT: src/{{ProjectName}}.Modules.Diagnostic/PluginStatusViewModel.cs
+##REQUIRED: true
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Collections.ObjectModel;
+using Prism.Mvvm;
+
+namespace {{ NamespacePrefix }}.Modules.Diagnostic
+{
+    /// <summary>
+    /// 插件状态 ViewModel，展示已加载插件的运行状态。
+    /// </summary>
+    public class PluginStatusViewModel : BindableBase
+    {
+        /// <summary>
+        /// 初始化插件状态视图，加载插件列表。
+        /// </summary>
+        public PluginStatusViewModel()
+        {
+            Plugins = new ObservableCollection<PluginStatusInfo>();
+
+            // TODO: [ScaffoldX] 从插件管理器获取实际插件列表
+            Plugins.Add(new PluginStatusInfo
+            {
+                Id = "core",
+                Name = "核心模块",
+                Version = "1.0.0",
+                State = "Running"
+            });
+        }
+
+        /// <summary>插件状态列表。</summary>
+        public ObservableCollection<PluginStatusInfo> Plugins { get; }
+    }
+
+    /// <summary>
+    /// 插件状态信息，用于 DataGrid 绑定。
+    /// </summary>
+    public class PluginStatusInfo
+    {
+        /// <summary>插件标识符。</summary>
+        public string Id { get; init; } = string.Empty;
+
+        /// <summary>插件名称。</summary>
+        public string Name { get; init; } = string.Empty;
+
+        /// <summary>插件版本。</summary>
+        public string Version { get; init; } = string.Empty;
+
+        /// <summary>插件运行状态。</summary>
+        public string State { get; init; } = string.Empty;
+    }
+}

@@ -1,0 +1,28 @@
+##OUTPUT: src/{{ProjectName}}.Core/Services/ConfigService.cs
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+
+using System.Collections.Concurrent;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Core.Services
+{
+    public class ConfigService : IConfigService
+    {
+        private readonly ConcurrentDictionary<string, object> _store = new();
+
+        public T Get<T>(string key, T defaultValue = default)
+        {
+            return _store.TryGetValue(key, out var value) && value is T typed ? typed : defaultValue;
+        }
+
+        public void Set<T>(string key, T value)
+        {
+            _store[key] = value!;
+        }
+
+        public bool Contains(string key)
+        {
+            return _store.ContainsKey(key);
+        }
+    }
+}

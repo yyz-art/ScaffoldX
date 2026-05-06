@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.System/UserManagement/IUserService.cs
+##OUTPUT: src/{{ProjectName}}.Modules.UserManagement/IUserService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -6,9 +6,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using {{ NamespacePrefix }}.System.Core;
+using {{ NamespacePrefix }}.Core.Models;
 
-namespace {{ NamespacePrefix }}.System.UserManagement
+namespace {{ NamespacePrefix }}.Modules.UserManagement
 {
     /// <summary>
     /// 用户管理服务接口，提供用户认证、CRUD 和密码管理功能。
@@ -78,7 +78,7 @@ namespace {{ NamespacePrefix }}.System.UserManagement
         public string DisplayName { get; init; } = string.Empty;
 
         /// <summary>用户角色。</summary>
-        public UserRole Role { get; init; } = UserRole.Viewer;
+        public UserRole Role { get; init; } = UserRole.None;
 
         /// <summary>是否激活。</summary>
         public bool IsActive { get; init; } = true;

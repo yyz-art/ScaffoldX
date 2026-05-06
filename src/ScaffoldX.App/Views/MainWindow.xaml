@@ -41,15 +41,26 @@
                                          VerticalAlignment="Center"
                                          Margin="0,0,12,0"/>
 
-                <!-- 标题文字 -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="ScaffoldX"
-                               FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="White"/>
-                    <TextBlock Text="工业上位机脚手架生成工具"
-                               FontSize="11"
-                               Foreground="#B3FFFFFF"/>
+                <!-- 标题文字 + 导航按钮 -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                        <TextBlock Text="ScaffoldX"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+                        <TextBlock Text="工业上位机脚手架生成工具"
+                                   FontSize="11"
+                                   Foreground="#B3FFFFFF"/>
+                    </StackPanel>
+                    <Button Content="首页" Command="{Binding ShowHomeCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Foreground="White" Margin="0,0,4,0"/>
+                    <Button Content="标注工具" Command="{Binding ShowAnnotationCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Foreground="White" Margin="0,0,4,0"/>
+                    <Button Content="训练平台" Command="{Binding ShowTrainingCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Foreground="White" Margin="0,0,4,0"/>
                 </StackPanel>
 
                 <!-- 步骤指示器（历史列表时隐藏） -->
@@ -79,12 +90,13 @@
                          Content="{Binding CurrentView}"
                          Margin="0"/>
 
-        <!-- 底部导航按钮区（历史列表时隐藏） -->
+        <!-- 底部导航按钮区（历史列表和工具页面时隐藏） -->
         <Border Grid.Row="2"
                 BorderBrush="{StaticResource DividerBrush}"
                 BorderThickness="0,1,0,0"
                 Background="White"
-                Visibility="{Binding IsWizardVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                Visibility="{Binding IsWizardVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                IsEnabled="{Binding IsWizardVisible}">
             <Grid Margin="24,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

@@ -1,6 +1,8 @@
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace ScaffoldX.Core.Vision;
 
@@ -9,7 +11,7 @@ namespace ScaffoldX.Core.Vision;
 /// </summary>
 public class OnnxClassifier : InferenceEngineBase
 {
-    private object? _session; // InferenceSession
+    private InferenceSession? _session;
     private readonly List<string> _classNames = new();
     private int _topK = 5;
 
@@ -55,40 +57,40 @@ public class OnnxClassifier : InferenceEngineBase
     {
         try
         {
-            var sessionType = Type.GetType("Microsoft.ML.OnnxRuntime.InferenceSession, Microsoft.ML.OnnxRuntime");
-            if (sessionType != null)
-            {
-                _session = Activator.CreateInstance(sessionType, modelPath);
+            _session?.Dispose();
+            _session = new InferenceSession(modelPath);
 
-                // 获取输入信息
-                var inputMetaProperty = sessionType.GetProperty("InputMetadata");
-                if (inputMetaProperty?.GetValue(_session) is IDictionary<string, object> inputMeta)
+            foreach (var key in _session.InputMetadata.Keys)
+            {
+                InputName = key;
+                break;
+            }
+
+            OutputNames = _session.OutputMetadata.Keys.ToArray();
+
+            // 尝试从模型输入元数据读取维度 [batch, channels, height, width]
+            if (_session.InputMetadata.Count > 0)
+            {
+                var firstInput = _session.InputMetadata.Values.First();
+                var dims = firstInput.Dimensions;
+                if (dims is { Length: 4 })
                 {
-                    foreach (var key in inputMeta.Keys)
+                    var height = dims[2];
+                    var width = dims[3];
+                    if (height > 0 && width > 0)
                     {
-                        InputName = key;
-                        break;
+                        InputHeight = height;
+                        InputWidth = width;
+                        return;
                     }
                 }
-
-                // 获取输出信息
-                var outputMetaProperty = sessionType.GetProperty("OutputMetadata");
-                if (outputMetaProperty?.GetValue(_session) is IDictionary<string, object> outputMeta)
-                {
-                    OutputNames = outputMeta.Keys.ToArray();
-                }
-
-                // 设置默认输入尺寸（分类模型通常是 224x224）
-                InputWidth = 224;
-                InputHeight = 224;
             }
-            else
-            {
-                throw new InvalidOperationException(
-                    "ONNX Runtime 未安装。请安装 Microsoft.ML.OnnxRuntime NuGet 包。");
-            }
+
+            // 回退到默认值
+            InputWidth = 224;
+            InputHeight = 224;
         }
-        catch (Exception ex) when (ex is not InvalidOperationException)
+        catch (Exception ex)
         {
             throw new InvalidOperationException($"加载 ONNX 模型失败: {ex.Message}", ex);
         }
@@ -96,48 +98,41 @@ public class OnnxClassifier : InferenceEngineBase
 
     protected override float[] Preprocess(Bitmap image)
     {
-        // 调整图像大小到模型输入尺寸
         using var resized = ResizeImage(image, InputWidth, InputHeight);
+        var data = resized.LockBits(
+            new Rectangle(0, 0, resized.Width, resized.Height),
+            ImageLockMode.ReadOnly,
+            PixelFormat.Format24bppRgb);
 
-        // ImageNet 归一化参数
-        var mean = new float[] { 0.485f, 0.456f, 0.406f };
-        var std = new float[] { 0.229f, 0.224f, 0.225f };
-
-        // 转换为 RGB float 数组，归一化
-        var inputData = new float[1 * 3 * InputHeight * InputWidth];
-        var index = 0;
-
-        // 先填充 R 通道
-        for (int y = 0; y < InputHeight; y++)
+        try
         {
-            for (int x = 0; x < InputWidth; x++)
-            {
-                var pixel = resized.GetPixel(x, y);
-                inputData[index++] = (pixel.R / 255.0f - mean[0]) / std[0];
-            }
-        }
+            var buffer = new byte[data.Stride * data.Height];
+            Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
 
-        // 填充 G 通道
-        for (int y = 0; y < InputHeight; y++)
+            var mean = new float[] { 0.485f, 0.456f, 0.406f };
+            var std = new float[] { 0.229f, 0.224f, 0.225f };
+
+            var input = new float[1 * 3 * InputHeight * InputWidth];
+            for (int y = 0; y < InputHeight; y++)
+            {
+                for (int x = 0; x < InputWidth; x++)
+                {
+                    var pixelOffset = y * data.Stride + x * 3;
+                    var ch0Offset = y * InputWidth + x;
+                    var ch1Offset = InputHeight * InputWidth + ch0Offset;
+                    var ch2Offset = 2 * InputHeight * InputWidth + ch0Offset;
+
+                    input[ch0Offset] = (buffer[pixelOffset + 2] / 255f - mean[0]) / std[0]; // R
+                    input[ch1Offset] = (buffer[pixelOffset + 1] / 255f - mean[1]) / std[1]; // G
+                    input[ch2Offset] = (buffer[pixelOffset] / 255f - mean[2]) / std[2];     // B
+                }
+            }
+            return input;
+        }
+        finally
         {
-            for (int x = 0; x < InputWidth; x++)
-            {
-                var pixel = resized.GetPixel(x, y);
-                inputData[index++] = (pixel.G / 255.0f - mean[1]) / std[1];
-            }
+            resized.UnlockBits(data);
         }
-
-        // 填充 B 通道
-        for (int y = 0; y < InputHeight; y++)
-        {
-            for (int x = 0; x < InputWidth; x++)
-            {
-                var pixel = resized.GetPixel(x, y);
-                inputData[index++] = (pixel.B / 255.0f - mean[2]) / std[2];
-            }
-        }
-
-        return inputData;
     }
 
     protected override float[][] RunInference(float[] input)
@@ -145,66 +140,16 @@ public class OnnxClassifier : InferenceEngineBase
         if (_session == null)
             throw new InvalidOperationException("模型未加载");
 
-        var sessionType = _session.GetType();
+        var tensor = new DenseTensor<float>(input, new[] { 1, 3, InputHeight, InputWidth });
+        var inputValue = NamedOnnxValue.CreateFromTensor(InputName, tensor);
 
-        // 创建输入张量
-        var tensorType = Type.GetType("Microsoft.ML.OnnxRuntime.Tensors.DenseTensor`1, Microsoft.ML.OnnxRuntime");
-        if (tensorType == null)
-            throw new InvalidOperationException("无法创建 Tensor 类型");
+        using var outputs = _session.Run(new List<NamedOnnxValue> { inputValue });
 
-        var floatTensorType = tensorType.MakeGenericType(typeof(float));
-        var tensor = Activator.CreateInstance(floatTensorType, input, new[] { 1, 3, InputHeight, InputWidth });
-
-        // 创建输入集合
-        var namedValueType = Type.GetType("Microsoft.ML.OnnxRuntime.NamedOnnxValue, Microsoft.ML.OnnxRuntime");
-        if (namedValueType == null)
-            throw new InvalidOperationException("无法创建 NamedOnnxValue 类型");
-
-        var createMethod = namedValueType.GetMethod("CreateFromTensor");
-        if (createMethod == null)
-            throw new InvalidOperationException("无法找到 CreateFromTensor 方法");
-
-        var inputValue = createMethod.Invoke(null, new object[] { InputName, tensor! });
-
-        // 创建输入列表
-        var inputsList = (System.Collections.IList)Activator.CreateInstance(
-            typeof(List<>).MakeGenericType(namedValueType))!;
-        inputsList.Add(inputValue);
-
-        // 执行推理
-        var runMethod = sessionType.GetMethod("Run", new[] { inputsList.GetType() });
-        if (runMethod == null)
-            throw new InvalidOperationException("无法找到 Run 方法");
-
-        var outputs = runMethod.Invoke(_session, new object[] { inputsList }) as IDisposable;
-        if (outputs == null)
-            throw new InvalidOperationException("推理返回空结果");
-
-        // 解析输出
         var results = new List<float[]>();
-
-        foreach (var output in (System.Collections.IEnumerable)outputs)
+        foreach (var output in outputs)
         {
-            var valueProperty = output.GetType().GetProperty("Value");
-            var value = valueProperty?.GetValue(output);
-
-            if (value != null)
-            {
-                var asTensorMethod = value.GetType().GetMethod("AsTensor");
-                var tensorValue = asTensorMethod?.Invoke(value, null);
-
-                if (tensorValue != null)
-                {
-                    var toArrayMethod = tensorValue.GetType().GetMethod("ToArray");
-                    var array = toArrayMethod?.Invoke(tensorValue, null) as float[];
-                    if (array != null)
-                    {
-                        results.Add(array);
-                    }
-                }
-            }
-
-            (output as IDisposable)?.Dispose();
+            var tensorValue = output.AsTensor<float>();
+            results.Add(tensorValue.ToArray());
         }
 
         return results.ToArray();
@@ -219,10 +164,8 @@ public class OnnxClassifier : InferenceEngineBase
 
         var logits = outputs[0];
 
-        // 应用 Softmax
         var probabilities = Softmax(logits);
 
-        // 获取 Top K 结果
         var indexed = probabilities
             .Select((prob, index) => new { Index = index, Probability = prob })
             .OrderByDescending(x => x.Probability)
@@ -240,7 +183,7 @@ public class OnnxClassifier : InferenceEngineBase
                 ClassIndex = item.Index,
                 ClassName = className,
                 Confidence = item.Probability,
-                BoundingBox = new RectangleF(0, 0, originalWidth, originalHeight) // 分类模型返回整图
+                BoundingBox = new RectangleF(0, 0, originalWidth, originalHeight)
             });
         }
 
@@ -257,34 +200,11 @@ public class OnnxClassifier : InferenceEngineBase
         return exps.Select(x => x / sum).ToArray();
     }
 
-    private static Bitmap ResizeImage(Bitmap image, int width, int height)
-    {
-        var result = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-
-        using (var graphics = Graphics.FromImage(result))
-        {
-            graphics.CompositingMode = CompositingMode.SourceCopy;
-            graphics.CompositingQuality = CompositingQuality.HighQuality;
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.SmoothingMode = SmoothingMode.HighQuality;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-            using (var wrapMode = new ImageAttributes())
-            {
-                wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                graphics.DrawImage(image, new Rectangle(0, 0, width, height),
-                    0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
-            }
-        }
-
-        return result;
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            (_session as IDisposable)?.Dispose();
+            _session?.Dispose();
             _session = null;
         }
 

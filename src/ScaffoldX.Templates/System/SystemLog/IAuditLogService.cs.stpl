@@ -1,4 +1,4 @@
-##OUTPUT: src/{{ProjectName}}.System/SystemLog/IAuditLogService.cs
+##OUTPUT: src/{{ProjectName}}.Core/Abstractions/IAuditLogService.cs
 ##REQUIRED: false
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace {{ NamespacePrefix }}.System.SystemLog
+namespace {{ NamespacePrefix }}.Core.Abstractions
 {
     /// <summary>
     /// 审计日志服务接口，记录系统操作和安全事件。
