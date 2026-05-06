@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ScaffoldX** is a WPF desktop application (.NET 8) that generates industrial automation project scaffolds through a visual wizard. It targets industrial HMI/SCADA developers who need to quickly bootstrap WPF/Avalonia projects with pre-configured drivers, vision modules, and system components.
+**ScaffoldX** is a WPF desktop application (.NET 10) that generates industrial automation project scaffolds through a visual wizard. It targets industrial HMI/SCADA developers who need to quickly bootstrap WPF/Avalonia projects with pre-configured drivers, vision modules, and system components.
 
 **Key characteristics:**
 - Offline-first design for industrial control network isolation
 - Scriban template engine with `.stpl` template files
 - Prism MVVM framework for modular WPF architecture
 - Generates complete Visual Studio solutions ready to compile
-- Integrated YOLO annotation tool, training platform, and ONNX inference engine
+- Integrated annotation tool with TorchSharp inference and SAM 3 segmentation
 
 ## Build & Development Commands
 
@@ -48,11 +48,11 @@ dotnet restore
 ScaffoldX.slnx
 ├── src/
 │   ├── ScaffoldX.App/          # WPF application (UI layer)
-│   ├── ScaffoldX.Core/         # Business logic, template processing, vision inference
+│   ├── ScaffoldX.Core/         # Business logic, template processing, TorchSharp vision inference
 │   └── ScaffoldX.Templates/    # Embedded .stpl template resources
 └── tests/
-    ├── ScaffoldX.App.Tests/        # App layer tests (204 tests, ValidationService, AnnotationService, ScribanTemplateEngine, Polygon/OBB/UndoRedo/Zoom/Keyboard/Statistics)
-    ├── ScaffoldX.Core.Tests/       # Core layer tests (79 tests, TemplateRegistry, VariableResolver, PostProcessor, FileTreeBuilder, Integration, OnnxDetector, InferenceRobustness, InferenceUtility, PreprocessPerformance)
+    ├── ScaffoldX.App.Tests/        # App layer tests (249 tests)
+    ├── ScaffoldX.Core.Tests/       # Core layer tests (80 tests)
     └── ScaffoldX.IntegrationTests/ # Integration tests (empty, needs implementation)
 ```
 
@@ -63,7 +63,7 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 ```
 
 - **ScaffoldX.App**: WPF UI, ViewModels, Services, dependency injection via Prism.Unity
-- **ScaffoldX.Core**: TemplateRegistry, VariableResolver, PostProcessor, FileTreeBuilder, ONNX inference
+- **ScaffoldX.Core**: TemplateRegistry, VariableResolver, PostProcessor, FileTreeBuilder, TorchSharp inference, SAM 3 segmentation
 - **ScaffoldX.Templates**: Embedded `.stpl` files (Scriban templates) as assembly resources
 
 ### Key Components
@@ -90,15 +90,21 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 - `EnableSystemLog` — Audit logging (IAuditLogService, AuditLogEntry)
 - `EnableThemeSwitcher` — Theme switching (IThemeService, ThemeInfo)
 
-**Vision Module (YOLO + ONNX):**
-- `AnnotationService` / `AnnotationView` — YOLO bounding-box annotation tool
+**Vision Module (TorchSharp + SAM 3):**
+- `AnnotationService` / `AnnotationView` — annotation tool with bounding box, polygon, OBB, polyline, circle, and segmentation
 - `YoloTrainingService` — Python/Ultralytics training script generation and execution
-- `InferenceEngineBase` / `OnnxDetector` / `OnnxClassifier` — ONNX Runtime inference via direct `Microsoft.ML.OnnxRuntime` v1.20.0 NuGet reference, supporting YOLOv5/v8/v8-seg with BitmapData preprocessing
-- `AnnotationModels.cs` — Core data models for annotation, training config, and results
+- `InferenceEngineBase` — TorchSharp inference base class with `BitmapToTensor` (CHW format, [0,1] normalization)
+- `Sam3Segmentor` (`ISam3SegmentationEngine`) — SAM 3 segmentation engine, loads TorchScript models (encoder.pt, text_encoder.pt, decoder.pt)
+- `Sam3Tokenizer` — BPE tokenizer for SAM 3 text encoder (vocab.json + merges.txt)
+- `MaskToPolygonConverter` — binary mask to polygon contour (Marching Squares + Douglas-Peucker)
+- `ImageEmbedding` — disposable cached image embedding tensor for interactive segmentation
+- `AutoLabelingService` (`IAutoLabelingService`) — unified service for detection and SAM 3 segmentation modes
+- `AnnotationModels.cs` — Core data models: `BoundingBoxAnnotation`, `PolygonAnnotation`, `OrientedBoundingBoxAnnotation`, `SegmentationAnnotation`, `Sam3Point`, `Sam3PromptMode`
 
 **Annotation & Training Platform Features:**
-- Bounding box, polygon, oriented bounding box (OBB), polyline, and circle annotation
-- Auto-labeling with ONNX models (YOLOv5, YOLOv8, YOLOv8-seg)
+- Bounding box, polygon, oriented bounding box (OBB), polyline, circle, and segmentation annotation
+- SAM 3 auto-labeling: text prompt (batch), point prompt (interactive left=positive/right=negative), reference image
+- Auto-labeling with TorchSharp models (detection mode)
 - Annotation interpolation between keyframes
 - YOLO, COCO, VOC, DOTA, MOT format export
 - Export report generation
@@ -118,15 +124,16 @@ ScaffoldX.App → ScaffoldX.Core → ScaffoldX.Templates
 - Step 3: Specific configuration (drivers, vision, modules)
 - Step 4: Preview file tree and generate
 
-### Annotation ViewModel Architecture (8 Handlers)
+### Annotation ViewModel Architecture (9 Handlers)
 
-The AnnotationViewModel delegates to 8 specialized handlers:
-- AutoLabelingCommandHandler (301 lines) — model load/unload, auto-detect
-- ImageNavigationHandler (202 lines) — previous/next, load/save
-- ClassManagementHandler (135 lines) — add/remove/select class
-- PolygonDrawingHandler (210 lines) — polygon mode, add/finish/cancel
-- ObbDrawingHandler (328 lines) — OBB mode, drag/rotate/finish
-- UndoRedoHandler (159 lines) — push/undo/redo snapshots
+The AnnotationViewModel delegates to 9 specialized handlers:
+- AutoLabelingCommandHandler — model load/unload, auto-detect (detection mode)
+- Sam3LabelingCommandHandler — SAM 3 text/point/reference segmentation, mask preview with cancellation
+- ImageNavigationHandler — previous/next, load/save
+- ClassManagementHandler — add/remove/select class
+- PolygonDrawingHandler — polygon mode, add/finish/cancel
+- ObbDrawingHandler — OBB mode, drag/rotate/finish
+- UndoRedoHandler — push/undo/redo snapshots
 - ExportCommandHandler — YOLO/COCO/VOC/DOTA/MOT export, import
 - ReviewCommandHandler — review summary, goto unannotated
 
@@ -158,7 +165,7 @@ The AnnotationViewModel delegates to 8 specialized handlers:
 | FluentValidation | 11.9.0 | Input validation |
 | Ookii.Dialogs.Wpf | 4.0.0 | Native folder browser dialogs |
 | System.Drawing.Common | 8.0.0 | Bitmap processing for vision inference |
-| Microsoft.ML.OnnxRuntime | 1.20.0 | ONNX model inference for YOLO detection and classification |
+| TorchSharp-cuda-windows | 0.105.0 | TorchSharp bindings for libtorch (GPU inference) |
 | xUnit | 2.6.2 | Test framework |
 | FluentAssertions | 6.12.0 | Test assertions |
 | Moq | 4.20.69 | Mocking framework |
@@ -180,12 +187,26 @@ The AnnotationViewModel delegates to 8 specialized handlers:
 **Variable naming:** Always use `PascalCase` in templates (matching PRD §10.4):
 - `{{ProjectName}}` — Project name in PascalCase
 - `{{NamespacePrefix}}` — Namespace prefix
-- `{{TargetFramework}}` — Target framework (e.g., net8.0-windows)
+- `{{TargetFramework}}` — Target framework (e.g., net10.0-windows)
 - `{{UIFramework}}` — WPF or Avalonia
 - `{{XamlExt}}` — xaml or axaml based on UI framework
 - `{{EnableVision}}`, `{{EnableSiemensS7}}`, etc. — boolean flags for conditional generation
 - `{{ScaffoldXVersion}}` — ScaffoldX version string
 - `{{GeneratedAt}}` — Generation timestamp
+
+## SAM 3 Model Directory Convention
+
+SAM 3 models are loaded from a directory containing three TorchScript files:
+```
+model_dir/
+├── encoder.pt        # Image encoder (required)
+├── text_encoder.pt   # Text encoder (required)
+├── decoder.pt        # Mask decoder (required)
+├── vocab.json        # BPE vocabulary (optional, falls back to char-level encoding)
+└── merges.txt        # BPE merge rules (optional)
+```
+
+Model zoo variants: `sam3-vit-b` (~375MB), `sam3-vit-l` (~1.2GB). Cached in `models/segmentation/`.
 
 ## MSBuild Gotcha: `.cs.stpl` Files as Embedded Resources
 
@@ -228,21 +249,20 @@ dotnet test tests/ScaffoldX.Core.Tests/ --filter "ClassName~VariableResolverTest
 dotnet test tests/ScaffoldX.App.Tests/ --filter "ClassName~ValidationServiceTests"
 ```
 
-**Current test coverage (283 tests total):**
+**Current test coverage (329 tests total):**
 
-Core layer (79 tests):
+Core layer (80 tests):
 - `TemplateRegistryTests` — template loading, category filtering (Vision/System/Common)
 - `VariableResolverTests` — variable context building (PascalCase), ToPascalCase conversion, ScaffoldX metadata, system module variables
 - `PostProcessorTests` — line endings, XML entity restoration, trailing whitespace
 - `FileTreeBuilderTests` — file tree structure, conditional modules, gitignore, inference engine, system modules
 - `FullGenerationFlowTests` — integration tests: Collection/Vision/System project template selection, mixed config, Common templates always included, PostProcessor pipeline, variable context completeness
-- `OnnxDetectorTests` — YOLO postprocessing (YOLOv5, YOLOv8, YOLOv8 row-major, boundary clamping, confidence filtering)
-- `OnnxDetectorSegTests` — YOLOv8-seg segmentation mask parsing
-- `InferenceRobustnessTests` — null guards, model-not-loaded
+- `InferenceRobustnessTests` — null guards, model-not-loaded (TorchSharp engine)
 - `InferenceUtilityTests` — ResizeImage, CreateDetectionResult
-- `PreprocessPerformanceTests` — BitmapData preprocessing
+- `MaskToPolygonTests` — mask-to-polygon conversion (Marching Squares, Douglas-Peucker simplification)
+- `Sam3SegmentorTests` — SAM 3 model loading, tokenizer, ImageEmbedding, contour extraction
 
-App layer (204 tests):
+App layer (249 tests):
 - `ValidationServiceTests` — project name validation, IP address validation, port validation, PascalCase conversion, output path validation
 - `AnnotationServiceTests` — YOLO format conversion (ToYoloFormat/FromYoloFormat), round-trip consistency, invalid input handling
 - `ScribanTemplateEngineTests` — template rendering, variable substitution, boolean/loop syntax, error handling
@@ -258,6 +278,8 @@ App layer (204 tests):
 - `UndoRedoManagerTests` — generic undo/redo manager
 - `DrawingStateManagerTests` — drawing state
 - `VideoFrameServiceTests` — video frame extraction
+- `AutoLabelingHandlerTests` — SAM 3 model lifecycle, text/point/reference segmentation, batch operations
+- `Sam3AutoLabelingServiceTests` — SAM 3 service mock tests
 
 **Test conventions:**
 - Follow Arrange-Act-Assert pattern
@@ -267,13 +289,29 @@ App layer (204 tests):
 
 ## Code Style
 
-- C# 12 with nullable reference types enabled
+- C# 12 with nullable reference types enabled, target framework net10.0-windows
 - Implicit usings enabled
 - XML documentation comments on all public APIs
 - Async/await for I/O operations
 - Structured logging with Serilog (use `Log.ForContext<T>()`)
 - Python scripts embedded in C# use `$$$"""` raw string literals (triple dollar) to handle `{{`/`}}` dict braces
 
+## TorchSharp Patterns
+
+**Tensor lifecycle:** TorchSharp tensors hold native memory. Always `Dispose()` tensors when done. Use `using` where possible. For `module.forward()` results, cast explicitly: `(torch.Tensor)module.forward(input)`.
+
+**Image preprocessing:** `BitmapToTensor()` in `InferenceEngineBase` converts Bitmap to CHW float tensor normalized to [0,1]. `Sam3Segmentor` has its own `BitmapToNormalizedTensor()` for SAM 3's 1024x1024 input.
+
+**SAM 3 interaction modes:**
+- Text prompt: `SegmentByTextAsync` — batch segmentation by class names
+- Point prompt: `SegmentByPointsAsync` — interactive, left=positive/right=negative points
+- Reference image: `SegmentByReferenceAsync` — find similar objects
+
+**ImageEmbedding caching:** `EncodeImageAsync` is expensive (~1s). Cache the result and reuse for multiple prompts on the same image. `AutoLabelingService` tracks `_cachedEmbeddingPath` to invalidate stale caches on image navigation.
+
+**MaskToPolygonConverter:** Converts byte[,] binary masks to normalized polygon contours. Uses Marching Squares for contour extraction (checks `visited` array during tracing) and iterative Douglas-Peucker for simplification.
+
 ## PRD Reference
 
 Detailed requirements in `docs/ScaffoldX_PRD_v2.md` — covers all feature specifications, architecture decisions, and acceptance criteria.
+SAM 3 and TorchSharp integration specs in `docs/ScaffoldX_PRD_v3.md`.

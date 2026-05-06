@@ -2,12 +2,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using System.Threading;
+using TorchSharp;
 
 namespace ScaffoldX.Core.Vision;
 
 /// <summary>
-/// 推理引擎基类，提供 ONNX 模型加载和推理的通用实现。
+/// TorchSharp 推理引擎基类，提供基于 libtorch 的模型加载和推理通用实现。
 /// </summary>
 public abstract class InferenceEngineBase : IDisposable
 {
@@ -25,14 +25,8 @@ public abstract class InferenceEngineBase : IDisposable
     /// <summary>模型输入高度。</summary>
     public int InputHeight { get; protected set; } = 640;
 
-    /// <summary>模型输入名称。</summary>
-    public string InputName { get; protected set; } = "images";
-
-    /// <summary>模型输出名称。</summary>
-    public string[] OutputNames { get; protected set; } = Array.Empty<string>();
-
     /// <summary>
-    /// 加载 ONNX 模型。
+    /// 加载模型。
     /// </summary>
     /// <param name="modelPath">模型文件路径。</param>
     public virtual void LoadModel(string modelPath)
@@ -40,13 +34,21 @@ public abstract class InferenceEngineBase : IDisposable
         if (!File.Exists(modelPath))
             throw new FileNotFoundException("模型文件不存在", modelPath);
 
-        ModelPath = modelPath;
-        LoadModelInternal(modelPath);
-        IsLoaded = true;
+        _loadLock.Wait();
+        try
+        {
+            ModelPath = modelPath;
+            LoadModelInternal(modelPath);
+            IsLoaded = true;
+        }
+        finally
+        {
+            _loadLock.Release();
+        }
     }
 
     /// <summary>
-    /// 异步加载 ONNX 模型。使用信号量防止并发加载。
+    /// 异步加载模型。使用信号量防止并发加载。
     /// </summary>
     /// <param name="modelPath">模型文件路径。</param>
     /// <param name="cancellationToken">取消令牌。</param>
@@ -80,9 +82,9 @@ public abstract class InferenceEngineBase : IDisposable
         if (!IsLoaded)
             throw new InvalidOperationException("模型未加载，请先调用 LoadModel 方法");
 
-        var preprocessed = Preprocess(image);
-        var outputs = RunInference(preprocessed);
-        return Postprocess(outputs, image.Width, image.Height);
+        using var tensor = PreprocessToTensor(image);
+        using var outputs = RunModelInference(tensor);
+        return PostprocessResults(outputs, image.Width, image.Height);
     }
 
     /// <summary>
@@ -100,19 +102,15 @@ public abstract class InferenceEngineBase : IDisposable
 
         return await Task.Run(() =>
         {
-            var preprocessed = Preprocess(image);
-            var outputs = RunInference(preprocessed);
-            return Postprocess(outputs, image.Width, image.Height);
+            using var tensor = PreprocessToTensor(image);
+            using var outputs = RunModelInference(tensor);
+            return PostprocessResults(outputs, image.Width, image.Height);
         }, cancellationToken);
     }
 
     /// <summary>
     /// 将图像缩放到指定尺寸，使用高质量双三次插值。
     /// </summary>
-    /// <param name="image">原始图像。</param>
-    /// <param name="width">目标宽度。</param>
-    /// <param name="height">目标高度。</param>
-    /// <returns>缩放后的新 Bitmap（调用方负责释放）。</returns>
     protected static Bitmap ResizeImage(Bitmap image, int width, int height)
     {
         var result = new Bitmap(width, height, PixelFormat.Format24bppRgb);
@@ -137,20 +135,49 @@ public abstract class InferenceEngineBase : IDisposable
     }
 
     /// <summary>
+    /// 将 Bitmap 转换为 CHW 格式的 TorchSharp Tensor（归一化到 [0, 1]）。
+    /// </summary>
+    protected static torch.Tensor BitmapToTensor(Bitmap image, int targetWidth, int targetHeight)
+    {
+        using var resized = ResizeImage(image, targetWidth, targetHeight);
+        var data = resized.LockBits(
+            new Rectangle(0, 0, resized.Width, resized.Height),
+            ImageLockMode.ReadOnly,
+            PixelFormat.Format24bppRgb);
+
+        try
+        {
+            var buffer = new byte[data.Stride * data.Height];
+            Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
+
+            var floatData = new float[3 * targetHeight * targetWidth];
+            for (int y = 0; y < targetHeight; y++)
+            {
+                for (int x = 0; x < targetWidth; x++)
+                {
+                    var pixelOffset = y * data.Stride + x * 3;
+                    var ch0Offset = y * targetWidth + x;
+                    var ch1Offset = targetHeight * targetWidth + ch0Offset;
+                    var ch2Offset = 2 * targetHeight * targetWidth + ch0Offset;
+
+                    floatData[ch0Offset] = buffer[pixelOffset + 2] / 255f; // R
+                    floatData[ch1Offset] = buffer[pixelOffset + 1] / 255f; // G
+                    floatData[ch2Offset] = buffer[pixelOffset] / 255f;     // B
+                }
+            }
+
+            return torch.tensor(floatData, dtype: torch.ScalarType.Float32)
+                .reshape(new long[] { 1, 3, targetHeight, targetWidth });
+        }
+        finally
+        {
+            resized.UnlockBits(data);
+        }
+    }
+
+    /// <summary>
     /// 根据中心坐标和尺寸创建检测结果，执行坐标缩放和边界裁剪。
     /// </summary>
-    /// <param name="cx">中心点 X（模型输入坐标系）。</param>
-    /// <param name="cy">中心点 Y（模型输入坐标系）。</param>
-    /// <param name="w">宽度（模型输入坐标系）。</param>
-    /// <param name="h">高度（模型输入坐标系）。</param>
-    /// <param name="maxClassIndex">最高分类别索引。</param>
-    /// <param name="maxScore">最高置信度分数。</param>
-    /// <param name="originalWidth">原始图像宽度。</param>
-    /// <param name="originalHeight">原始图像高度。</param>
-    /// <param name="scaleX">X 方向缩放因子。</param>
-    /// <param name="scaleY">Y 方向缩放因子。</param>
-    /// <param name="classNames">类别名称列表，用于解析类别索引。</param>
-    /// <returns>包含缩放后边界框的推理结果。</returns>
     protected static InferenceResult CreateDetectionResult(
         float cx, float cy, float w, float h,
         int maxClassIndex, float maxScore,
@@ -165,8 +192,8 @@ public abstract class InferenceEngineBase : IDisposable
 
         x = Math.Max(0, x);
         y = Math.Max(0, y);
-        width = Math.Min(width, originalWidth - x);
-        height = Math.Min(height, originalHeight - y);
+        width = Math.Max(0, Math.Min(width, originalWidth - x));
+        height = Math.Max(0, Math.Min(height, originalHeight - y));
 
         var className = maxClassIndex < classNames.Count
             ? classNames[maxClassIndex]
@@ -181,6 +208,28 @@ public abstract class InferenceEngineBase : IDisposable
         };
     }
 
+    // ── 抽象方法（子类必须实现） ──────────────────────────────────────────────
+
+    /// <summary>
+    /// 加载模型的内部实现。
+    /// </summary>
+    protected abstract void LoadModelInternal(string modelPath);
+
+    /// <summary>
+    /// 图像预处理，返回 TorchSharp Tensor。
+    /// </summary>
+    protected abstract torch.Tensor PreprocessToTensor(Bitmap image);
+
+    /// <summary>
+    /// 执行模型推理。
+    /// </summary>
+    protected abstract torch.Tensor RunModelInference(torch.Tensor input);
+
+    /// <summary>
+    /// 后处理模型输出，转换为推理结果。
+    /// </summary>
+    protected abstract List<InferenceResult> PostprocessResults(torch.Tensor outputs, int originalWidth, int originalHeight);
+
     /// <summary>
     /// 释放资源。
     /// </summary>
@@ -190,41 +239,9 @@ public abstract class InferenceEngineBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── 抽象方法（子类必须实现） ──────────────────────────────────────────────
-
-    /// <summary>
-    /// 加载模型的内部实现。
-    /// </summary>
-    /// <param name="modelPath">模型文件路径。</param>
-    protected abstract void LoadModelInternal(string modelPath);
-
-    /// <summary>
-    /// 图像预处理。
-    /// </summary>
-    /// <param name="image">原始图像。</param>
-    /// <returns>预处理后的数据（归一化、resize 等）。</returns>
-    protected abstract float[] Preprocess(Bitmap image);
-
-    /// <summary>
-    /// 执行模型推理。
-    /// </summary>
-    /// <param name="input">预处理后的输入数据。</param>
-    /// <returns>模型输出数据。</returns>
-    protected abstract float[][] RunInference(float[] input);
-
-    /// <summary>
-    /// 后处理模型输出，转换为推理结果。
-    /// </summary>
-    /// <param name="outputs">模型输出数据。</param>
-    /// <param name="originalWidth">原始图像宽度。</param>
-    /// <param name="originalHeight">原始图像高度。</param>
-    /// <returns>推理结果列表。</returns>
-    protected abstract List<InferenceResult> Postprocess(float[][] outputs, int originalWidth, int originalHeight);
-
     /// <summary>
     /// 释放资源的内部实现。
     /// </summary>
-    /// <param name="disposing">是否正在释放托管资源。</param>
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -272,11 +289,4 @@ public class ClassificationResult : InferenceResult
     public float[] Probabilities { get; set; } = Array.Empty<float>();
 }
 
-/// <summary>
-/// 分割推理结果。
-/// </summary>
-public class SegmentationResult : InferenceResult
-{
-    /// <summary>分割掩码（与原图同尺寸）。</summary>
-    public byte[,] SegmentationMask { get; set; } = new byte[0, 0];
-}
+// SegmentationResult 已移至 Sam3Segmentor.cs（与 ISam3SegmentationEngine 配套）

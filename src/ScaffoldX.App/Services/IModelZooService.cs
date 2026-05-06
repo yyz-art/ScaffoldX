@@ -44,4 +44,5 @@ public interface IModelZooService
 /// <param name="SizeBytes">模型文件大小（字节）。</param>
 /// <param name="DownloadUrl">模型下载地址。</param>
 /// <param name="Category">模型类别（如 "Detection"、"Segmentation"）。</param>
-public record ModelInfo(string Id, string Name, string Description, long SizeBytes, string DownloadUrl, string Category);
+/// <param name="Backend">推理后端（如 "TorchSharp"、"ONNX"）。</param>
+public record ModelInfo(string Id, string Name, string Description, long SizeBytes, string DownloadUrl, string Category, string Backend = "TorchSharp");

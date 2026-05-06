@@ -41,6 +41,12 @@ public class ModelZooService : IModelZooService
             // Segmentation models
             new("yolov8n-seg", "YOLOv8 Nano Seg", "超轻量分割模型", 6_749_696, $"{_baseUrl}/yolov8n-seg.pt", "Segmentation"),
             new("yolov8s-seg", "YOLOv8 Small Seg", "小型分割模型", 23_592_960, $"{_baseUrl}/yolov8s-seg.pt", "Segmentation"),
+
+            // SAM 3 models (Meta Segment Anything 3)
+            new("sam3-vit-b", "SAM 3 ViT-B", "SAM 3 基础版，支持文本/点/框/参考图提示分割", 375_000_000,
+                "https://huggingface.co/facebook/sam3/resolve/main/sam3_vit_b.pt", "Segmentation", "TorchSharp"),
+            new("sam3-vit-l", "SAM 3 ViT-L", "SAM 3 大型版，更高精度", 1_200_000_000,
+                "https://huggingface.co/facebook/sam3/resolve/main/sam3_vit_l.pt", "Segmentation", "TorchSharp"),
         };
     }
 

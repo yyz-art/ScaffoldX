@@ -68,11 +68,29 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- 分割标注模板 -->
+        <DataTemplate x:Key="SegmentationTemplate">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold">
+                    <Run Text="分割: "/>
+                    <Run Text="{Binding ClassName, Mode=OneWay}"/>
+                    <Run Text=" | 置信度: "/>
+                    <Run Text="{Binding Confidence, StringFormat='{}{0:F2}', Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock>
+                    <Run Text="多边形: "/>
+                    <Run Text="{Binding Polygon.Count, Mode=OneWay}"/>
+                    <Run Text=" 个点"/>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
         <!-- 标注模板选择器 -->
         <converters:AnnotationTemplateSelector x:Key="AnnotationTemplateSelector"
             BoundingBoxTemplate="{StaticResource BoundingBoxTemplate}"
             PolygonTemplate="{StaticResource PolygonTemplate}"
-            OrientedBoundingBoxTemplate="{StaticResource OrientedBoundingBoxTemplate}"/>
+            OrientedBoundingBoxTemplate="{StaticResource OrientedBoundingBoxTemplate}"
+            SegmentationTemplate="{StaticResource SegmentationTemplate}"/>
     </UserControl.Resources>
 
     <Grid>
@@ -221,6 +239,71 @@
                 <TextBlock Text="{Binding AutoDetectProgressText}" FontSize="11"
                            Foreground="#757575"
                            Visibility="{Binding IsAutoDetecting, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <!-- ── SAM 3 智能分割 ──────────────────────────────── -->
+                <Expander Header="SAM 3 智能分割" Margin="0,16,0,0" IsExpanded="True">
+                    <StackPanel>
+                        <!-- 加载 SAM 3 模型 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="加载 SAM 3 模型" Command="{Binding LoadSam3ModelCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#E91E63"/>
+                            <Button Content="卸载" Command="{Binding UnloadModelCommand}"
+                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                    IsEnabled="{Binding IsSam3ModelLoaded}"/>
+                        </StackPanel>
+                        <TextBlock FontSize="12" Foreground="#757575" Margin="0,0,0,8">
+                            <Run Text="模型状态: "/>
+                            <Run Text="{Binding IsSam3ModelLoaded, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <!-- 文本提示模式 -->
+                        <TextBlock Text="文本提示分割" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                        <TextBox Text="{Binding Sam3TextPrompt, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="输入类别名（逗号分隔，如: 螺丝,垫片）"
+                                 Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="文本分割当前图" Command="{Binding Sam3SegmentByTextCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#00BCD4"
+                                    IsEnabled="{Binding IsSam3ModelLoaded}"/>
+                            <Button Content="批量分割" Command="{Binding Sam3SegmentAllByTextCommand}"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#009688"
+                                    IsEnabled="{Binding IsSam3ModelLoaded}"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,4,0,8"/>
+
+                        <!-- 点提示模式 -->
+                        <TextBlock Text="点击提示分割" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                        <TextBlock Text="左键=正点(绿)  右键=负点(红)" FontSize="11" Foreground="#757575" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="进入点模式" Command="{Binding Sam3EnterPointModeCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#FF5722"
+                                    IsEnabled="{Binding IsSam3ModelLoaded}"/>
+                            <Button Content="接受掩码" Command="{Binding Sam3AcceptMaskCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#4CAF50"
+                                    IsEnabled="{Binding HasSam3MaskPreview}"/>
+                            <Button Content="清除" Command="{Binding Sam3ClearPointsCommand}"
+                                    Style="{StaticResource MaterialDesignFlatButton}"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,4,0,8"/>
+
+                        <!-- 参考图模式 -->
+                        <TextBlock Text="参考图分割" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="选择参考图" Command="{Binding Sam3SelectReferenceCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignFlatButton}"/>
+                            <Button Content="查找相似" Command="{Binding Sam3SegmentByReferenceCommand}"
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#673AB7"
+                                    IsEnabled="{Binding IsSam3ModelLoaded}"/>
+                        </StackPanel>
+
+                        <!-- 处理进度 -->
+                        <ProgressBar IsIndeterminate="{Binding IsSam3Processing}"
+                                     Visibility="{Binding IsSam3Processing, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                     Height="4" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Expander>
             </StackPanel>
         </Border>
 

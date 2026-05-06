@@ -159,7 +159,8 @@ public class FileTreeBuilder
 
             var inference = AddFolder(vision, "Inference");
             AddChild(inference, "InferenceEngineBase.cs", NodeType.CsFile, false);
-            AddChild(inference, "OnnxDetector.cs", NodeType.CsFile, false);
+            AddChild(inference, "Sam3Segmentor.cs", NodeType.CsFile, false);
+            AddChild(inference, "MaskToPolygonConverter.cs", NodeType.CsFile, false);
         }
 
         // 系统模块

@@ -290,7 +290,7 @@ public partial class AnnotationView : UserControl
     // ── 鼠标事件（绘制） ────────────────────────────────────────────────────
 
     /// <summary>
-    /// 鼠标按下事件：开始绘制边界框、多边形顶点或 OBB。
+    /// 鼠标按下事件：开始绘制边界框、多边形顶点、OBB 或 SAM3 点提示。
     /// 中键/Ctrl+左键平移时跳过绘制逻辑。
     /// </summary>
     private void AnnotationCanvas_MouseDown(object sender, MouseButtonEventArgs e)
@@ -303,6 +303,17 @@ public partial class AnnotationView : UserControl
             return;
 
         Point position = e.GetPosition(AnnotationCanvas);
+
+        // SAM3 点提示模式：左键=正点，右键=负点
+        if (viewModel.Sam3PromptMode == ScaffoldX.App.Models.Sam3PromptMode.Point)
+        {
+            bool isPositive = e.LeftButton == MouseButtonState.Pressed;
+            var normalizedPoint = ScreenToNormalized(position, viewModel);
+            viewModel.Sam3Handler.AddPromptPoint(
+                (float)normalizedPoint.X, (float)normalizedPoint.Y, isPositive);
+            e.Handled = true;
+            return;
+        }
 
         if (viewModel.IsPolygonMode)
         {
@@ -692,6 +703,45 @@ public partial class AnnotationView : UserControl
         // 定位矩形（左上角 = 中心 - 半宽/半高）
         Canvas.SetLeft(DrawingObbRect, viewModel.ObbCenter.X - viewModel.ObbSize.Width / 2);
         Canvas.SetTop(DrawingObbRect, viewModel.ObbCenter.Y - viewModel.ObbSize.Height / 2);
+    }
+
+    /// <summary>
+    /// 将屏幕坐标转换为归一化图像坐标（0-1）。
+    /// 用于 SAM3 点提示模式。
+    /// </summary>
+    private Point ScreenToNormalized(Point screenPoint, AnnotationViewModel viewModel)
+    {
+        if (viewModel.CurrentImage == null)
+            return new Point(0, 0);
+
+        var canvasWidth = AnnotationCanvas.ActualWidth;
+        var canvasHeight = AnnotationCanvas.ActualHeight;
+        var imageWidth = viewModel.CurrentImage.PixelWidth;
+        var imageHeight = viewModel.CurrentImage.PixelHeight;
+
+        var imageAspect = (double)imageWidth / imageHeight;
+        var canvasAspect = canvasWidth / canvasHeight;
+
+        double displayWidth, displayHeight, offsetX, offsetY;
+        if (imageAspect > canvasAspect)
+        {
+            displayWidth = canvasWidth;
+            displayHeight = canvasWidth / imageAspect;
+            offsetX = 0;
+            offsetY = (canvasHeight - displayHeight) / 2;
+        }
+        else
+        {
+            displayHeight = canvasHeight;
+            displayWidth = canvasHeight * imageAspect;
+            offsetX = (canvasWidth - displayWidth) / 2;
+            offsetY = 0;
+        }
+
+        var normalizedX = (screenPoint.X - offsetX) / displayWidth;
+        var normalizedY = (screenPoint.Y - offsetY) / displayHeight;
+
+        return new Point(Math.Clamp(normalizedX, 0, 1), Math.Clamp(normalizedY, 0, 1));
     }
 
     /// <summary>

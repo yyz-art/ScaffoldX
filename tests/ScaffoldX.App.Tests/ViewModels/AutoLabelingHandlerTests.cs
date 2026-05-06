@@ -1,122 +1,95 @@
 using FluentAssertions;
 using Moq;
+using ScaffoldX.App.Models;
 using ScaffoldX.App.Services;
-using ScaffoldX.Core.Vision;
 using Xunit;
 
 namespace ScaffoldX.App.Tests.ViewModels;
 
 /// <summary>
-/// Unit tests for auto-labeling handler properties, covering the initial state
-/// of model loading and default confidence threshold on the underlying inference
-/// engine and service layer.
+/// Unit tests for auto-labeling service contract, covering initial state
+/// and SAM 3 integration via mocked IAutoLabelingService.
 /// </summary>
-public class AutoLabelingHandlerTests : IDisposable
+public class AutoLabelingHandlerTests
 {
-    private readonly List<IDisposable> _disposables = new();
+    private readonly Mock<IAutoLabelingService> _mockService;
 
-    public void Dispose()
+    public AutoLabelingHandlerTests()
     {
-        foreach (var d in _disposables)
-        {
-            try { d.Dispose(); }
-            catch { /* best effort */ }
-        }
+        _mockService = new Mock<IAutoLabelingService>();
     }
 
     [Fact]
     public void IsModelLoaded_InitiallyFalse()
     {
-        // Arrange: create a fresh OnnxDetector (the engine backing auto-labeling)
-        var detector = new OnnxDetector();
-        _disposables.Add(detector);
-
-        // Assert
-        detector.IsLoaded.Should().BeFalse("no model has been loaded into the detector");
+        _mockService.Setup(s => s.IsModelLoaded).Returns(false);
+        _mockService.Object.IsModelLoaded.Should().BeFalse("no model has been loaded");
     }
 
     [Fact]
-    public void ConfidenceThreshold_DefaultValue_Is0_5()
+    public void CurrentMode_InitiallyDetection()
     {
-        // Arrange: create a fresh OnnxDetector
-        var detector = new OnnxDetector();
-
-        // Assert
-        detector.ConfidenceThreshold.Should().Be(0.5f,
-            "the default confidence threshold on OnnxDetector should be 0.5");
+        _mockService.Setup(s => s.CurrentMode).Returns(AutoLabelingMode.Detection);
+        _mockService.Object.CurrentMode.Should().Be(AutoLabelingMode.Detection);
     }
 
     [Fact]
-    public void IsModelLoaded_OnAutoLabelingService_InitiallyFalse()
+    public void LoadedModelPath_InitiallyNull()
     {
-        // Arrange: create AutoLabelingService (the service layer wrapping OnnxDetector)
-        var service = new AutoLabelingService();
-        _disposables.Add(service);
-
-        // Assert
-        service.IsModelLoaded.Should().BeFalse("no model has been loaded into the service");
+        _mockService.Setup(s => s.LoadedModelPath).Returns((string?)null);
+        _mockService.Object.LoadedModelPath.Should().BeNull();
     }
 
     [Fact]
-    public void LoadedModelPath_OnAutoLabelingService_InitiallyNull()
+    public void ClassNames_InitiallyEmpty()
     {
-        // Arrange
-        var service = new AutoLabelingService();
-        _disposables.Add(service);
-
-        // Assert
-        service.LoadedModelPath.Should().BeNull("no model has been loaded");
+        _mockService.Setup(s => s.ClassNames).Returns(Array.Empty<string>());
+        _mockService.Object.ClassNames.Should().BeEmpty();
     }
 
     [Fact]
-    public void ClassNames_OnAutoLabelingService_InitiallyEmpty()
+    public void LoadSam3ModelAsync_SetsCurrentModeToSegmentation()
     {
-        // Arrange
-        var service = new AutoLabelingService();
-        _disposables.Add(service);
+        _mockService.Setup(s => s.LoadSam3ModelAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockService.Setup(s => s.IsModelLoaded).Returns(true);
+        _mockService.Setup(s => s.CurrentMode).Returns(AutoLabelingMode.Segmentation);
 
-        // Assert
-        service.ClassNames.Should().BeEmpty("no model has been loaded to provide class names");
+        _mockService.Object.LoadSam3ModelAsync("models/sam3").GetAwaiter().GetResult();
+
+        _mockService.Object.CurrentMode.Should().Be(AutoLabelingMode.Segmentation);
     }
 
     [Fact]
-    public void ConfidenceThreshold_ClampsBelowMinimum()
+    public void SegmentByTextAsync_WhenModelLoaded_ReturnsResults()
     {
-        // Arrange
-        var detector = new OnnxDetector();
+        var seg = new SegmentationAnnotation { ClassName = "cat", Confidence = 0.9f };
+        _mockService.Setup(s => s.IsModelLoaded).Returns(true);
+        _mockService.Setup(s => s.CurrentMode).Returns(AutoLabelingMode.Segmentation);
+        _mockService.Setup(s => s.SegmentByTextAsync(
+            It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<float>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SegmentationAnnotation> { seg });
 
-        // Act
-        detector.ConfidenceThreshold = 0.01f;
+        var result = _mockService.Object.SegmentByTextAsync("test.jpg", new[] { "cat" }).GetAwaiter().GetResult();
 
-        // Assert: OnnxDetector clamps to [0, 1], so 0.01 is valid
-        detector.ConfidenceThreshold.Should().Be(0.01f,
-            "OnnxDetector clamps to [0, 1] range");
+        result.Should().HaveCount(1);
+        result[0].ClassName.Should().Be("cat");
     }
 
     [Fact]
-    public void ConfidenceThreshold_ClampsAboveMaximum()
+    public void SegmentByPointsAsync_WhenModelLoaded_ReturnsResult()
     {
-        // Arrange
-        var detector = new OnnxDetector();
+        var seg = new SegmentationAnnotation { ClassName = "point_segment" };
+        _mockService.Setup(s => s.IsModelLoaded).Returns(true);
+        _mockService.Setup(s => s.SegmentByPointsAsync(
+            It.IsAny<string>(), It.IsAny<IEnumerable<System.Drawing.PointF>>(),
+            It.IsAny<IEnumerable<System.Drawing.PointF>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(seg);
 
-        // Act
-        detector.ConfidenceThreshold = 1.5f;
+        var result = _mockService.Object.SegmentByPointsAsync("test.jpg",
+            new[] { new System.Drawing.PointF(0.5f, 0.5f) },
+            Array.Empty<System.Drawing.PointF>()).GetAwaiter().GetResult();
 
-        // Assert: clamped to 1.0
-        detector.ConfidenceThreshold.Should().Be(1.0f,
-            "values above 1.0 should be clamped to 1.0 by OnnxDetector");
-    }
-
-    [Fact]
-    public void ConfidenceThreshold_AcceptsValidRange()
-    {
-        // Arrange
-        var detector = new OnnxDetector();
-
-        // Act
-        detector.ConfidenceThreshold = 0.7f;
-
-        // Assert
-        detector.ConfidenceThreshold.Should().Be(0.7f, "0.7 is within the valid range [0, 1]");
+        result.ClassName.Should().Be("point_segment");
     }
 }

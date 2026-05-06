@@ -1,6 +1,7 @@
 using System.Drawing;
 using FluentAssertions;
 using ScaffoldX.Core.Vision;
+using TorchSharp;
 using Xunit;
 
 namespace ScaffoldX.Core.Tests.Vision;
@@ -11,21 +12,16 @@ namespace ScaffoldX.Core.Tests.Vision;
 /// </summary>
 internal class StubInferenceEngine : InferenceEngineBase
 {
-    /// <inheritdoc />
-    protected override void LoadModelInternal(string modelPath)
-    {
-        // No-op: model loading is not under test here.
-    }
+    protected override void LoadModelInternal(string modelPath) { }
 
-    /// <inheritdoc />
-    protected override float[] Preprocess(Bitmap image) => Array.Empty<float>();
+    protected override torch.Tensor PreprocessToTensor(Bitmap image)
+        => torch.zeros(new long[] { 1, 3, 64, 64 });
 
-    /// <inheritdoc />
-    protected override float[][] RunInference(float[] input) => Array.Empty<float[]>();
+    protected override torch.Tensor RunModelInference(torch.Tensor input)
+        => torch.zeros(new long[] { 1, 84, 8400 });
 
-    /// <inheritdoc />
-    protected override List<InferenceResult> Postprocess(float[][] outputs, int originalWidth, int originalHeight) =>
-        new();
+    protected override List<InferenceResult> PostprocessResults(torch.Tensor outputs, int originalWidth, int originalHeight)
+        => new();
 }
 
 /// <summary>
@@ -35,25 +31,17 @@ public class InferenceRobustnessTests : IDisposable
 {
     private readonly StubInferenceEngine _engine = new();
 
-    /// <summary>
-    /// Verifies that Run throws ArgumentNullException when the image is null.
-    /// </summary>
     [Fact]
     public void Run_NullImage_ThrowsArgumentNullException()
     {
-        // Arrange — load a dummy model so we pass the IsLoaded check
         var tempPath = Path.GetTempFileName();
         try
         {
             File.WriteAllBytes(tempPath, new byte[] { 0x00 });
             _engine.LoadModel(tempPath);
 
-            // Act
             var act = () => _engine.Run(null!);
-
-            // Assert
-            act.Should().ThrowExactly<ArgumentNullException>()
-               .WithParameterName("image");
+            act.Should().ThrowExactly<ArgumentNullException>().WithParameterName("image");
         }
         finally
         {
@@ -61,25 +49,17 @@ public class InferenceRobustnessTests : IDisposable
         }
     }
 
-    /// <summary>
-    /// Verifies that RunAsync throws ArgumentNullException when the image is null.
-    /// </summary>
     [Fact]
     public async Task RunAsync_NullImage_ThrowsArgumentNullException()
     {
-        // Arrange — load a dummy model so we pass the IsLoaded check
         var tempPath = Path.GetTempFileName();
         try
         {
             File.WriteAllBytes(tempPath, new byte[] { 0x00 });
             _engine.LoadModel(tempPath);
 
-            // Act
             var act = () => _engine.RunAsync(null!);
-
-            // Assert
-            (await act.Should().ThrowExactlyAsync<ArgumentNullException>())
-                .WithParameterName("image");
+            (await act.Should().ThrowExactlyAsync<ArgumentNullException>()).WithParameterName("image");
         }
         finally
         {
@@ -87,24 +67,14 @@ public class InferenceRobustnessTests : IDisposable
         }
     }
 
-    /// <summary>
-    /// Verifies that Run throws InvalidOperationException when the model is not loaded.
-    /// </summary>
     [Fact]
     public void Run_ModelNotLoaded_ThrowsInvalidOperationException()
     {
-        // Arrange — no model loaded
         using var image = new Bitmap(64, 64);
-
-        // Act
         var act = () => _engine.Run(image);
-
-        // Assert
-        act.Should().ThrowExactly<InvalidOperationException>()
-           .WithMessage("*模型未加载*");
+        act.Should().ThrowExactly<InvalidOperationException>().WithMessage("*模型未加载*");
     }
 
-    /// <inheritdoc />
     public void Dispose()
     {
         _engine.Dispose();

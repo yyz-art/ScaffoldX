@@ -31,6 +31,11 @@ public class AnnotationViewModel : BindableBase
     private readonly UndoRedoHandler _undoRedoHandler;
     private readonly ExportCommandHandler _exportHandler;
     private readonly ReviewCommandHandler _reviewHandler;
+    private readonly Sam3LabelingCommandHandler _sam3Handler;
+    private readonly IAutoLabelingService _autoLabelingService;
+
+    /// <summary>SAM 3 标注处理器（供 View 层调用点提示方法）。</summary>
+    public Sam3LabelingCommandHandler Sam3Handler => _sam3Handler;
 
     private AnnotationProject? _project;
     private AnnotationData? _currentAnnotation;
@@ -63,6 +68,7 @@ public class AnnotationViewModel : BindableBase
     {
         _annotationService = annotationService;
         _videoFrameService = videoFrameService;
+        _autoLabelingService = autoLabelingService;
 
         _imageNavigationHandler = new ImageNavigationHandler(
             annotationService,
@@ -142,6 +148,17 @@ public class AnnotationViewModel : BindableBase
             getPolylineCount: () => TotalPolylineCount,
             getCircleCount: () => TotalCircleCount);
 
+        _sam3Handler = new Sam3LabelingCommandHandler(
+            autoLabelingService,
+            getCurrentAnnotation: () => CurrentAnnotation,
+            getProject: () => Project,
+            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
+            setStatusMessage: value => StatusMessage = value,
+            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
+            updateBoxesList: UpdateBoxesList,
+            updateClassDistribution: UpdateClassDistribution,
+            updateStatistics: UpdateStatistics);
+
         _autoLabelingHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
         _imageNavigationHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
         _classManagementHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
@@ -150,6 +167,7 @@ public class AnnotationViewModel : BindableBase
         _undoRedoHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
         _exportHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
         _reviewHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
+        _sam3Handler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
 
         NewProjectCommand = new DelegateCommand(ExecuteNewProject);
         OpenProjectCommand = new DelegateCommand(ExecuteOpenProject);
@@ -169,6 +187,8 @@ public class AnnotationViewModel : BindableBase
         SwitchToPolygonModeCommand = new DelegateCommand(ExecuteSwitchToPolygonMode);
         SwitchToObbModeCommand = new DelegateCommand(ExecuteSwitchToObbMode);
         CancelDrawingCommand = new DelegateCommand(ExecuteCancelDrawing);
+
+        LoadSam3ModelCommand = new DelegateCommand(async () => await ExecuteLoadSam3ModelAsync());
         ResetZoomCommand = new DelegateCommand(ExecuteResetZoom);
     }
 
@@ -473,6 +493,9 @@ public class AnnotationViewModel : BindableBase
     /// <summary>加载模型命令。</summary>
     public DelegateCommand LoadModelCommand => _autoLabelingHandler.LoadModelCommand;
 
+    /// <summary>加载 SAM 3 模型命令。</summary>
+    public DelegateCommand LoadSam3ModelCommand { get; }
+
     /// <summary>卸载模型命令。</summary>
     public DelegateCommand UnloadModelCommand => _autoLabelingHandler.UnloadModelCommand;
 
@@ -483,7 +506,7 @@ public class AnnotationViewModel : BindableBase
     public DelegateCommand AutoDetectAllCommand => _autoLabelingHandler.AutoDetectAllCommand;
 
     /// <summary>按索引选择类别命令。</summary>
-    public DelegateCommand<int> SelectClassCommand => _classManagementHandler.SelectClassCommand;
+    public DelegateCommand<int?> SelectClassCommand => _classManagementHandler.SelectClassCommand;
 
     /// <summary>撤销命令。</summary>
     public DelegateCommand UndoCommand => _undoRedoHandler.UndoCommand;
@@ -523,6 +546,60 @@ public class AnnotationViewModel : BindableBase
 
     /// <summary>OBB 模式鼠标抬起命令。</summary>
     public DelegateCommand<Point?> ObbMouseUpCommand => _obbDrawingHandler.ObbMouseUpCommand;
+
+    // ── SAM 3 分割属性（转发至 Sam3LabelingCommandHandler） ────────────────
+
+    /// <summary>SAM 3 当前提示模式。</summary>
+    public Sam3PromptMode Sam3PromptMode
+    {
+        get => _sam3Handler.CurrentPromptMode;
+        set => _sam3Handler.CurrentPromptMode = value;
+    }
+
+    /// <summary>SAM 3 提示点集合。</summary>
+    public ObservableCollection<Sam3Point> Sam3PromptPoints => _sam3Handler.PromptPoints;
+
+    /// <summary>SAM 3 文本提示输入。</summary>
+    public string Sam3TextPrompt
+    {
+        get => _sam3Handler.TextPromptInput;
+        set => _sam3Handler.TextPromptInput = value;
+    }
+
+    /// <summary>SAM 3 是否正在处理。</summary>
+    public bool IsSam3Processing => _sam3Handler.IsProcessing;
+
+    /// <summary>SAM 3 模型是否已加载。</summary>
+    public bool IsSam3ModelLoaded => _sam3Handler.IsSam3ModelLoaded;
+
+    /// <summary>SAM 3 掩码预览。</summary>
+    public byte[,]? Sam3MaskPreview => _sam3Handler.CurrentMaskPreview;
+
+    /// <summary>是否有 SAM 3 掩码预览。</summary>
+    public bool HasSam3MaskPreview => _sam3Handler.HasMaskPreview;
+
+    // ── SAM 3 命令（转发至 Sam3LabelingCommandHandler） ────────────────────
+
+    /// <summary>SAM 3 文本分割命令。</summary>
+    public DelegateCommand Sam3SegmentByTextCommand => _sam3Handler.SegmentByTextCommand;
+
+    /// <summary>SAM 3 批量文本分割命令。</summary>
+    public DelegateCommand Sam3SegmentAllByTextCommand => _sam3Handler.SegmentAllByTextCommand;
+
+    /// <summary>SAM 3 进入点模式命令。</summary>
+    public DelegateCommand Sam3EnterPointModeCommand => _sam3Handler.EnterPointModeCommand;
+
+    /// <summary>SAM 3 接受掩码命令。</summary>
+    public DelegateCommand Sam3AcceptMaskCommand => _sam3Handler.AcceptMaskCommand;
+
+    /// <summary>SAM 3 清除提示点命令。</summary>
+    public DelegateCommand Sam3ClearPointsCommand => _sam3Handler.ClearPointsCommand;
+
+    /// <summary>SAM 3 选择参考图命令。</summary>
+    public DelegateCommand Sam3SelectReferenceCommand => _sam3Handler.SelectReferenceCommand;
+
+    /// <summary>SAM 3 参考图分割命令。</summary>
+    public DelegateCommand Sam3SegmentByReferenceCommand => _sam3Handler.SegmentByReferenceCommand;
 
     /// <summary>导出 YOLO 数据集命令（转发至 ExportCommandHandler）。</summary>
     public DelegateCommand ExportYoloCommand => _exportHandler.ExportYoloCommand;
@@ -820,6 +897,31 @@ public class AnnotationViewModel : BindableBase
         }
     }
 
+    // ── SAM 3 模型加载 ──────────────────────────────────────────────────────
+
+    private async Task ExecuteLoadSam3ModelAsync()
+    {
+        var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog
+        {
+            Description = "选择 SAM 3 模型目录（需包含 encoder.pt、text_encoder.pt、decoder.pt）"
+        };
+
+        if (dialog.ShowDialog() != true) return;
+
+        try
+        {
+            StatusMessage = "正在加载 SAM 3 模型...";
+            await _autoLabelingService.LoadSam3ModelAsync(dialog.SelectedPath);
+            StatusMessage = "SAM 3 模型加载完成";
+            RaisePropertyChanged(nameof(IsSam3ModelLoaded));
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "SAM 3 模型加载失败");
+            StatusMessage = $"SAM 3 模型加载失败: {ex.Message}";
+        }
+    }
+
     // ── 撤销/重做（委托至 UndoRedoHandler） ────────────────────────────────
 
     /// <summary>
@@ -913,6 +1015,9 @@ public class AnnotationViewModel : BindableBase
         foreach (var obb in CurrentAnnotation.OrientedBoxes)
             AllAnnotations.Add(obb);
 
+        foreach (var seg in CurrentAnnotation.Segmentations)
+            AllAnnotations.Add(seg);
+
         CurrentBoxCount = CurrentBoxes.Count;
         RaisePropertyChanged(nameof(HasBoxes));
         UpdateAnnotationStatistics();
@@ -924,7 +1029,7 @@ public class AnnotationViewModel : BindableBase
 
         TotalImages = Project.Annotations.Count;
         AnnotatedImages = Project.Annotations.Count(a =>
-            a.Boxes.Count > 0 || a.Polygons.Count > 0 || a.OrientedBoxes.Count > 0 || a.Polylines.Count > 0 || a.Circles.Count > 0);
+            a.Boxes.Count > 0 || a.Polygons.Count > 0 || a.OrientedBoxes.Count > 0 || a.Polylines.Count > 0 || a.Circles.Count > 0 || a.Segmentations.Count > 0);
         AnnotatedImageCount = AnnotatedImages;
         ProjectName = Project.ProjectName;
 
@@ -950,7 +1055,7 @@ public class AnnotationViewModel : BindableBase
         TotalObbCount = CurrentAnnotation.OrientedBoxes.Count;
         TotalPolylineCount = CurrentAnnotation.Polylines.Count;
         TotalCircleCount = CurrentAnnotation.Circles.Count;
-        TotalAnnotationCount = TotalBoxCount + TotalPolygonCount + TotalObbCount + TotalPolylineCount + TotalCircleCount;
+        TotalAnnotationCount = TotalBoxCount + TotalPolygonCount + TotalObbCount + TotalPolylineCount + TotalCircleCount + CurrentAnnotation.Segmentations.Count;
     }
 
     private void UpdateClassDistribution()
@@ -973,6 +1078,9 @@ public class AnnotationViewModel : BindableBase
 
             foreach (var obb in annotation.OrientedBoxes)
                 distribution[obb.ClassName] = distribution.GetValueOrDefault(obb.ClassName) + 1;
+
+            foreach (var seg in annotation.Segmentations)
+                distribution[seg.ClassName] = distribution.GetValueOrDefault(seg.ClassName) + 1;
         }
 
         ClassDistributionText = distribution.Count == 0

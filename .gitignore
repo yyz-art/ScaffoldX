@@ -56,3 +56,6 @@ bld/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# External references (SAM3 repo clone, etc.)
+references/

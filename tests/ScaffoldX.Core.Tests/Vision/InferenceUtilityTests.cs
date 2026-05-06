@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using FluentAssertions;
 using ScaffoldX.Core.Vision;
+using TorchSharp;
 using Xunit;
 
 namespace ScaffoldX.Core.Tests.Vision;
@@ -31,9 +32,9 @@ internal class TestableInferenceEngine : InferenceEngineBase
 
     // Abstract method stubs (not used in these tests)
     protected override void LoadModelInternal(string modelPath) { }
-    protected override float[] Preprocess(Bitmap image) => Array.Empty<float>();
-    protected override float[][] RunInference(float[] input) => Array.Empty<float[]>();
-    protected override List<InferenceResult> Postprocess(float[][] outputs, int originalWidth, int originalHeight) => new();
+    protected override torch.Tensor PreprocessToTensor(Bitmap image) => torch.zeros(new long[] { 1, 3, 64, 64 });
+    protected override torch.Tensor RunModelInference(torch.Tensor input) => torch.zeros(new long[] { 1, 84, 8400 });
+    protected override List<InferenceResult> PostprocessResults(torch.Tensor outputs, int originalWidth, int originalHeight) => new();
 }
 
 /// <summary>

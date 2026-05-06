@@ -19,6 +19,9 @@ public class AnnotationTemplateSelector : DataTemplateSelector
     /// <summary>旋转边界框（OBB）标注模板。</summary>
     public DataTemplate? OrientedBoundingBoxTemplate { get; set; }
 
+    /// <summary>分割标注模板。</summary>
+    public DataTemplate? SegmentationTemplate { get; set; }
+
     /// <summary>
     /// 根据标注对象的实际类型返回对应的 DataTemplate。
     /// </summary>
@@ -27,6 +30,7 @@ public class AnnotationTemplateSelector : DataTemplateSelector
         BoundingBoxAnnotation => BoundingBoxTemplate,
         PolygonAnnotation => PolygonTemplate,
         OrientedBoundingBoxAnnotation => OrientedBoundingBoxTemplate,
+        SegmentationAnnotation => SegmentationTemplate,
         _ => base.SelectTemplate(item, container)
     };
 }

@@ -31,6 +31,9 @@ public class AnnotationData
 
     /// <summary>该图像的所有圆形标注。</summary>
     public List<CircleAnnotation> Circles { get; set; } = new();
+
+    /// <summary>该图像的所有分割标注。</summary>
+    public List<SegmentationAnnotation> Segmentations { get; set; } = new();
 }
 
 /// <summary>
@@ -286,4 +289,103 @@ public class TrainingResult
 
     /// <summary>错误信息（如果失败）。</summary>
     public string ErrorMessage { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 分割标注，包含掩码轮廓多边形和可选的原始掩码数据。
+/// </summary>
+public class SegmentationAnnotation
+{
+    /// <summary>唯一标识符。</summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>类别索引（从 0 开始）。</summary>
+    public int ClassIndex { get; set; }
+
+    /// <summary>类别名称。</summary>
+    public string ClassName { get; set; } = string.Empty;
+
+    /// <summary>置信度（0-1，自动标注时产生）。</summary>
+    public float Confidence { get; set; }
+
+    /// <summary>掩码轮廓多边形顶点列表（归一化到 0-1 的坐标）。</summary>
+    public List<PointF> Polygon { get; set; } = new();
+
+    /// <summary>原始分割掩码（与原图同尺寸的二值矩阵），可选。</summary>
+    public byte[,]? Mask { get; set; }
+}
+
+/// <summary>
+/// SAM3 点提示，用于交互式分割。
+/// </summary>
+public class Sam3Point
+{
+    /// <summary>X 坐标（归一化到 0-1）。</summary>
+    public float X { get; set; }
+
+    /// <summary>Y 坐标（归一化到 0-1）。</summary>
+    public float Y { get; set; }
+
+    /// <summary>标签：1 = 前景（包含），0 = 背景（排除）。</summary>
+    public int Label { get; set; } = 1;
+}
+
+/// <summary>
+/// SAM3 提示模式。
+/// </summary>
+public enum Sam3PromptMode
+{
+    /// <summary>点提示模式。</summary>
+    Point,
+
+    /// <summary>框提示模式。</summary>
+    Box,
+
+    /// <summary>点 + 框混合提示模式。</summary>
+    PointAndBox,
+
+    /// <summary>自动分割（无提示，全图分割）。</summary>
+    Everything
+}
+
+/// <summary>
+/// 自动标注模式。
+/// </summary>
+public enum AutoLabelingMode
+{
+    /// <summary>目标检测（YOLO 边界框）。</summary>
+    Detection,
+
+    /// <summary>实例分割（SAM3 掩码 + 多边形）。</summary>
+    Segmentation,
+
+    /// <summary>图像分类。</summary>
+    Classification
+}
+
+/// <summary>
+/// SAM3 模型元数据。
+/// </summary>
+public class Sam3ModelInfo
+{
+    /// <summary>模型文件目录路径。</summary>
+    public string ModelDirectory { get; set; } = string.Empty;
+
+    /// <summary>模型显示名称。</summary>
+    public string ModelName { get; set; } = string.Empty;
+
+    /// <summary>图像编码器模型文件名。</summary>
+    public string ImageEncoderPath { get; set; } = string.Empty;
+
+    /// <summary>提示编码器模型文件名。</summary>
+    public string PromptEncoderPath { get; set; } = string.Empty;
+
+    /// <summary>掩码解码器模型文件名。</summary>
+    public string MaskDecoderPath { get; set; } = string.Empty;
+
+    /// <summary>模型输入图像尺寸（正方形边长）。</summary>
+    public int InputSize { get; set; } = 1024;
+
+    /// <summary>是否已验证模型文件完整性。</summary>
+    public bool IsValidated { get; set; }
 }

@@ -1,0 +1,230 @@
+##OUTPUT: src/{{ProjectName}}.Vision/Inference/Sam3Engine.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Threading.Tasks;
+using TorchSharp;
+
+namespace {{ NamespacePrefix }}.Vision.Inference
+{
+    /// <summary>
+    /// SAM 3 分割推理引擎，支持文本/点/框/参考图提示的开放词汇分割。
+    /// </summary>
+    public class Sam3Engine : InferenceEngineBase
+    {
+        private Module? _imageEncoder;
+        private Module? _textEncoder;
+        private Module? _decoder;
+        private Tensor? _imageEmbedding;
+        private int _imageEmbeddingWidth;
+        private int _imageEmbeddingHeight;
+
+        public override string EngineName => "Sam3";
+
+        /// <summary>SAM 3 模型变体（vit-b / vit-l）。</summary>
+        public string ModelVariant { get; set; } = "vit-b";
+
+        protected override void OnLoadModelAsync(string modelPath, Dictionary<string, string> options)
+        {
+            var modelDir = System.IO.Path.GetDirectoryName(modelPath) ?? string.Empty;
+
+            _imageEncoder?.Dispose();
+            _textEncoder?.Dispose();
+            _decoder?.Dispose();
+
+            _imageEncoder = torch.jit.load(System.IO.Path.Combine(modelDir, "encoder.pt"));
+            _textEncoder = torch.jit.load(System.IO.Path.Combine(modelDir, "text_encoder.pt"));
+            _decoder = torch.jit.load(System.IO.Path.Combine(modelDir, "decoder.pt"));
+
+            if (options.TryGetValue("variant", out var variant))
+                ModelVariant = variant;
+
+            InputWidth = ModelVariant == "vit-l" ? 1024 : 1024;
+            InputHeight = InputWidth;
+        }
+
+        protected override Tensor PreprocessToTensor(Bitmap image)
+        {
+            return BitmapToTensor(image, InputWidth, InputHeight);
+        }
+
+        protected override Tensor RunModelInference(Tensor input)
+        {
+            if (_imageEncoder == null)
+                throw new InvalidOperationException("图像编码器未加载");
+
+            return _imageEncoder.forward(input);
+        }
+
+        protected override IReadOnlyList<InferenceResult> PostprocessResults(Tensor outputs, int originalWidth, int originalHeight)
+        {
+            return Array.Empty<InferenceResult>();
+        }
+
+        /// <summary>
+        /// 编码图像并缓存嵌入向量（运行一次，后续提示复用）。
+        /// </summary>
+        public async Task EncodeImageAsync(Bitmap image)
+        {
+            if (_imageEncoder == null)
+                throw new InvalidOperationException("图像编码器未加载");
+
+            await Task.Run(() =>
+            {
+                using var tensor = PreprocessToTensor(image);
+                _imageEmbedding?.Dispose();
+                _imageEmbedding = _imageEncoder.forward(tensor);
+                _imageEmbeddingWidth = image.Width;
+                _imageEmbeddingHeight = image.Height;
+            });
+        }
+
+        /// <summary>
+        /// 文本提示分割：输入类别名称列表，返回分割结果。
+        /// </summary>
+        public async Task<IReadOnlyList<InferenceResult>> SegmentByTextAsync(
+            IEnumerable<string> textPrompts, float threshold = 0.5f)
+        {
+            if (_imageEmbedding == null || _textEncoder == null || _decoder == null)
+                throw new InvalidOperationException("请先调用 EncodeImageAsync 编码图像");
+
+            return await Task.Run(() =>
+            {
+                var results = new List<InferenceResult>();
+                foreach (var prompt in textPrompts)
+                {
+                    using var textTokens = TokenizeText(prompt);
+                    using var textFeatures = _textEncoder.forward(textTokens);
+                    using var maskLogits = _decoder.forward(_imageEmbedding, textFeatures);
+
+                    var mask = ApplyThreshold(maskLogits, threshold);
+                    results.Add(new InferenceResult
+                    {
+                        Label = prompt,
+                        Confidence = 1.0f,
+                        Mask = mask
+                    });
+                }
+                return results.AsReadOnly();
+            });
+        }
+
+        /// <summary>
+        /// 点提示分割：正点和负点。
+        /// </summary>
+        public async Task<InferenceResult> SegmentByPointsAsync(
+            IEnumerable<PointF> positivePoints, IEnumerable<PointF> negativePoints)
+        {
+            if (_imageEmbedding == null || _decoder == null)
+                throw new InvalidOperationException("请先调用 EncodeImageAsync 编码图像");
+
+            return await Task.Run(() =>
+            {
+                using var pointTensor = CreatePointPromptTensor(positivePoints, negativePoints);
+                using var maskLogits = _decoder.forward(_imageEmbedding, pointTensor);
+                var mask = ApplyThreshold(maskLogits, 0.5f);
+
+                return new InferenceResult
+                {
+                    Label = "point_segment",
+                    Confidence = 1.0f,
+                    Mask = mask
+                };
+            });
+        }
+
+        /// <summary>
+        /// 参考图分割：以图搜图式分割。
+        /// </summary>
+        public async Task<IReadOnlyList<InferenceResult>> SegmentByReferenceAsync(
+            Bitmap referenceImage, float threshold = 0.5f)
+        {
+            if (_imageEmbedding == null || _imageEncoder == null || _decoder == null)
+                throw new InvalidOperationException("请先调用 EncodeImageAsync 编码图像");
+
+            return await Task.Run(() =>
+            {
+                using var refTensor = BitmapToTensor(referenceImage, InputWidth, InputHeight);
+                using var refEmbedding = _imageEncoder.forward(refTensor);
+                using var maskLogits = _decoder.forward(_imageEmbedding, refEmbedding);
+                var mask = ApplyThreshold(maskLogits, threshold);
+
+                return new List<InferenceResult>
+                {
+                    new()
+                    {
+                        Label = "reference_match",
+                        Confidence = 1.0f,
+                        Mask = mask
+                    }
+                }.AsReadOnly();
+            });
+        }
+
+        private Tensor TokenizeText(string text)
+        {
+            // 简单的字符级编码，实际应使用 BPE 分词器
+            var chars = text.ToLowerInvariant().ToCharArray();
+            var ids = new long[chars.Length + 2];
+            ids[0] = 49406; // CLS token
+            for (int i = 0; i < chars.Length; i++)
+                ids[i + 1] = chars[i] % 1000;
+            ids[ids.Length - 1] = 49407; // SEP token
+            return torch.tensor(ids, dtype: ScalarType.Int64).reshape(new long[] { 1, ids.Length });
+        }
+
+        private Tensor CreatePointPromptTensor(IEnumerable<PointF> positive, IEnumerable<PointF> negative)
+        {
+            var points = new List<(float x, float y, float label)>();
+            foreach (var p in positive)
+                points.Add((p.X, p.Y, 1.0f));
+            foreach (var p in negative)
+                points.Add((p.X, p.Y, 0.0f));
+
+            var data = new float[points.Count * 3];
+            for (int i = 0; i < points.Count; i++)
+            {
+                data[i * 3] = points[i].x;
+                data[i * 3 + 1] = points[i].y;
+                data[i * 3 + 2] = points[i].label;
+            }
+
+            return torch.tensor(data, dtype: ScalarType.Float32)
+                .reshape(new long[] { 1, points.Count, 3 });
+        }
+
+        private static byte[,] ApplyThreshold(Tensor logits, float threshold)
+        {
+            var shape = logits.shape;
+            var h = (int)shape[^2];
+            var w = (int)shape[^1];
+            var data = logits.data<float>().ToArray();
+            var mask = new byte[h, w];
+
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    var sigmoid = 1.0f / (1.0f + MathF.Exp(-data[y * w + x]));
+                    mask[y, x] = sigmoid >= threshold ? (byte)1 : (byte)0;
+                }
+
+            return mask;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _imageEmbedding?.Dispose();
+                _imageEncoder?.Dispose();
+                _textEncoder?.Dispose();
+                _decoder?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+}

@@ -32,7 +32,7 @@ public class ClassManagementHandler : BindableBase
 
         AddClassCommand = new DelegateCommand(ExecuteAddClass);
         RemoveClassCommand = new DelegateCommand(ExecuteRemoveClass, CanRemoveClass);
-        SelectClassCommand = new DelegateCommand<int>(ExecuteSelectClass);
+        SelectClassCommand = new DelegateCommand<int?>(index => { if (index.HasValue) ExecuteSelectClass(index.Value); });
     }
 
     /// <summary>当前选中的类别索引。</summary>
@@ -61,7 +61,7 @@ public class ClassManagementHandler : BindableBase
     public DelegateCommand RemoveClassCommand { get; }
 
     /// <summary>按索引选择类别命令。</summary>
-    public DelegateCommand<int> SelectClassCommand { get; }
+    public DelegateCommand<int?> SelectClassCommand { get; }
 
     /// <summary>
     /// 添加新的标注类别，自动分配索引和颜色。

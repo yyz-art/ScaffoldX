@@ -5,88 +5,158 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
-using {{ NamespacePrefix }}.Vision.Core;
+using TorchSharp;
 
 namespace {{ NamespacePrefix }}.Vision.Inference
 {
     /// <summary>
-    /// 推理引擎抽象基类，定义模型加载、推理和结果解析的模板方法。
-    /// 子类实现具体的推理后端（ONNX Runtime、OpenVINO、TensorRT 等）。
+    /// TorchSharp 推理引擎抽象基类，定义模型加载、推理和结果解析的模板方法。
+    /// 子类实现具体的推理后端（TorchSharp、SAM 3 等）。
     /// </summary>
-    public abstract class InferenceEngineBase
+    public abstract class InferenceEngineBase : IDisposable
     {
+        private readonly SemaphoreSlim _loadLock = new(1, 1);
         private bool _isLoaded;
 
-        /// <summary>推理引擎名称，如 "OnnxRuntime"、"OpenVINO"。</summary>
+        /// <summary>推理引擎名称，如 "TorchSharp"、"Sam3"。</summary>
         public abstract string EngineName { get; }
 
         /// <summary>当前模型是否已加载。</summary>
         public bool IsLoaded => _isLoaded;
 
         /// <summary>已加载的模型文件路径。</summary>
-        protected string ModelPath { get; private set; }
+        protected string ModelPath { get; private set; } = string.Empty;
+
+        /// <summary>模型输入宽度。</summary>
+        public int InputWidth { get; protected set; } = 640;
+
+        /// <summary>模型输入高度。</summary>
+        public int InputHeight { get; protected set; } = 640;
 
         /// <summary>
         /// 异步加载推理模型。
         /// </summary>
-        /// <param name="modelPath">模型文件路径（.onnx / .xml 等）。</param>
+        /// <param name="modelPath">模型文件路径。</param>
         /// <param name="options">引擎特定的加载选项字典。</param>
-        /// <exception cref="ArgumentNullException"><paramref name="modelPath"/> 为 null 或空。</exception>
-        public async Task LoadModelAsync(string modelPath, Dictionary<string, string> options = null)
+        public async Task LoadModelAsync(string modelPath, Dictionary<string, string>? options = null)
         {
             if (string.IsNullOrWhiteSpace(modelPath))
-            {
                 throw new ArgumentNullException(nameof(modelPath));
-            }
 
-            ModelPath = modelPath;
-            await OnLoadModelAsync(modelPath, options ?? new Dictionary<string, string>());
-            _isLoaded = true;
+            await _loadLock.WaitAsync();
+            try
+            {
+                ModelPath = modelPath;
+                await Task.Run(() => OnLoadModelAsync(modelPath, options ?? new Dictionary<string, string>()));
+                _isLoaded = true;
+            }
+            finally
+            {
+                _loadLock.Release();
+            }
         }
 
         /// <summary>
         /// 异步执行推理，返回原始推理结果。
         /// </summary>
-        /// <param name="frame">输入图像帧。</param>
+        /// <param name="image">输入图像。</param>
         /// <returns>推理结果列表。</returns>
-        /// <exception cref="InvalidOperationException">模型未加载时抛出。</exception>
-        public async Task<IReadOnlyList<InferenceResult>> InferAsync(FrameCapturedEventArgs frame)
+        public async Task<IReadOnlyList<InferenceResult>> InferAsync(Bitmap image)
         {
             if (!_isLoaded)
-            {
                 throw new InvalidOperationException("推理引擎：模型尚未加载，请先调用 LoadModelAsync");
-            }
 
-            if (frame == null)
+            ArgumentNullException.ThrowIfNull(image);
+
+            return await Task.Run(() =>
             {
-                throw new ArgumentNullException(nameof(frame));
-            }
+                using var tensor = PreprocessToTensor(image);
+                using var output = RunModelInference(tensor);
+                return PostprocessResults(output, image.Width, image.Height);
+            });
+        }
 
-            return await OnInferAsync(frame);
+        /// <summary>
+        /// 将 Bitmap 转换为 CHW 格式的 TorchSharp Tensor（归一化到 [0, 1]）。
+        /// </summary>
+        protected static Tensor BitmapToTensor(Bitmap image, int targetWidth, int targetHeight)
+        {
+            using var resized = ResizeImage(image, targetWidth, targetHeight);
+            var data = resized.LockBits(
+                new Rectangle(0, 0, resized.Width, resized.Height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format24bppRgb);
+
+            try
+            {
+                var buffer = new byte[data.Stride * data.Height];
+                Marshal.Copy(data.Scan0, buffer, 0, buffer.Length);
+
+                var floatData = new float[3 * targetHeight * targetWidth];
+                for (int y = 0; y < targetHeight; y++)
+                {
+                    for (int x = 0; x < targetWidth; x++)
+                    {
+                        var pixelOffset = y * data.Stride + x * 3;
+                        var ch0Offset = y * targetWidth + x;
+                        var ch1Offset = targetHeight * targetWidth + ch0Offset;
+                        var ch2Offset = 2 * targetHeight * targetWidth + ch0Offset;
+
+                        floatData[ch0Offset] = buffer[pixelOffset + 2] / 255f; // R
+                        floatData[ch1Offset] = buffer[pixelOffset + 1] / 255f; // G
+                        floatData[ch2Offset] = buffer[pixelOffset] / 255f;     // B
+                    }
+                }
+
+                return torch.tensor(floatData, dtype: ScalarType.Float32)
+                    .reshape(new long[] { 1, 3, targetHeight, targetWidth });
+            }
+            finally
+            {
+                resized.UnlockBits(data);
+            }
+        }
+
+        /// <summary>
+        /// 将图像缩放到指定尺寸。
+        /// </summary>
+        protected static Bitmap ResizeImage(Bitmap image, int width, int height)
+        {
+            var result = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+            using var graphics = Graphics.FromImage(result);
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.DrawImage(image, 0, 0, width, height);
+            return result;
         }
 
         /// <summary>
         /// 释放推理引擎占用的资源。
         /// </summary>
-        public virtual void Dispose()
+        public void Dispose()
         {
-            _isLoaded = false;
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        /// <summary>
-        /// 子类实现具体的模型加载逻辑。
-        /// </summary>
-        /// <param name="modelPath">模型文件路径。</param>
-        /// <param name="options">加载选项。</param>
-        protected abstract Task OnLoadModelAsync(string modelPath, Dictionary<string, string> options);
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+                _loadLock.Dispose();
+        }
 
-        /// <summary>
-        /// 子类实现具体的推理逻辑。
-        /// </summary>
-        /// <param name="frame">输入图像帧。</param>
-        /// <returns>推理结果列表。</returns>
-        protected abstract Task<IReadOnlyList<InferenceResult>> OnInferAsync(FrameCapturedEventArgs frame);
+        // ── 抽象方法（子类必须实现） ──────────────────────────────────────────────
+
+        protected abstract void OnLoadModelAsync(string modelPath, Dictionary<string, string> options);
+        protected abstract Tensor PreprocessToTensor(Bitmap image);
+        protected abstract Tensor RunModelInference(Tensor input);
+        protected abstract IReadOnlyList<InferenceResult> PostprocessResults(Tensor outputs, int originalWidth, int originalHeight);
     }
 
     /// <summary>
@@ -95,13 +165,16 @@ namespace {{ NamespacePrefix }}.Vision.Inference
     public sealed class InferenceResult
     {
         /// <summary>类别标签名称。</summary>
-        public string Label { get; init; }
+        public string Label { get; init; } = string.Empty;
 
         /// <summary>置信度分数，范围 [0, 1]。</summary>
         public float Confidence { get; init; }
 
         /// <summary>检测框（像素坐标），分类任务可为 null。</summary>
-        public BoundingBox BoundingBox { get; init; }
+        public BoundingBox? BoundingBox { get; init; }
+
+        /// <summary>分割掩码（与原图同尺寸）。</summary>
+        public byte[,]? Mask { get; init; }
 
         /// <summary>附加属性字典，用于传递引擎特定的额外信息。</summary>
         public Dictionary<string, object> Extras { get; init; } = new();
@@ -112,22 +185,11 @@ namespace {{ NamespacePrefix }}.Vision.Inference
     /// </summary>
     public sealed class BoundingBox
     {
-        /// <summary>左上角 X 坐标。</summary>
         public float X { get; init; }
-
-        /// <summary>左上角 Y 坐标。</summary>
         public float Y { get; init; }
-
-        /// <summary>宽度。</summary>
         public float Width { get; init; }
-
-        /// <summary>高度。</summary>
         public float Height { get; init; }
-
-        /// <summary>右下角 X 坐标。</summary>
         public float Right => X + Width;
-
-        /// <summary>右下角 Y 坐标。</summary>
         public float Bottom => Y + Height;
     }
 }
