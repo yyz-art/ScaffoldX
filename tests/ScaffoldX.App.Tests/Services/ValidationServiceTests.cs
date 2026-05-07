@@ -1,6 +1,8 @@
 using System.IO;
 using FluentAssertions;
+using Moq;
 using ScaffoldX.App.Services;
+using ScaffoldX.Core.TemplateProcessing;
 using Xunit;
 
 namespace ScaffoldX.App.Tests.Services;
@@ -10,7 +12,16 @@ namespace ScaffoldX.App.Tests.Services;
 /// </summary>
 public class ValidationServiceTests
 {
-    private readonly ValidationService _sut = new();
+    private static IVariableResolver CreateResolver()
+    {
+        var real = new VariableResolver();
+        var mock = new Mock<IVariableResolver>();
+        mock.Setup(r => r.ToPascalCase(It.IsAny<string>()))
+            .Returns((string input) => real.ToPascalCase(input));
+        return mock.Object;
+    }
+
+    private readonly ValidationService _sut = new(CreateResolver());
 
     // ── ValidateProjectName ──────────────────────────────────────────────────
 

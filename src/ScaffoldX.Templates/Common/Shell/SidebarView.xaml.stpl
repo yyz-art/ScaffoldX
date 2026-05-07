@@ -10,7 +10,6 @@
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
-             Width="200"
              d:DesignHeight="600"
              d:DesignWidth="200">
 
@@ -52,14 +51,29 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 应用标题区 -->
+        <!-- 应用标题区 + 折叠按钮 -->
         <Border Grid.Row="0" Background="#1C2B30">
-            <TextBlock Text="{{ AppTitle }}"
-                       Foreground="#ECEFF1"
-                       FontSize="16"
-                       FontWeight="SemiBold"
-                       VerticalAlignment="Center"
-                       HorizontalAlignment="Center"/>
+            <DockPanel>
+                <!-- 折叠/展开按钮 -->
+                <Button DockPanel.Dock="Right"
+                        Command="{Binding ToggleCollapseCommand}"
+                        Background="Transparent"
+                        Foreground="#B0BEC5"
+                        BorderThickness="0"
+                        Width="32"
+                        Cursor="Hand"
+                        ToolTip="折叠/展开侧边栏"
+                        Content="{Binding CollapseIcon}"
+                        FontSize="14"
+                        VerticalAlignment="Center"/>
+
+                <TextBlock Text="{{ AppTitle }}"
+                           Foreground="#ECEFF1"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+            </DockPanel>
         </Border>
 
         <!-- 菜单项列表 -->
@@ -80,7 +94,8 @@
                         <TextBlock Text="{Binding Title}"
                                    FontSize="14"
                                    Margin="8,0,0,0"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding DataContext.IsTitleVisible, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -92,6 +107,7 @@
                    Foreground="#546E7A"
                    FontSize="11"
                    HorizontalAlignment="Center"
-                   Margin="0,8"/>
+                   Margin="0,8"
+                   Visibility="{Binding IsTitleVisible}"/>
     </Grid>
 </UserControl>

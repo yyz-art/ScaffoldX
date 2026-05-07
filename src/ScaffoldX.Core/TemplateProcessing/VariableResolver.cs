@@ -83,6 +83,12 @@ public class VariableResolver : IVariableResolver
         ctx["EnablePipeline"] = config.EnablePipeline;
         ctx["ModelPath"]      = config.ModelPath;
 
+        // ── UI/导航变量 ──────────────────────────────────────────────────────
+        ctx["NavigationStyle"]    = config.NavigationStyle;
+        ctx["DefaultTheme"]       = config.DefaultTheme;
+        ctx["DefaultLanguage"]    = config.DefaultLanguage;
+        ctx["EnableLocalization"] = config.EnableLocalization;
+
         // ── 系统扩展变量 ──────────────────────────────────────────────────
         ctx["EnableLoginWindow"]     = config.EnableLoginWindow;
         ctx["EnableCrossPlatform"]   = config.EnableCrossPlatform;

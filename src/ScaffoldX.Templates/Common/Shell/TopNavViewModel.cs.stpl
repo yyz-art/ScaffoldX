@@ -1,0 +1,71 @@
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/TopNavViewModel.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Collections.ObjectModel;
+using Prism.Commands;
+using Prism.Mvvm;
+using Prism.Regions;
+
+namespace {{ NamespacePrefix }}.Modules.Shell
+{
+    /// <summary>
+    /// 顶部导航 ViewModel，管理横向菜单项列表和导航逻辑。
+    /// </summary>
+    public class TopNavViewModel : BindableBase
+    {
+        private readonly IRegionManager _regionManager;
+        private MenuItemViewModel _selectedMenuItem;
+
+        /// <summary>
+        /// 初始化顶部导航 ViewModel，注册默认菜单项。
+        /// </summary>
+        /// <param name="regionManager">Prism 区域管理器。</param>
+        public TopNavViewModel(IRegionManager regionManager)
+        {
+            _regionManager = regionManager;
+            MenuItems = new ObservableCollection<MenuItemViewModel>();
+
+            // TODO: [ScaffoldX] 根据已加载插件动态构建菜单
+            MenuItems.Add(new MenuItemViewModel
+            {
+                Icon = "",
+                Title = "首页",
+                NavigationTarget = "HomePageView"
+            });
+
+            NavigateCommand = new DelegateCommand<MenuItemViewModel>(ExecuteNavigate);
+        }
+
+        /// <summary>菜单项列表，绑定到顶部 TabControl。</summary>
+        public ObservableCollection<MenuItemViewModel> MenuItems { get; }
+
+        /// <summary>当前选中的菜单项。</summary>
+        public MenuItemViewModel SelectedMenuItem
+        {
+            get => _selectedMenuItem;
+            set
+            {
+                if (SetProperty(ref _selectedMenuItem, value) && value != null)
+                {
+                    ExecuteNavigate(value);
+                }
+            }
+        }
+
+        /// <summary>菜单项点击导航命令。</summary>
+        public DelegateCommand<MenuItemViewModel> NavigateCommand { get; }
+
+        /// <summary>
+        /// 执行导航到目标视图。
+        /// </summary>
+        private void ExecuteNavigate(MenuItemViewModel item)
+        {
+            if (!string.IsNullOrEmpty(item.NavigationTarget))
+            {
+                _regionManager.RequestNavigate("MainRegion", item.NavigationTarget);
+            }
+        }
+    }
+}

@@ -35,16 +35,20 @@ public class Sam3LabelingHandlerTests
 
     private Sam3LabelingCommandHandler CreateHandler()
     {
+        var ctx = new AnnotationContext
+        {
+            GetCurrentAnnotation = () => _currentAnnotation,
+            GetProject = () => _currentProject,
+            SetStatusMessage = msg => _statusMessage = msg,
+            PushUndoSnapshot = () => _undoSnapshotCount++,
+            UpdateBoxesList = () => _updateBoxesCount++,
+            UpdateClassDistribution = () => _updateClassDistCount++,
+            UpdateStatistics = () => _updateStatsCount++,
+        };
+
         return new Sam3LabelingCommandHandler(
             _mockService.Object,
-            () => _currentAnnotation,
-            () => _currentProject,
-            () => null, // getCurrentImage
-            msg => _statusMessage = msg,
-            () => _undoSnapshotCount++,
-            () => _updateBoxesCount++,
-            () => _updateClassDistCount++,
-            () => _updateStatsCount++);
+            ctx);
     }
 
     // ── 初始状态 ──────────────────────────────────────────────────────────

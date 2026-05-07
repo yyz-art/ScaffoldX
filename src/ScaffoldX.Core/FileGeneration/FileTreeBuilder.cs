@@ -114,6 +114,26 @@ public class FileTreeBuilder : IFileTreeBuilder
         AddChild(appVms, "ShellViewModel.cs", NodeType.CsFile, true);
         AddChild(appVms, "MainViewModel.cs", NodeType.CsFile, true);
 
+        // ── Shell 模块 ─────────────────────────────────────────────────────
+        var shellModule = AddFolder(src, $"{projectName}.Modules.Shell");
+        AddChild(shellModule, $"{projectName}.Modules.Shell.csproj", NodeType.CsprojFile, true);
+        AddChild(shellModule, "ShellModule.cs", NodeType.CsFile, true);
+        AddChild(shellModule, $"HomePageView.{xamlExt}", NodeType.XamlFile, true);
+        AddChild(shellModule, "HomePageViewModel.cs", NodeType.CsFile, true);
+        AddChild(shellModule, $"StatusBarView.{xamlExt}", NodeType.XamlFile, true);
+        AddChild(shellModule, "StatusBarViewModel.cs", NodeType.CsFile, true);
+
+        if (config.NavigationStyle.Equals("TopNav", StringComparison.OrdinalIgnoreCase))
+        {
+            AddChild(shellModule, $"TopNavView.{xamlExt}", NodeType.XamlFile, false);
+            AddChild(shellModule, "TopNavViewModel.cs", NodeType.CsFile, false);
+        }
+        else
+        {
+            AddChild(shellModule, $"SidebarView.{xamlExt}", NodeType.XamlFile, true);
+            AddChild(shellModule, "SidebarViewModel.cs", NodeType.CsFile, true);
+        }
+
         // ── Core 项目 ─────────────────────────────────────────────────────
         var coreProject = AddFolder(src, $"{projectName}.Core");
         AddChild(coreProject, $"{projectName}.Core.csproj", NodeType.CsprojFile, true);

@@ -26,16 +26,18 @@ public class HandlerTests
         var mockAnnotationService = new Mock<IAnnotationService>();
         var mockVideoFrameService = new Mock<IVideoFrameService>();
 
+        var ctx = new AnnotationContext
+        {
+            GetProject = () => null,
+            GetCurrentAnnotation = () => null,
+            GetCurrentImageIndex = () => -1,
+            SetStatusMessage = _ => { },
+        };
+
         var handler = new ExportCommandHandler(
             mockAnnotationService.Object,
             mockVideoFrameService.Object,
-            getProject: () => null,
-            getCurrentAnnotation: () => null,
-            getCurrentImageIndex: () => -1,
-            loadFirstImage: () => Task.CompletedTask,
-            setStatusMessage: _ => { },
-            updateBoxesList: () => { },
-            updateStatistics: () => { });
+            ctx);
 
         // Assert: all export commands should be initialized
         handler.ExportYoloCommand.Should().NotBeNull("ExportYoloCommand should be initialized");
@@ -57,14 +59,17 @@ public class HandlerTests
     public void ReviewCommandHandler_InitialState()
     {
         // Arrange
-        var handler = new ReviewCommandHandler(
-            getProject: () => null,
-            getCurrentImageIndex: () => -1,
-            loadImageAsync: _ => Task.CompletedTask,
-            setStatusMessage: _ => { },
-            updateStatistics: () => { },
-            getPolylineCount: () => 0,
-            getCircleCount: () => 0);
+        var ctx = new AnnotationContext
+        {
+            GetProject = () => null,
+            GetCurrentAnnotation = () => null,
+            GetCurrentImageIndex = () => -1,
+            SetStatusMessage = _ => { },
+            GetPolylineCount = () => 0,
+            GetCircleCount = () => 0,
+        };
+
+        var handler = new ReviewCommandHandler(ctx);
 
         // Assert
         handler.ReviewSummaryText.Should().BeEmpty("no review has been performed yet");
@@ -86,18 +91,17 @@ public class HandlerTests
         // Arrange
         var drawingState = new DrawingStateManager();
 
-        var handler = new PolygonDrawingHandler(
-            drawingState,
-            getProject: () => null,
-            getCurrentAnnotation: () => null,
-            getCurrentImage: () => null,
-            getSelectedClassIndex: () => 0,
-            getIsObbMode: () => false,
-            disableObbMode: () => { },
-            setStatusMessage: _ => { },
-            pushUndoSnapshot: () => { },
-            updateBoxesList: () => { },
-            updateClassDistribution: () => { });
+        var ctx = new AnnotationContext
+        {
+            GetProject = () => null,
+            GetCurrentAnnotation = () => null,
+            GetSelectedClassIndex = () => 0,
+            GetIsObbMode = () => false,
+            SetStatusMessage = _ => { },
+            DrawingState = drawingState,
+        };
+
+        var handler = new PolygonDrawingHandler(ctx);
 
         // Assert
         handler.IsPolygonMode.Should().BeFalse("polygon mode should be disabled initially");
@@ -125,18 +129,17 @@ public class HandlerTests
         // Arrange
         var drawingState = new DrawingStateManager();
 
-        var handler = new ObbDrawingHandler(
-            drawingState,
-            getProject: () => null,
-            getCurrentAnnotation: () => null,
-            getCurrentImage: () => null,
-            getSelectedClassIndex: () => 0,
-            getIsPolygonMode: () => false,
-            disablePolygonMode: () => { },
-            setStatusMessage: _ => { },
-            pushUndoSnapshot: () => { },
-            updateBoxesList: () => { },
-            updateClassDistribution: () => { });
+        var ctx = new AnnotationContext
+        {
+            GetProject = () => null,
+            GetCurrentAnnotation = () => null,
+            GetSelectedClassIndex = () => 0,
+            GetIsPolygonMode = () => false,
+            SetStatusMessage = _ => { },
+            DrawingState = drawingState,
+        };
+
+        var handler = new ObbDrawingHandler(ctx);
 
         // Assert
         handler.IsObbMode.Should().BeFalse("OBB mode should be disabled initially");

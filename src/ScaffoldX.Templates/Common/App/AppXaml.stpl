@@ -8,7 +8,21 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Blue" SecondaryColor="Amber" />
+                {{ if DefaultTheme == "DeepSeaBlue" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Dark" PrimaryColor="BlueGrey" SecondaryColor="LightBlue" />
+                {{ else if DefaultTheme == "MossGreen" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Dark" PrimaryColor="Teal" SecondaryColor="Green" />
+                {{ else if DefaultTheme == "CharcoalBlack" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Dark" PrimaryColor="Grey" SecondaryColor="BlueGrey" />
+                {{ else if DefaultTheme == "BlueSteel" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Dark" PrimaryColor="Indigo" SecondaryColor="LightBlue" />
+                {{ else if DefaultTheme == "AmberIndustrial" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Light" PrimaryColor="Orange" SecondaryColor="Amber" />
+                {{ else if DefaultTheme == "NeutralSteel" }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Light" PrimaryColor="Grey" SecondaryColor="BlueGrey" />
+                {{ else }}
+                <materialDesign:BundledTheme x:Name="AppBundledTheme" BaseTheme="Dark" PrimaryColor="BlueGrey" SecondaryColor="LightBlue" />
+                {{ end }}
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

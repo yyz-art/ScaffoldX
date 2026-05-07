@@ -157,6 +157,107 @@ public class VariableResolverTests
         context["EnableThemeSwitcher"].Should().Be(true);
     }
 
+    [Fact]
+    public void BuildVariableContext_ShouldIncludeNavigationStyle()
+    {
+        // Arrange
+        var config = new ProjectConfig
+        {
+            ProjectName = "NavProject",
+            NavigationStyle = "TopNav"
+        };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        context.Should().ContainKey("NavigationStyle");
+        ((string)context["NavigationStyle"]).Should().Be("TopNav");
+    }
+
+    [Fact]
+    public void BuildVariableContext_ShouldIncludeDefaultTheme()
+    {
+        // Arrange
+        var config = new ProjectConfig
+        {
+            ProjectName = "ThemeProject",
+            DefaultTheme = "LightModern"
+        };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        context.Should().ContainKey("DefaultTheme");
+        ((string)context["DefaultTheme"]).Should().Be("LightModern");
+    }
+
+    [Fact]
+    public void BuildVariableContext_ShouldIncludeDefaultLanguage()
+    {
+        // Arrange
+        var config = new ProjectConfig
+        {
+            ProjectName = "LangProject",
+            DefaultLanguage = "en-US"
+        };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        context.Should().ContainKey("DefaultLanguage");
+        ((string)context["DefaultLanguage"]).Should().Be("en-US");
+    }
+
+    [Fact]
+    public void BuildVariableContext_ShouldUseDefaultValues_WhenNewFieldsNotSet()
+    {
+        // Arrange
+        var config = new ProjectConfig { ProjectName = "DefaultProject" };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        ((string)context["NavigationStyle"]).Should().Be("LeftSidebar");
+        ((string)context["DefaultTheme"]).Should().Be("IndustrialDark");
+        ((string)context["DefaultLanguage"]).Should().Be("zh-CN");
+    }
+
+    [Fact]
+    public void BuildVariableContext_ShouldIncludeEnableLocalization()
+    {
+        // Arrange
+        var config = new ProjectConfig
+        {
+            ProjectName = "I18nProject",
+            EnableLocalization = true
+        };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        context.Should().ContainKey("EnableLocalization");
+        ((bool)context["EnableLocalization"]).Should().Be(true);
+    }
+
+    [Fact]
+    public void BuildVariableContext_ShouldDefaultEnableLocalizationToFalse()
+    {
+        // Arrange
+        var config = new ProjectConfig { ProjectName = "NoI18nProject" };
+
+        // Act
+        var context = _sut.BuildVariableContext(config);
+
+        // Assert
+        context.Should().ContainKey("EnableLocalization");
+        ((bool)context["EnableLocalization"]).Should().Be(false);
+    }
+
     [Theory]
     [InlineData("my_project", "MyProject")]
     [InlineData("my-project", "MyProject")]

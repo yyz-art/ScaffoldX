@@ -4,32 +4,118 @@
 // 请勿手动修改此文件
 
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Prism.Mvvm;
+using {{ NamespacePrefix }}.Core.Abstractions;
 
 namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
-    /// 底部状态栏 ViewModel，显示连接状态、当前用户和时间。
+    /// 底部状态栏 ViewModel，显示连接状态、当前用户、时间、语言切换和主题切换。
     /// </summary>
     public class StatusBarViewModel : BindableBase
     {
-        private string _connectionStatusText = "未连接";
+        private const string ThemeConfigKey = "SelectedTheme";
+        private const string LanguageConfigKey = "SelectedLanguage";
+
+        private readonly IThemeService _themeService;
+        private readonly IConfigService _configService;
+        private readonly ILocalizationService _localization;
+
+        private string _connectionStatusText;
         private SolidColorBrush _connectionStatusColor = new(Colors.Gray);
         private string _currentUser = "admin";
         private string _currentTime;
+        private ThemeInfo? _selectedTheme;
+        private string _selectedLanguage;
 
         /// <summary>
-        /// 初始化状态栏，启动时钟定时器。
+        /// 初始化状态栏，注入本地化、主题和配置服务，恢复上次选择的语言和主题，启动时钟定时器。
         /// </summary>
-        public StatusBarViewModel()
+        public StatusBarViewModel(
+            IThemeService themeService,
+            IConfigService configService,
+            ILocalizationService localization)
         {
+            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+
+            AvailableThemes = new ObservableCollection<ThemeInfo>(_themeService.GetAvailableThemes());
+            AvailableLanguages = new ObservableCollection<string> { "zh-CN", "en-US" };
+
             _currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            _connectionStatusText = _localization.GetString("Disconnected");
+
+            // 监听语言切换，刷新本地化文本
+            _localization.PropertyChanged += (_, _) => RefreshLocalizedTexts();
 
             var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             timer.Tick += (_, _) => CurrentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             timer.Start();
+
+            // 从配置恢复上次选择的语言
+            var savedLanguage = _configService.Get<string>(LanguageConfigKey);
+            if (!string.IsNullOrEmpty(savedLanguage) && AvailableLanguages.Contains(savedLanguage))
+            {
+                _selectedLanguage = savedLanguage;
+                _localization.SwitchLanguage(savedLanguage);
+            }
+            else
+            {
+                _selectedLanguage = _localization.CurrentCulture;
+            }
+
+            // 从配置恢复上次选择的主题
+            var savedThemeId = _configService.Get<string>(ThemeConfigKey);
+            if (!string.IsNullOrEmpty(savedThemeId))
+            {
+                var match = AvailableThemes.FirstOrDefault(t => t.Id == savedThemeId);
+                if (match != null)
+                {
+                    _selectedTheme = match;
+                    _ = _themeService.SetThemeAsync(match.Id);
+                }
+            }
+
+            _selectedTheme ??= AvailableThemes.FirstOrDefault();
+        }
+
+        /// <summary>可用主题列表。</summary>
+        public ObservableCollection<ThemeInfo> AvailableThemes { get; }
+
+        /// <summary>可用语言列表。</summary>
+        public ObservableCollection<string> AvailableLanguages { get; }
+
+        /// <summary>当前选中的主题，切换时即时应用并持久化。</summary>
+        public ThemeInfo? SelectedTheme
+        {
+            get => _selectedTheme;
+            set
+            {
+                if (SetProperty(ref _selectedTheme, value) && value != null)
+                {
+                    _ = _themeService.SetThemeAsync(value.Id);
+                    _configService.Set(ThemeConfigKey, value.Id);
+                }
+            }
+        }
+
+        /// <summary>当前选中的语言，切换时即时应用并持久化。</summary>
+        public string SelectedLanguage
+        {
+            get => _selectedLanguage;
+            set
+            {
+                if (SetProperty(ref _selectedLanguage, value) && !string.IsNullOrEmpty(value))
+                {
+                    _localization.SwitchLanguage(value);
+                    _configService.Set(LanguageConfigKey, value);
+                }
+            }
         }
 
         /// <summary>连接状态文本。</summary>
@@ -60,6 +146,12 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             set => SetProperty(ref _currentTime, value);
         }
 
+        /// <summary>语言标签文本。</summary>
+        public string LanguageLabel => _localization.GetString("LanguageLabel");
+
+        /// <summary>主题标签文本。</summary>
+        public string ThemeLabel => _localization.GetString("ThemeLabel");
+
         /// <summary>
         /// 更新连接状态。
         /// </summary>
@@ -69,6 +161,16 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         {
             ConnectionStatusText = statusText;
             ConnectionStatusColor = new SolidColorBrush(isConnected ? Colors.LimeGreen : Colors.Gray);
+        }
+
+        /// <summary>
+        /// 刷新本地化文本属性。
+        /// </summary>
+        private void RefreshLocalizedTexts()
+        {
+            OnPropertyChanged(nameof(LanguageLabel));
+            OnPropertyChanged(nameof(ThemeLabel));
+            ConnectionStatusText = _localization.GetString("Disconnected");
         }
     }
 }

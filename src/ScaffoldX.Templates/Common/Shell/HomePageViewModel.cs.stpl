@@ -4,26 +4,38 @@
 // 请勿手动修改此文件
 
 using Prism.Mvvm;
+using {{ NamespacePrefix }}.Core.Abstractions;
 
 namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
     /// 首页 ViewModel，展示系统概览和运行状态。
+    /// 从 ILocalizationService 获取本地化文本，监听语言切换自动刷新。
     /// </summary>
     public class HomePageViewModel : BindableBase
     {
-        private string _welcomeText = "欢迎使用 {{ ProjectName }}";
+        private readonly ILocalizationService _localization;
+
         private string _runningStatus = "正常";
         private string _pluginCount = "0";
         private string _alarmCount = "0";
-        private string _footerText = "{{ ProjectName }} — 由 ScaffoldX {{ ScaffoldXVersion }} 生成";
+
+        /// <summary>
+        /// 初始化首页 ViewModel。
+        /// </summary>
+        /// <param name="localization">本地化服务。</param>
+        public HomePageViewModel(ILocalizationService localization)
+        {
+            _localization = localization;
+            _localization.PropertyChanged += (_, _) => RefreshLocalizedTexts();
+            RefreshLocalizedTexts();
+        }
 
         /// <summary>欢迎文本。</summary>
-        public string WelcomeText
-        {
-            get => _welcomeText;
-            set => SetProperty(ref _welcomeText, value);
-        }
+        public string WelcomeText => _localization.GetString("WelcomeText");
+
+        /// <summary>运行状态标签。</summary>
+        public string RunningStatusText => _localization.GetString("RunningStatus");
 
         /// <summary>系统运行状态。</summary>
         public string RunningStatus
@@ -32,12 +44,18 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             set => SetProperty(ref _runningStatus, value);
         }
 
+        /// <summary>已加载插件标签。</summary>
+        public string PluginCountText => _localization.GetString("PluginCount");
+
         /// <summary>已加载插件数量。</summary>
         public string PluginCount
         {
             get => _pluginCount;
             set => SetProperty(ref _pluginCount, value);
         }
+
+        /// <summary>今日告警标签。</summary>
+        public string AlarmCountText => _localization.GetString("AlarmCount");
 
         /// <summary>今日告警数量。</summary>
         public string AlarmCount
@@ -47,10 +65,18 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         }
 
         /// <summary>底部版权信息。</summary>
-        public string FooterText
+        public string FooterText => _localization.GetString("FooterText");
+
+        /// <summary>
+        /// 刷新所有本地化文本属性，通知 UI 更新。
+        /// </summary>
+        private void RefreshLocalizedTexts()
         {
-            get => _footerText;
-            set => SetProperty(ref _footerText, value);
+            OnPropertyChanged(nameof(WelcomeText));
+            OnPropertyChanged(nameof(RunningStatusText));
+            OnPropertyChanged(nameof(PluginCountText));
+            OnPropertyChanged(nameof(AlarmCountText));
+            OnPropertyChanged(nameof(FooterText));
         }
     }
 }

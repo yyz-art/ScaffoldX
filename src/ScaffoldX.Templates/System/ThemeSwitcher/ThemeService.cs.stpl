@@ -1,0 +1,123 @@
+##OUTPUT: src/{{ProjectName}}.Core/Services/ThemeService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Core.Services
+{
+    /// <summary>
+    /// 主题切换服务实现，管理六套工业级主题。
+    /// 配色方案：蓝灰系 / 灰绿系 / 炭黑系 / 工业简约系。
+    /// </summary>
+    public sealed class ThemeService : IThemeService
+    {
+        private readonly List<ThemeInfo> _themes;
+        private string _currentThemeId;
+
+        /// <summary>
+        /// 主题变更事件，订阅方可即时响应运行时主题切换。
+        /// </summary>
+        public event Action<ThemeInfo>? ThemeChanged;
+
+        /// <summary>
+        /// 初始化主题服务，注册六套预置工业主题。
+        /// </summary>
+        public ThemeService()
+        {
+            _themes = new List<ThemeInfo>
+            {
+                // ── 蓝灰系：深海灰蓝 #4A5F73 ──────────────────────────
+                new()
+                {
+                    Id            = "DeepSeaBlue",
+                    DisplayName   = "深海灰蓝",
+                    AccentColor   = "#4A5F73",
+                    BaseTheme     = "Dark",
+                    PrimaryColor  = "BlueGrey",
+                    SecondaryColor = "LightBlue"
+                },
+
+                // ── 灰绿系：灰调墨绿 #3D4F46 ──────────────────────────
+                new()
+                {
+                    Id            = "MossGreen",
+                    DisplayName   = "灰调墨绿",
+                    AccentColor   = "#3D4F46",
+                    BaseTheme     = "Dark",
+                    PrimaryColor  = "Teal",
+                    SecondaryColor = "Green"
+                },
+
+                // ── 炭黑系：高级炭黑 #1A1A1A ──────────────────────────
+                new()
+                {
+                    Id            = "CharcoalBlack",
+                    DisplayName   = "高级炭黑",
+                    AccentColor   = "#1A1A1A",
+                    BaseTheme     = "Dark",
+                    PrimaryColor  = "Grey",
+                    SecondaryColor = "BlueGrey"
+                },
+
+                // ── 工业简约：蓝钢 ────────────────────────────────────
+                new()
+                {
+                    Id            = "BlueSteel",
+                    DisplayName   = "蓝钢",
+                    AccentColor   = "#4A6A8A",
+                    BaseTheme     = "Dark",
+                    PrimaryColor  = "Indigo",
+                    SecondaryColor = "LightBlue"
+                },
+
+                // ── 工业简约：琥珀暖调 ────────────────────────────────
+                new()
+                {
+                    Id            = "AmberIndustrial",
+                    DisplayName   = "琥珀暖调",
+                    AccentColor   = "#D4A017",
+                    BaseTheme     = "Light",
+                    PrimaryColor  = "Orange",
+                    SecondaryColor = "Amber"
+                },
+
+                // ── 工业简约：中性钢灰 ────────────────────────────────
+                new()
+                {
+                    Id            = "NeutralSteel",
+                    DisplayName   = "中性钢灰",
+                    AccentColor   = "#5C636A",
+                    BaseTheme     = "Light",
+                    PrimaryColor  = "Grey",
+                    SecondaryColor = "BlueGrey"
+                }
+            };
+
+            _currentThemeId = "{{ DefaultTheme }}";
+        }
+
+        /// <inheritdoc />
+        public string GetCurrentTheme() => _currentThemeId;
+
+        /// <inheritdoc />
+        public Task SetThemeAsync(string themeId)
+        {
+            var theme = _themes.FirstOrDefault(t => t.Id == themeId);
+            if (theme != null)
+            {
+                _currentThemeId = themeId;
+                ThemeChanged?.Invoke(theme);
+            }
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<ThemeInfo> GetAvailableThemes() => _themes.AsReadOnly();
+    }
+}

@@ -11,12 +11,14 @@ using Prism.Regions;
 namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
-    /// 侧边栏 ViewModel，管理菜单项列表和导航逻辑。
+    /// 侧边栏 ViewModel，管理菜单项列表、折叠状态和导航逻辑。
     /// </summary>
     public class SidebarViewModel : BindableBase
     {
         private readonly IRegionManager _regionManager;
         private MenuItemViewModel _selectedMenuItem;
+        private bool _isCollapsed;
+        private string _collapseIcon = "◀";
 
         /// <summary>
         /// 初始化侧边栏 ViewModel，注册默认菜单项。
@@ -30,12 +32,13 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             // TODO: [ScaffoldX] 根据已加载插件动态构建菜单
             MenuItems.Add(new MenuItemViewModel
             {
-                Icon = "",
+                Icon = "☰",
                 Title = "首页",
                 NavigationTarget = "HomePageView"
             });
 
             NavigateCommand = new DelegateCommand<MenuItemViewModel>(ExecuteNavigate);
+            ToggleCollapseCommand = new DelegateCommand(ExecuteToggleCollapse);
         }
 
         /// <summary>菜单项列表，绑定到侧边栏 ListBox。</summary>
@@ -54,8 +57,39 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             }
         }
 
+        /// <summary>侧边栏是否处于折叠状态。</summary>
+        public bool IsCollapsed
+        {
+            get => _isCollapsed;
+            set
+            {
+                if (SetProperty(ref _isCollapsed, value))
+                {
+                    IsTitleVisible = !value;
+                    CollapseIcon = value ? "▶" : "◀";
+                }
+            }
+        }
+
+        /// <summary>标题和文字是否可见（折叠时隐藏）。</summary>
+        public bool IsTitleVisible
+        {
+            get => !_isCollapsed;
+            set => RaisePropertyChanged();
+        }
+
+        /// <summary>折叠/展开按钮图标。</summary>
+        public string CollapseIcon
+        {
+            get => _collapseIcon;
+            set => SetProperty(ref _collapseIcon, value);
+        }
+
         /// <summary>菜单项点击导航命令。</summary>
         public DelegateCommand<MenuItemViewModel> NavigateCommand { get; }
+
+        /// <summary>折叠/展开侧边栏命令。</summary>
+        public DelegateCommand ToggleCollapseCommand { get; }
 
         /// <summary>
         /// 执行导航到目标视图。
@@ -66,6 +100,14 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             {
                 _regionManager.RequestNavigate("MainRegion", item.NavigationTarget);
             }
+        }
+
+        /// <summary>
+        /// 切换侧边栏折叠/展开状态。
+        /// </summary>
+        private void ExecuteToggleCollapse()
+        {
+            IsCollapsed = !IsCollapsed;
         }
     }
 

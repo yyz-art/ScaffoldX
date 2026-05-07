@@ -180,6 +180,10 @@ public class FullGenerationFlowTests
         ctx.Should().ContainKey("EnableRolePermission");
         ctx.Should().ContainKey("EnableSystemLog");
         ctx.Should().ContainKey("EnableThemeSwitcher");
+
+        // Assert — 国际化变量
+        ctx.Should().ContainKey("EnableLocalization");
+        ctx.Should().ContainKey("DefaultLanguage");
     }
 
     /// <summary>
@@ -310,5 +314,153 @@ public class FullGenerationFlowTests
         // Assert — 非必须的系统模板不应包含
         templates.Should().NotContain(t => t.Category == "System" && !t.IsRequired,
             "禁用所有系统模块时，非必须的系统模板不应被选中");
+    }
+
+    /// <summary>
+    /// 验证 NavigationStyle=LeftSidebar 时包含 SidebarView 模板，不含 TopNavView 模板。
+    /// </summary>
+    [Fact]
+    public async Task NavigationStyle_LeftSidebar_ShouldIncludeSidebarView_ExcludeTopNavView()
+    {
+        // Arrange
+        await _registry.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            ProjectName = "TestLeftNav",
+            NavigationStyle = "LeftSidebar",
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false,
+            EnableUserManagement = false,
+            EnableRolePermission = false,
+            EnableSystemLog = false,
+            EnableThemeSwitcher = false
+        };
+
+        // Act
+        var templates = _registry.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().Contain(t => t.Name.Contains("SidebarView"),
+            "LeftSidebar 导航样式应包含 SidebarView 模板");
+        templates.Should().Contain(t => t.Name.Contains("SidebarViewModel"),
+            "LeftSidebar 导航样式应包含 SidebarViewModel 模板");
+        templates.Should().NotContain(t => t.Name.Contains("TopNavView"),
+            "LeftSidebar 导航样式不应包含 TopNavView 模板");
+        templates.Should().NotContain(t => t.Name.Contains("TopNavViewModel"),
+            "LeftSidebar 导航样式不应包含 TopNavViewModel 模板");
+    }
+
+    /// <summary>
+    /// 验证 NavigationStyle=TopNav 时包含 TopNavView 模板，不含 SidebarView 模板。
+    /// </summary>
+    [Fact]
+    public async Task NavigationStyle_TopNav_ShouldIncludeTopNavView_ExcludeSidebarView()
+    {
+        // Arrange
+        await _registry.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            ProjectName = "TestTopNav",
+            NavigationStyle = "TopNav",
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false,
+            EnableUserManagement = false,
+            EnableRolePermission = false,
+            EnableSystemLog = false,
+            EnableThemeSwitcher = false
+        };
+
+        // Act
+        var templates = _registry.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().Contain(t => t.Name.Contains("TopNavView"),
+            "TopNav 导航样式应包含 TopNavView 模板");
+        templates.Should().Contain(t => t.Name.Contains("TopNavViewModel"),
+            "TopNav 导航样式应包含 TopNavViewModel 模板");
+        templates.Should().NotContain(t => t.Name.Contains("SidebarView"),
+            "TopNav 导航样式不应包含 SidebarView 模板");
+        templates.Should().NotContain(t => t.Name.Contains("SidebarViewModel"),
+            "TopNav 导航样式不应包含 SidebarViewModel 模板");
+    }
+
+    /// <summary>
+    /// 验证启用国际化时，本地化模板（ILocalizationService、LocalizationService、.resx）被正确选中。
+    /// </summary>
+    [Fact]
+    public async Task LocalizationTemplates_ShouldBeIncluded_WhenLocalizationEnabled()
+    {
+        // Arrange
+        await _registry.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            ProjectName = "I18nProject",
+            EnableLocalization = true,
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false,
+            EnableUserManagement = false,
+            EnableRolePermission = false,
+            EnableSystemLog = false,
+            EnableThemeSwitcher = false
+        };
+
+        // Act
+        var templates = _registry.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().Contain(t => t.Name.Contains("ILocalization"),
+            "启用国际化时应包含 ILocalizationService 模板");
+        templates.Should().Contain(t => t.Name.Contains("LocalizationService"),
+            "启用国际化时应包含 LocalizationService 模板");
+        templates.Should().Contain(t => t.OutputPathTemplate.Contains("Strings.zh-CN"),
+            "启用国际化时应包含中文资源文件模板");
+        templates.Should().Contain(t => t.OutputPathTemplate.Contains("Strings.en-US"),
+            "启用国际化时应包含英文资源文件模板");
+    }
+
+    /// <summary>
+    /// 验证禁用国际化时，本地化模板不会被选中。
+    /// </summary>
+    [Fact]
+    public async Task LocalizationTemplates_ShouldNotBeIncluded_WhenLocalizationDisabled()
+    {
+        // Arrange
+        await _registry.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            ProjectName = "NoI18nProject",
+            EnableLocalization = false,
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false,
+            EnableUserManagement = false,
+            EnableRolePermission = false,
+            EnableSystemLog = false,
+            EnableThemeSwitcher = false
+        };
+
+        // Act
+        var templates = _registry.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().NotContain(t => t.Name.Contains("Localization"),
+            "禁用国际化时不应包含本地化模板");
+        templates.Should().NotContain(t => t.OutputPathTemplate.Contains("Strings."),
+            "禁用国际化时不应包含 .resx 资源模板");
     }
 }

@@ -1,0 +1,78 @@
+##OUTPUT: src/{{ProjectName}}.Core/Services/LocalizationService.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.ComponentModel;
+using System.Globalization;
+using System.Resources;
+using System.Runtime.CompilerServices;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Core.Services
+{
+    /// <summary>
+    /// 本地化服务实现，通过 ResourceManager 加载 .resx 资源文件，
+    /// 支持运行时语言切换并自动通知 UI 刷新。
+    /// </summary>
+    public sealed class LocalizationService : ILocalizationService
+    {
+        private readonly ResourceManager _resourceManager;
+        private string _currentCulture;
+
+        /// <summary>
+        /// 初始化本地化服务。
+        /// </summary>
+        /// <param name="defaultLanguage">默认语言标识符（如 "zh-CN"、"en-US"）。</param>
+        public LocalizationService(string defaultLanguage = "{{ DefaultLanguage }}")
+        {
+            var assemblyName = typeof(App).Assembly.GetName().Name;
+            _resourceManager = new ResourceManager(
+                assemblyName + ".Resources.Strings",
+                typeof(App).Assembly);
+
+            _currentCulture = defaultLanguage;
+            CultureInfo.CurrentUICulture = new CultureInfo(defaultLanguage);
+        }
+
+        /// <inheritdoc />
+        public string CurrentCulture => _currentCulture;
+
+        /// <inheritdoc />
+        public string GetString(string key)
+        {
+            try
+            {
+                return _resourceManager.GetString(key, CultureInfo.CurrentUICulture) ?? key;
+            }
+            catch (MissingManifestResourceException)
+            {
+                return key;
+            }
+        }
+
+        /// <inheritdoc />
+        public void SwitchLanguage(string culture)
+        {
+            if (string.Equals(_currentCulture, culture, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _currentCulture = culture;
+            CultureInfo.CurrentUICulture = new CultureInfo(culture);
+            OnPropertyChanged(nameof(CurrentCulture));
+            // 通知所有绑定属性刷新
+            OnPropertyChanged(string.Empty);
+        }
+
+        /// <inheritdoc />
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}

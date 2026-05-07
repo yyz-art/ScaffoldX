@@ -19,6 +19,8 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
         <!-- 连接状态指示 -->
@@ -30,15 +32,44 @@
                        VerticalAlignment="Center"/>
         </StackPanel>
 
+        <!-- 语言切换 -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0">
+            <TextBlock Text="{Binding LanguageLabel}"
+                       Foreground="#78909C" FontSize="11"
+                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox Width="80" FontSize="11"
+                      ItemsSource="{Binding AvailableLanguages}"
+                      SelectedItem="{Binding SelectedLanguage}"
+                      Foreground="#B0BEC5"
+                      Background="Transparent"
+                      BorderBrush="#546E7A"
+                      SelectionChanged="OnLanguageSelectionChanged"/>
+        </StackPanel>
+
+        <!-- 主题切换 -->
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0">
+            <TextBlock Text="{Binding ThemeLabel}"
+                       Foreground="#78909C" FontSize="11"
+                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox Width="100" FontSize="11"
+                      ItemsSource="{Binding AvailableThemes}"
+                      SelectedItem="{Binding SelectedTheme}"
+                      DisplayMemberPath="DisplayName"
+                      Foreground="#B0BEC5"
+                      Background="Transparent"
+                      BorderBrush="#546E7A"
+                      SelectionChanged="OnThemeSelectionChanged"/>
+        </StackPanel>
+
         <!-- 当前用户 -->
-        <TextBlock Grid.Column="2"
+        <TextBlock Grid.Column="4"
                    Text="{Binding CurrentUser}"
                    Foreground="#B0BEC5" FontSize="11"
                    VerticalAlignment="Center"
                    Margin="16,0"/>
 
         <!-- 当前时间 -->
-        <TextBlock Grid.Column="3"
+        <TextBlock Grid.Column="5"
                    Text="{Binding CurrentTime}"
                    Foreground="#78909C" FontSize="11"
                    VerticalAlignment="Center"

@@ -114,4 +114,52 @@ public class TemplateRegistryTests
         // Assert
         templates.Should().Contain(t => t.Category == "System");
     }
+
+    [Fact]
+    public async Task GetTemplatesForConfig_ShouldIncludeLocalizationTemplates_WhenLocalizationEnabled()
+    {
+        // Arrange
+        await _sut.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            EnableLocalization = true,
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false
+        };
+
+        // Act
+        var templates = _sut.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().Contain(t => t.Name.Contains("Localization"));
+        templates.Should().Contain(t => t.Name.Contains("Resx") || t.Name.Contains("Strings"));
+    }
+
+    [Fact]
+    public async Task GetTemplatesForConfig_ShouldNotIncludeLocalizationTemplates_WhenLocalizationDisabled()
+    {
+        // Arrange
+        await _sut.LoadTemplatesAsync();
+        var config = new ProjectConfig
+        {
+            EnableLocalization = false,
+            EnableVision = false,
+            EnableSiemensS7 = false,
+            EnableModbusTcp = false,
+            EnableOpcUa = false,
+            EnableMitsubishiMc = false,
+            EnableOmronFins = false
+        };
+
+        // Act
+        var templates = _sut.GetTemplatesForConfig(config);
+
+        // Assert
+        templates.Should().NotContain(t => t.Name.Contains("Localization"));
+        templates.Should().NotContain(t => t.Name.Contains("Resx") || t.Name.Contains("Strings"));
+    }
 }

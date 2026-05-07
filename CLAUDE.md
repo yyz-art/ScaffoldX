@@ -51,9 +51,8 @@ ScaffoldX.slnx
 │   ├── ScaffoldX.Core/         # Business logic, template processing, TorchSharp vision inference
 │   └── ScaffoldX.Templates/    # Embedded .stpl template resources
 └── tests/
-    ├── ScaffoldX.App.Tests/        # App layer tests (249 tests)
-    ├── ScaffoldX.Core.Tests/       # Core layer tests (80 tests)
-    └── ScaffoldX.IntegrationTests/ # Integration tests (empty, needs implementation)
+    ├── ScaffoldX.App.Tests/        # App layer tests (~181 test methods)
+    └── ScaffoldX.Core.Tests/       # Core layer tests (~63 test methods)
 ```
 
 ### Dependency Flow
@@ -249,37 +248,41 @@ dotnet test tests/ScaffoldX.Core.Tests/ --filter "ClassName~VariableResolverTest
 dotnet test tests/ScaffoldX.App.Tests/ --filter "ClassName~ValidationServiceTests"
 ```
 
-**Current test coverage (329 tests total):**
+**Current test coverage (~244 test methods across 30 files):**
 
-Core layer (80 tests):
+Core layer (63 methods, 7 files):
 - `TemplateRegistryTests` — template loading, category filtering (Vision/System/Common)
 - `VariableResolverTests` — variable context building (PascalCase), ToPascalCase conversion, ScaffoldX metadata, system module variables
 - `PostProcessorTests` — line endings, XML entity restoration, trailing whitespace
 - `FileTreeBuilderTests` — file tree structure, conditional modules, gitignore, inference engine, system modules
 - `FullGenerationFlowTests` — integration tests: Collection/Vision/System project template selection, mixed config, Common templates always included, PostProcessor pipeline, variable context completeness
-- `InferenceRobustnessTests` — null guards, model-not-loaded (TorchSharp engine)
-- `InferenceUtilityTests` — ResizeImage, CreateDetectionResult
 - `MaskToPolygonTests` — mask-to-polygon conversion (Marching Squares, Douglas-Peucker simplification)
 - `Sam3SegmentorTests` — SAM 3 model loading, tokenizer, ImageEmbedding, contour extraction
 
-App layer (249 tests):
+App layer (181 methods, 23 files):
 - `ValidationServiceTests` — project name validation, IP address validation, port validation, PascalCase conversion, output path validation
 - `AnnotationServiceTests` — YOLO format conversion (ToYoloFormat/FromYoloFormat), round-trip consistency, invalid input handling
+- `AnnotationServicePolygonTests` — polygon YOLO export
+- `AnnotationServiceObbTests` — OBB YOLO export
+- `AnnotationServiceDotaTests` — DOTA format export
+- `AnnotationServiceMotTests` — MOT format export
 - `ScribanTemplateEngineTests` — template rendering, variable substitution, boolean/loop syntax, error handling
 - `PolygonAnnotationTests` — polygon model, round-trip
 - `OrientedBoundingBoxAnnotationTests` — OBB model
-- `AnnotationServicePolygonTests` — polygon YOLO export
-- `AnnotationServiceObbTests` — OBB YOLO export
-- `AnnotationImportTests` — import annotations
+- `PolylineCircleAnnotationTests` — polyline and circle annotation models
+- `AnnotationImportTests` — import annotations from YOLO format
 - `AnnotationKeyboardTests` — keyboard shortcuts
 - `AnnotationZoomTests` — zoom/pan
 - `AnnotationUndoRedoTests` — undo/redo for all types
+- `AnnotationReviewTests` — review summary, goto unannotated
 - `AnnotationStatisticsTests` — annotation counts
 - `UndoRedoManagerTests` — generic undo/redo manager
 - `DrawingStateManagerTests` — drawing state
 - `VideoFrameServiceTests` — video frame extraction
 - `AutoLabelingHandlerTests` — SAM 3 model lifecycle, text/point/reference segmentation, batch operations
+- `Sam3LabelingHandlerTests` — SAM 3 text/point/reference prompt handlers
 - `Sam3AutoLabelingServiceTests` — SAM 3 service mock tests
+- `HandlerTests` — handler integration tests
 
 **Test conventions:**
 - Follow Arrange-Act-Assert pattern
@@ -315,6 +318,11 @@ App layer (249 tests):
 
 Detailed requirements in `docs/ScaffoldX_PRD_v2.md` — covers all feature specifications, architecture decisions, and acceptance criteria.
 SAM 3 and TorchSharp integration specs in `docs/ScaffoldX_PRD_v3.md`.
+
+## Context & Decision Records
+
+- **CONTEXT.md** — Domain glossary with key terms, interfaces, and subsystem definitions. Read this first when unfamiliar with domain terminology.
+- **docs/adr/** — Architectural Decision Records. Key ADR: `0001-core-layer-refactor.md` covers the DI refactor, dead code cleanup, ProjectConfig unification, and ITemplateSource abstraction.
 
 ## Agent skills
 

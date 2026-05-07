@@ -73,6 +73,12 @@ public class TemplateRegistry : ITemplateRegistry
     /// </summary>
     private static bool ShouldInclude(TemplateFile template, ProjectConfig config)
     {
+        // Shell 导航模板优先按 NavigationStyle 筛选，覆盖 IsRequired
+        if (IsShellNavigationTemplate(template))
+        {
+            return ShouldIncludeShellTemplate(template, config);
+        }
+
         if (template.IsRequired)
         {
             return true;
@@ -83,8 +89,65 @@ public class TemplateRegistry : ITemplateRegistry
             "Collection" => ShouldIncludeCollectionTemplate(template, config),
             "Vision"     => config.EnableVision,
             "System"     => ShouldIncludeSystemTemplate(template, config),
-            _            => true, // Common 及未知分类默认包含
+            "Common"     => ShouldIncludeCommonTemplate(template, config),
+            _            => true,
         };
+    }
+
+    /// <summary>
+    /// 判断是否为 Shell 导航布局模板（SidebarView/TopNavView 及对应 ViewModel）。
+    /// </summary>
+    private static bool IsShellNavigationTemplate(TemplateFile template)
+    {
+        if (template.Category != "Common")
+        {
+            return false;
+        }
+
+        var name = template.Name.ToUpperInvariant();
+        return name.Contains("SIDEBARVIEW")
+            || name.Contains("SIDEBARVIEWMODEL")
+            || name.Contains("TOPNAVVIEW")
+            || name.Contains("TOPNAVVIEWMODEL");
+    }
+
+    /// <summary>
+    /// 判断 Common 分类中非必须模板是否应包含。
+    /// </summary>
+    private static bool ShouldIncludeCommonTemplate(TemplateFile template, ProjectConfig config)
+    {
+        var name = template.Name.ToUpperInvariant();
+
+        // Shell 导航布局模板按 NavigationStyle 筛选
+        if (name.Contains("SIDEBARVIEW")
+            || name.Contains("SIDEBARVIEWMODEL")
+            || name.Contains("TOPNAVVIEW")
+            || name.Contains("TOPNAVVIEWMODEL"))
+        {
+            return ShouldIncludeShellTemplate(template, config);
+        }
+
+        if (name.Contains("LOCALIZATION") || name.Contains("RESX"))
+        {
+            return config.EnableLocalization;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 根据 NavigationStyle 筛选 Shell 导航模板。
+    /// LeftSidebar 包含 SidebarView/SidebarViewModel，排除 TopNavView/TopNavViewModel。
+    /// TopNav 包含 TopNavView/TopNavViewModel，排除 SidebarView/SidebarViewModel。
+    /// </summary>
+    private static bool ShouldIncludeShellTemplate(TemplateFile template, ProjectConfig config)
+    {
+        var name = template.Name.ToUpperInvariant();
+        var isTopNav = name.Contains("TOPNAV");
+
+        return config.NavigationStyle.Equals("TopNav", StringComparison.OrdinalIgnoreCase)
+            ? isTopNav
+            : !isTopNav;
     }
 
     /// <summary>

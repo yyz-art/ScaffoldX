@@ -1,0 +1,50 @@
+##OUTPUT: src/{{ProjectName}}.Modules.Shell/ShellModule.cs
+##REQUIRED: true
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using Prism.Ioc;
+using Prism.Modularity;
+using Prism.Regions;
+
+namespace {{ NamespacePrefix }}.Modules.Shell
+{
+    /// <summary>
+    /// Shell 模块，负责注册导航视图和初始化主区域导航。
+    /// </summary>
+    public class ShellModule : IModule
+    {
+        private readonly IRegionManager _regionManager;
+
+        /// <summary>
+        /// 初始化 Shell 模块。
+        /// </summary>
+        /// <param name="regionManager">Prism 区域管理器。</param>
+        public ShellModule(IRegionManager regionManager)
+        {
+            _regionManager = regionManager;
+        }
+
+        /// <summary>
+        /// 注册 Shell 相关视图到 DI 容器。
+        /// </summary>
+        public void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+{{~ if NavigationStyle == "TopNav" ~}}
+            containerRegistry.RegisterForNavigation<TopNavView, TopNavViewModel>();
+{{~ else ~}}
+            containerRegistry.RegisterForNavigation<SidebarView, SidebarViewModel>();
+{{~ end ~}}
+            containerRegistry.RegisterForNavigation<HomePageView, HomePageViewModel>();
+            containerRegistry.RegisterForNavigation<StatusBarView, StatusBarViewModel>();
+        }
+
+        /// <summary>
+        /// 模块初始化完成后，导航到首页视图。
+        /// </summary>
+        public void OnInitialized(IContainerProvider containerProvider)
+        {
+            _regionManager.RequestNavigate("MainRegion", "HomePageView");
+        }
+    }
+}

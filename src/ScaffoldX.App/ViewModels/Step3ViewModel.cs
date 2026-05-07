@@ -66,6 +66,11 @@ public class Step3ViewModel : BindableBase
     private string _modelPath = string.Empty;
     private bool _enablePipeline = true;
 
+    // ── UI/导航字段 ────────────────────────────────────────────────────────────
+    private string _navigationStyle = "LeftSidebar";
+    private string _defaultTheme = "IndustrialDark";
+    private string _defaultLanguage = "zh-CN";
+
     // ── 系统类字段 ────────────────────────────────────────────────────────────
     private bool _enableLoginWindow = true;
     private bool _forcePasswordChange;
@@ -98,6 +103,10 @@ public class Step3ViewModel : BindableBase
 
         CameraBrands = new List<string> { "海康", "大华", "Basler", "其他" };
         ModelTypes   = new List<string> { "Classification", "Detection", "Segmentation" };
+
+        NavigationStyleOptions = new List<string> { "LeftSidebar", "TopNav" };
+        DefaultThemeOptions    = new List<string> { "IndustrialDark", "LightModern" };
+        DefaultLanguageOptions = new List<string> { "zh-CN", "en-US" };
     }
 
     // ── 通用 ──────────────────────────────────────────────────────────────────
@@ -212,6 +221,38 @@ public class Step3ViewModel : BindableBase
         set => SetProperty(ref _enablePipeline, value);
     }
 
+    // ── UI/导航属性 ──────────────────────────────────────────────────────────
+
+    /// <summary>导航样式选项列表。</summary>
+    public List<string> NavigationStyleOptions { get; }
+
+    /// <summary>默认主题选项列表。</summary>
+    public List<string> DefaultThemeOptions { get; }
+
+    /// <summary>默认语言选项列表。</summary>
+    public List<string> DefaultLanguageOptions { get; }
+
+    /// <summary>选中的导航样式。</summary>
+    public string NavigationStyle
+    {
+        get => _navigationStyle;
+        set => SetProperty(ref _navigationStyle, value);
+    }
+
+    /// <summary>选中的默认主题。</summary>
+    public string DefaultTheme
+    {
+        get => _defaultTheme;
+        set => SetProperty(ref _defaultTheme, value);
+    }
+
+    /// <summary>选中的默认语言。</summary>
+    public string DefaultLanguage
+    {
+        get => _defaultLanguage;
+        set => SetProperty(ref _defaultLanguage, value);
+    }
+
     // ── 系统类属性 ────────────────────────────────────────────────────────────
 
     /// <summary>功能模块选项列表（CheckBox 绑定）。</summary>
@@ -280,6 +321,9 @@ public class Step3ViewModel : BindableBase
         ModelType = "Classification";
         ModelPath = string.Empty;
         EnablePipeline = true;
+        NavigationStyle = "LeftSidebar";
+        DefaultTheme = "IndustrialDark";
+        DefaultLanguage = "zh-CN";
         EnableLoginWindow = true;
         ForcePasswordChange = false;
 

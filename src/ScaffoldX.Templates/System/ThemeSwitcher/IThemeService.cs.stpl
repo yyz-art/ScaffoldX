@@ -45,5 +45,14 @@ namespace {{ NamespacePrefix }}.Core.Abstractions
 
         /// <summary>主题预览色（十六进制颜色值）。</summary>
         public string AccentColor { get; init; } = "#2196F3";
+
+        /// <summary>MaterialDesign 基础主题（Light / Dark）。</summary>
+        public string BaseTheme { get; init; } = "Light";
+
+        /// <summary>MaterialDesign 主色调。</summary>
+        public string PrimaryColor { get; init; } = "Blue";
+
+        /// <summary>MaterialDesign 强调色。</summary>
+        public string SecondaryColor { get; init; } = "Amber";
     }
 }

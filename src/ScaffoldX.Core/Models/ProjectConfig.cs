@@ -107,6 +107,20 @@ public class ProjectConfig
     /// <summary>推理模型文件路径。</summary>
     public string ModelPath { get; set; } = string.Empty;
 
+    // ── UI/导航选项 ──────────────────────────────────────────────────────
+
+    /// <summary>导航样式："LeftSidebar"（左侧边栏）| "TopNav"（顶部导航）。</summary>
+    public string NavigationStyle { get; set; } = "LeftSidebar";
+
+    /// <summary>默认主题："IndustrialDark"（工业深色）| "LightModern"（现代浅色）。</summary>
+    public string DefaultTheme { get; set; } = "IndustrialDark";
+
+    /// <summary>默认语言，如 "zh-CN"、"en-US"。</summary>
+    public string DefaultLanguage { get; set; } = "zh-CN";
+
+    /// <summary>是否启用中英国际化（生成 .resx 资源文件和 ILocalizationService）。</summary>
+    public bool EnableLocalization { get; set; }
+
     // ── 系统扩展选项 ──────────────────────────────────────────────────────
 
     /// <summary>是否生成独立登录窗口。</summary>
@@ -141,6 +155,14 @@ public class ProjectConfig
             case "MitsubishiMc": EnableMitsubishiMc = enabled; break;
             case "OmronFins":    EnableOmronFins = enabled; break;
         }
+    }
+
+    /// <summary>
+    /// 设置导航样式。
+    /// </summary>
+    public void SetNavigationStyle(string style)
+    {
+        NavigationStyle = style;
     }
 
     /// <summary>

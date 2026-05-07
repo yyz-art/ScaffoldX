@@ -5,6 +5,16 @@
         xmlns:prism="http://prismlibrary.com/"
         Title="{{ ProjectName }}" Height="768" Width="1280"
         WindowStartupLocation="CenterScreen">
+{{~ if NavigationStyle == "TopNav" ~}}
+
+    <DockPanel>
+        <!-- 顶部导航栏 -->
+        <ContentControl DockPanel.Dock="Top" prism:RegionManager.RegionName="SidebarRegion"/>
+
+        <!-- 主内容区 -->
+        <ContentControl prism:RegionManager.RegionName="MainRegion"/>
+    </DockPanel>
+{{~ else ~}}
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -18,4 +28,5 @@
         <!-- 主内容区 -->
         <ContentControl Grid.Column="1" prism:RegionManager.RegionName="MainRegion"/>
     </Grid>
+{{~ end ~}}
 </Window>
