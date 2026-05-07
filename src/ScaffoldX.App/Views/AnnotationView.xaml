@@ -102,6 +102,8 @@
 
         <!-- 左侧面板：项目信息和类别管理 -->
         <Border Grid.Column="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,4,0">
             <StackPanel Margin="16">
                 <!-- 项目操作 -->
                 <TextBlock Text="项目操作" FontWeight="Bold" FontSize="16" Margin="0,0,0,12"/>
@@ -251,6 +253,9 @@
                                     Style="{StaticResource MaterialDesignFlatButton}"
                                     IsEnabled="{Binding IsSam3ModelLoaded}"/>
                         </StackPanel>
+                        <TextBlock FontSize="11" Foreground="#757575" Margin="0,0,0,8" TextWrapping="Wrap">
+                            <Run Text="目录需含: encoder.pt + text_encoder.pt + decoder.pt"/>
+                        </TextBlock>
                         <TextBlock FontSize="12" Foreground="#757575" Margin="0,0,0,8">
                             <Run Text="模型状态: "/>
                             <Run Text="{Binding IsSam3ModelLoaded, Mode=OneWay}"/>
@@ -305,6 +310,7 @@
                     </StackPanel>
                 </Expander>
             </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- 中间面板：图像标注区域 -->
@@ -326,31 +332,36 @@
 
             <!-- 图像显示区域 -->
             <Border Grid.Row="1" Background="#212121" Margin="8">
-                <Canvas x:Name="AnnotationCanvas" ClipToBounds="True"
-                        MouseDown="AnnotationCanvas_MouseDown"
-                        MouseMove="AnnotationCanvas_MouseMove"
-                        MouseUp="AnnotationCanvas_MouseUp">
-                    <!-- 图像 -->
+                <Grid>
+                    <!-- 图像（Grid 布局，自动填充可用空间） -->
                     <Image Source="{Binding CurrentImage}" Stretch="Uniform"
                            x:Name="AnnotationImage"/>
 
-                    <!-- 边界框绘制层 -->
-                    <Canvas x:Name="BoxesCanvas"/>
+                    <!-- 绘制层 Canvas（覆盖在图像上方，不遮挡图像布局） -->
+                    <Canvas x:Name="AnnotationCanvas" ClipToBounds="True"
+                            Background="Transparent"
+                            MouseDown="AnnotationCanvas_MouseDown"
+                            MouseMove="AnnotationCanvas_MouseMove"
+                        MouseUp="AnnotationCanvas_MouseUp">
 
-                    <!-- 当前绘制的边界框 -->
-                    <Rectangle x:Name="DrawingRect" Stroke="#FF0000" StrokeThickness="2"
-                               StrokeDashArray="4 2" Visibility="Collapsed"/>
+                        <!-- 边界框绘制层 -->
+                        <Canvas x:Name="BoxesCanvas"/>
 
-                    <!-- 当前绘制的多边形 -->
-                    <Polyline x:Name="DrawingPolygon" Stroke="#00FF00" StrokeThickness="2"
-                              StrokeDashArray="4 2" Fill="#2200FF00"
-                              Visibility="Collapsed"/>
+                        <!-- 当前绘制的边界框 -->
+                        <Rectangle x:Name="DrawingRect" Stroke="#FF0000" StrokeThickness="2"
+                                   StrokeDashArray="4 2" Visibility="Collapsed"/>
 
-                    <!-- 当前绘制的 OBB（旋转边界框） -->
-                    <Rectangle x:Name="DrawingObbRect" Stroke="#FF9800" StrokeThickness="2"
-                               StrokeDashArray="4 2" Fill="#22FF9800"
-                               Visibility="Collapsed"/>
-                </Canvas>
+                        <!-- 当前绘制的多边形 -->
+                        <Polyline x:Name="DrawingPolygon" Stroke="#00FF00" StrokeThickness="2"
+                                  StrokeDashArray="4 2" Fill="#2200FF00"
+                                  Visibility="Collapsed"/>
+
+                        <!-- 当前绘制的 OBB（旋转边界框） -->
+                        <Rectangle x:Name="DrawingObbRect" Stroke="#FF9800" StrokeThickness="2"
+                                   StrokeDashArray="4 2" Fill="#22FF9800"
+                                   Visibility="Collapsed"/>
+                    </Canvas>
+                </Grid>
             </Border>
 
             <!-- 状态栏 -->

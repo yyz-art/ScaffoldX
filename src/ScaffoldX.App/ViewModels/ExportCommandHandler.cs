@@ -17,58 +17,31 @@ public class ExportCommandHandler : BindableBase
     private readonly IAnnotationService _annotationService;
     private readonly IVideoFrameService _videoFrameService;
     private readonly AnnotationExportService _exportService;
+    private readonly AnnotationContext _ctx;
     private readonly ILogger _logger = Log.ForContext<ExportCommandHandler>();
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Func<AnnotationData?> _getCurrentAnnotation;
-    private readonly Func<int> _getCurrentImageIndex;
-    private readonly Func<Task> _loadFirstImage;
-    private readonly Action<string> _setStatusMessage;
-    private readonly Action _updateBoxesList;
-    private readonly Action _updateStatistics;
 
     private string _videoImportProgress = string.Empty;
 
     /// <summary>
     /// Initializes the export/import handler.
     /// </summary>
-    /// <param name="annotationService">Annotation service for data operations.</param>
-    /// <param name="videoFrameService">Video frame extraction service.</param>
-    /// <param name="getProject">Callback to get the current project.</param>
-    /// <param name="getCurrentAnnotation">Callback to get the current annotation.</param>
-    /// <param name="getCurrentImageIndex">Callback to get the current image index.</param>
-    /// <param name="loadFirstImage">Callback to load the first image in the project.</param>
-    /// <param name="setStatusMessage">Callback to set the status message.</param>
-    /// <param name="updateBoxesList">Callback to update the boxes list in the UI.</param>
-    /// <param name="updateStatistics">Callback to update project statistics.</param>
     public ExportCommandHandler(
         IAnnotationService annotationService,
         IVideoFrameService videoFrameService,
-        Func<AnnotationProject?> getProject,
-        Func<AnnotationData?> getCurrentAnnotation,
-        Func<int> getCurrentImageIndex,
-        Func<Task> loadFirstImage,
-        Action<string> setStatusMessage,
-        Action updateBoxesList,
-        Action updateStatistics)
+        AnnotationContext ctx)
     {
         _annotationService = annotationService;
         _videoFrameService = videoFrameService;
+        _ctx = ctx;
         _exportService = new AnnotationExportService(annotationService);
-        _getProject = getProject;
-        _getCurrentAnnotation = getCurrentAnnotation;
-        _getCurrentImageIndex = getCurrentImageIndex;
-        _loadFirstImage = loadFirstImage;
-        _setStatusMessage = setStatusMessage;
-        _updateBoxesList = updateBoxesList;
-        _updateStatistics = updateStatistics;
 
         ExportYoloCommand = new DelegateCommand(ExecuteExportYolo);
         ExportCocoCommand = new DelegateCommand(ExecuteExportCoco);
         ExportVocCommand = new DelegateCommand(ExecuteExportVoc);
         ExportDotCommand = new DelegateCommand(ExecuteExportDot);
         ExportMotCommand = new DelegateCommand(ExecuteExportMot);
-        ImportAnnotationsCommand = new DelegateCommand(ExecuteImportAnnotations, () => _getProject() != null);
-        ImportVideoCommand = new DelegateCommand(ExecuteImportVideo, () => _getProject() != null);
+        ImportAnnotationsCommand = new DelegateCommand(ExecuteImportAnnotations, () => _ctx.GetProject() != null);
+        ImportVideoCommand = new DelegateCommand(ExecuteImportVideo, () => _ctx.GetProject() != null);
     }
 
     /// <summary>Export YOLO dataset command.</summary>
@@ -104,9 +77,9 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteExportYolo()
     {
-        if (!AnnotationExportService.CanExport(_getProject()))
+        if (!AnnotationExportService.CanExport(_ctx.GetProject()))
         {
-            _setStatusMessage("没有可导出的标注数据");
+            _ctx.SetStatusMessage("没有可导出的标注数据");
             return;
         }
 
@@ -118,9 +91,9 @@ public class ExportCommandHandler : BindableBase
         if (dialog.ShowDialog() != true)
             return;
 
-        _setStatusMessage("正在导出 YOLO 数据集...");
-        var success = await _exportService.ExportYoloAsync(_getProject()!, dialog.SelectedPath);
-        _setStatusMessage(success
+        _ctx.SetStatusMessage("正在导出 YOLO 数据集...");
+        var success = await _exportService.ExportYoloAsync(_ctx.GetProject()!, dialog.SelectedPath);
+        _ctx.SetStatusMessage(success
             ? $"YOLO 数据集已导出到: {dialog.SelectedPath}"
             : "导出失败，请查看日志");
     }
@@ -130,18 +103,18 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteExportCoco()
     {
-        if (!AnnotationExportService.CanExport(_getProject()))
+        if (!AnnotationExportService.CanExport(_ctx.GetProject()))
         {
-            _setStatusMessage("没有可导出的标注数据");
+            _ctx.SetStatusMessage("没有可导出的标注数据");
             return;
         }
 
         var dialog = new VistaFolderBrowserDialog { Description = "选择 COCO 数据集输出目录" };
         if (dialog.ShowDialog() != true) return;
 
-        _setStatusMessage("正在导出 COCO 数据集...");
-        var success = await _exportService.ExportCocoAsync(_getProject()!, dialog.SelectedPath);
-        _setStatusMessage(success
+        _ctx.SetStatusMessage("正在导出 COCO 数据集...");
+        var success = await _exportService.ExportCocoAsync(_ctx.GetProject()!, dialog.SelectedPath);
+        _ctx.SetStatusMessage(success
             ? $"COCO 数据集已导出到: {dialog.SelectedPath}"
             : "COCO 导出失败，请查看日志");
     }
@@ -151,18 +124,18 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteExportVoc()
     {
-        if (!AnnotationExportService.CanExport(_getProject()))
+        if (!AnnotationExportService.CanExport(_ctx.GetProject()))
         {
-            _setStatusMessage("没有可导出的标注数据");
+            _ctx.SetStatusMessage("没有可导出的标注数据");
             return;
         }
 
         var dialog = new VistaFolderBrowserDialog { Description = "选择 VOC 数据集输出目录" };
         if (dialog.ShowDialog() != true) return;
 
-        _setStatusMessage("正在导出 Pascal VOC 数据集...");
-        var success = await _exportService.ExportVocAsync(_getProject()!, dialog.SelectedPath);
-        _setStatusMessage(success
+        _ctx.SetStatusMessage("正在导出 Pascal VOC 数据集...");
+        var success = await _exportService.ExportVocAsync(_ctx.GetProject()!, dialog.SelectedPath);
+        _ctx.SetStatusMessage(success
             ? $"Pascal VOC 数据集已导出到: {dialog.SelectedPath}"
             : "VOC 导出失败，请查看日志");
     }
@@ -172,18 +145,18 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteExportDot()
     {
-        if (!AnnotationExportService.CanExport(_getProject()))
+        if (!AnnotationExportService.CanExport(_ctx.GetProject()))
         {
-            _setStatusMessage("没有可导出的标注数据");
+            _ctx.SetStatusMessage("没有可导出的标注数据");
             return;
         }
 
         var dialog = new VistaFolderBrowserDialog { Description = "选择 DOTA 数据集输出目录" };
         if (dialog.ShowDialog() != true) return;
 
-        _setStatusMessage("正在导出 DOTA 数据集...");
-        var success = await _exportService.ExportDotAsync(_getProject()!, dialog.SelectedPath);
-        _setStatusMessage(success
+        _ctx.SetStatusMessage("正在导出 DOTA 数据集...");
+        var success = await _exportService.ExportDotAsync(_ctx.GetProject()!, dialog.SelectedPath);
+        _ctx.SetStatusMessage(success
             ? $"DOTA 数据集已导出到: {dialog.SelectedPath}"
             : "DOTA 导出失败，请查看日志");
     }
@@ -193,18 +166,18 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteExportMot()
     {
-        if (!AnnotationExportService.CanExport(_getProject()))
+        if (!AnnotationExportService.CanExport(_ctx.GetProject()))
         {
-            _setStatusMessage("没有可导出的标注数据");
+            _ctx.SetStatusMessage("没有可导出的标注数据");
             return;
         }
 
         var dialog = new VistaFolderBrowserDialog { Description = "选择 MOT 数据集输出目录" };
         if (dialog.ShowDialog() != true) return;
 
-        _setStatusMessage("正在导出 MOT 数据集...");
-        var success = await _exportService.ExportMotAsync(_getProject()!, dialog.SelectedPath);
-        _setStatusMessage(success
+        _ctx.SetStatusMessage("正在导出 MOT 数据集...");
+        var success = await _exportService.ExportMotAsync(_ctx.GetProject()!, dialog.SelectedPath);
+        _ctx.SetStatusMessage(success
             ? $"MOT 数据集已导出到: {dialog.SelectedPath}"
             : "MOT 导出失败，请查看日志");
     }
@@ -214,10 +187,10 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteImportAnnotations()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null)
         {
-            _setStatusMessage("请先创建或打开项目");
+            _ctx.SetStatusMessage("请先创建或打开项目");
             return;
         }
 
@@ -286,16 +259,16 @@ public class ExportCommandHandler : BindableBase
                     importedCount++;
             }
 
-            if (_getCurrentAnnotation() != null)
-                _updateBoxesList();
+            if (_ctx.GetCurrentAnnotation() != null)
+                _ctx.UpdateBoxesList();
 
-            _updateStatistics();
-            _setStatusMessage($"已导入 {importedCount} 张图像的标注数据");
+            _ctx.UpdateStatistics();
+            _ctx.SetStatusMessage($"已导入 {importedCount} 张图像的标注数据");
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "导入标注失败");
-            _setStatusMessage($"导入标注失败: {ex.Message}");
+            _ctx.SetStatusMessage($"导入标注失败: {ex.Message}");
         }
     }
 
@@ -304,10 +277,10 @@ public class ExportCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteImportVideo()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null)
         {
-            _setStatusMessage("请先创建或打开项目");
+            _ctx.SetStatusMessage("请先创建或打开项目");
             return;
         }
 
@@ -323,7 +296,7 @@ public class ExportCommandHandler : BindableBase
         try
         {
             VideoImportProgress = "正在获取视频信息...";
-            _setStatusMessage("正在分析视频文件...");
+            _ctx.SetStatusMessage("正在分析视频文件...");
 
             var videoInfo = await _videoFrameService.GetVideoInfoAsync(dialog.FileName);
             _logger.Information("视频信息: {Duration:F1}s, {Width}x{Height}, {Fps:F1}fps, ~{Frames}帧",
@@ -333,14 +306,14 @@ public class ExportCommandHandler : BindableBase
             Directory.CreateDirectory(framesDir);
 
             VideoImportProgress = $"正在提取帧 (共约 {videoInfo.TotalFrames} 帧)...";
-            _setStatusMessage("正在从视频中提取帧...");
+            _ctx.SetStatusMessage("正在从视频中提取帧...");
 
             var frameFiles = await _videoFrameService.ExtractFramesAsync(
                 dialog.FileName, framesDir, fps: 1.0);
 
             if (frameFiles.Count == 0)
             {
-                _setStatusMessage("未能从视频中提取到帧");
+                _ctx.SetStatusMessage("未能从视频中提取到帧");
                 VideoImportProgress = string.Empty;
                 return;
             }
@@ -348,25 +321,25 @@ public class ExportCommandHandler : BindableBase
             VideoImportProgress = $"已提取 {frameFiles.Count} 帧，正在添加到项目...";
 
             await _annotationService.AddImagesAsync(project, frameFiles);
-            _updateStatistics();
+            _ctx.UpdateStatistics();
 
-            if (_getCurrentImageIndex() < 0 && project.Annotations.Count > 0)
-                await _loadFirstImage();
+            if (_ctx.GetCurrentImageIndex() < 0 && project.Annotations.Count > 0)
+                await _ctx.LoadFirstImage();
 
             VideoImportProgress = string.Empty;
-            _setStatusMessage($"已从视频导入 {frameFiles.Count} 帧图像");
+            _ctx.SetStatusMessage($"已从视频导入 {frameFiles.Count} 帧图像");
             _logger.Information("视频帧导入完成: {Count} 帧", frameFiles.Count);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("ffmpeg") || ex.Message.Contains("ffprobe"))
         {
             _logger.Error(ex, "视频处理工具不可用");
-            _setStatusMessage(ex.Message);
+            _ctx.SetStatusMessage(ex.Message);
             VideoImportProgress = string.Empty;
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "视频导入失败");
-            _setStatusMessage($"视频导入失败: {ex.Message}");
+            _ctx.SetStatusMessage($"视频导入失败: {ex.Message}");
             VideoImportProgress = string.Empty;
         }
     }

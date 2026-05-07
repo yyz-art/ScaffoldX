@@ -44,8 +44,19 @@ public class FileTreeNode
 /// <summary>
 /// 根据 <see cref="ProjectConfig"/> 构建将要生成的文件树，供向导预览使用。
 /// </summary>
-public class FileTreeBuilder
+public class FileTreeBuilder : IFileTreeBuilder
 {
+    private readonly IVariableResolver _variableResolver;
+
+    /// <summary>
+    /// 初始化文件树构建器。
+    /// </summary>
+    /// <param name="variableResolver">变量解析器，用于 PascalCase 转换。</param>
+    public FileTreeBuilder(IVariableResolver variableResolver)
+    {
+        _variableResolver = variableResolver;
+    }
+
     // ── 公共 API ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -55,7 +66,7 @@ public class FileTreeBuilder
     /// <returns>代表解决方案根目录的根节点。</returns>
     public FileTreeNode BuildTree(ProjectConfig config)
     {
-        var projectName = VariableResolver.ToPascalCase(config.ProjectName);
+        var projectName = _variableResolver.ToPascalCase(config.ProjectName);
         var xamlExt = config.UIFramework.Equals("Avalonia", StringComparison.OrdinalIgnoreCase)
             ? "axaml"
             : "xaml";
@@ -154,7 +165,7 @@ public class FileTreeBuilder
         if (config.EnableVision)
         {
             var vision = AddFolder(infraProject, "Vision");
-            AddChild(vision, $"{VariableResolver.ToPascalCase(config.CameraBrand)}Camera.cs", NodeType.CsFile, false);
+            AddChild(vision, $"{_variableResolver.ToPascalCase(config.CameraBrand)}Camera.cs", NodeType.CsFile, false);
             AddChild(vision, "VisionService.cs", NodeType.CsFile, false);
 
             var inference = AddFolder(vision, "Inference");

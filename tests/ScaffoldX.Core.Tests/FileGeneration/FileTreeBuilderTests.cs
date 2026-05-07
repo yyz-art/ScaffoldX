@@ -1,6 +1,7 @@
 using FluentAssertions;
 using ScaffoldX.Core.FileGeneration;
 using ScaffoldX.Core.Models;
+using ScaffoldX.Core.TemplateProcessing;
 using Xunit;
 
 namespace ScaffoldX.Core.Tests.FileGeneration;
@@ -10,7 +11,7 @@ namespace ScaffoldX.Core.Tests.FileGeneration;
 /// </summary>
 public class FileTreeBuilderTests
 {
-    private readonly FileTreeBuilder _sut = new();
+    private readonly FileTreeBuilder _sut = new(new VariableResolver());
 
     [Fact]
     public void BuildTree_ShouldCreateRootNode_WithProjectName()

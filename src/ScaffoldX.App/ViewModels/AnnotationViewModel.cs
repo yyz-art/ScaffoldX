@@ -70,94 +70,42 @@ public class AnnotationViewModel : BindableBase
         _videoFrameService = videoFrameService;
         _autoLabelingService = autoLabelingService;
 
-        _imageNavigationHandler = new ImageNavigationHandler(
-            annotationService,
-            getProject: () => Project,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            setCurrentAnnotation: value => CurrentAnnotation = value,
-            getTotalImages: () => TotalImages,
-            setStatusMessage: value => StatusMessage = value,
-            updateBoxesList: UpdateBoxesList,
-            updateStatistics: UpdateStatistics);
+        // 创建共享上下文，所有 handler 通过它访问状态和回调
+        var ctx = new AnnotationContext
+        {
+            GetProject = () => Project,
+            GetCurrentAnnotation = () => CurrentAnnotation,
+            SetCurrentAnnotation = value => CurrentAnnotation = value,
+            GetCurrentImage = () => _imageNavigationHandler.CurrentImage,
+            GetCurrentImageIndex = () => CurrentImageIndex,
+            GetTotalImages = () => TotalImages,
+            GetSelectedClassIndex = () => SelectedClassIndex,
+            GetPolylineCount = () => TotalPolylineCount,
+            GetCircleCount = () => TotalCircleCount,
+            SetStatusMessage = value => StatusMessage = value,
+            UpdateBoxesList = UpdateBoxesList,
+            UpdateStatistics = UpdateStatistics,
+            UpdateClassDistribution = UpdateClassDistribution,
+            UpdateClassesList = UpdateClassesList,
+            PushUndoSnapshot = () => _undoRedoHandler.PushUndoSnapshot(),
+            LoadFirstImage = () => _imageNavigationHandler.LoadImageAsync(0),
+            LoadImageAsync = index => _imageNavigationHandler.LoadImageAsync(index),
+            DrawingState = _drawingState,
+            GetIsObbMode = () => _obbDrawingHandler.IsObbMode,
+            GetIsPolygonMode = () => _polygonDrawingHandler.IsPolygonMode,
+            DisableObbMode = () => _obbDrawingHandler.IsObbMode = false,
+            DisablePolygonMode = () => _polygonDrawingHandler.IsPolygonMode = false,
+        };
 
-        _autoLabelingHandler = new AutoLabelingCommandHandler(
-            autoLabelingService,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            getProject: () => Project,
-            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
-            setStatusMessage: value => StatusMessage = value,
-            pushUndoSnapshot: PushUndoSnapshot,
-            updateBoxesList: UpdateBoxesList,
-            updateClassDistribution: UpdateClassDistribution,
-            updateStatistics: UpdateStatistics);
-
-        _classManagementHandler = new ClassManagementHandler(
-            getProject: () => Project,
-            updateClassesList: UpdateClassesList,
-            setStatusMessage: value => StatusMessage = value);
-
-        _undoRedoHandler = new UndoRedoHandler(
-            getCurrentAnnotation: () => CurrentAnnotation,
-            updateBoxesList: UpdateBoxesList,
-            updateClassDistribution: UpdateClassDistribution,
-            setStatusMessage: value => StatusMessage = value);
-
-        _polygonDrawingHandler = new PolygonDrawingHandler(
-            _drawingState,
-            getProject: () => Project,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
-            getSelectedClassIndex: () => SelectedClassIndex,
-            getIsObbMode: () => _obbDrawingHandler.IsObbMode,
-            disableObbMode: () => _obbDrawingHandler.IsObbMode = false,
-            setStatusMessage: value => StatusMessage = value,
-            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
-            updateBoxesList: UpdateBoxesList,
-            updateClassDistribution: UpdateClassDistribution);
-
-        _obbDrawingHandler = new ObbDrawingHandler(
-            _drawingState,
-            getProject: () => Project,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
-            getSelectedClassIndex: () => SelectedClassIndex,
-            getIsPolygonMode: () => _polygonDrawingHandler.IsPolygonMode,
-            disablePolygonMode: () => _polygonDrawingHandler.IsPolygonMode = false,
-            setStatusMessage: value => StatusMessage = value,
-            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
-            updateBoxesList: UpdateBoxesList,
-            updateClassDistribution: UpdateClassDistribution);
-
-        _exportHandler = new ExportCommandHandler(
-            annotationService,
-            videoFrameService,
-            getProject: () => Project,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            getCurrentImageIndex: () => CurrentImageIndex,
-            loadFirstImage: () => _imageNavigationHandler.LoadImageAsync(0),
-            setStatusMessage: value => StatusMessage = value,
-            updateBoxesList: UpdateBoxesList,
-            updateStatistics: UpdateStatistics);
-
-        _reviewHandler = new ReviewCommandHandler(
-            getProject: () => Project,
-            getCurrentImageIndex: () => CurrentImageIndex,
-            loadImageAsync: index => _imageNavigationHandler.LoadImageAsync(index),
-            setStatusMessage: value => StatusMessage = value,
-            updateStatistics: UpdateStatistics,
-            getPolylineCount: () => TotalPolylineCount,
-            getCircleCount: () => TotalCircleCount);
-
-        _sam3Handler = new Sam3LabelingCommandHandler(
-            autoLabelingService,
-            getCurrentAnnotation: () => CurrentAnnotation,
-            getProject: () => Project,
-            getCurrentImage: () => _imageNavigationHandler.CurrentImage,
-            setStatusMessage: value => StatusMessage = value,
-            pushUndoSnapshot: () => _undoRedoHandler.PushUndoSnapshot(),
-            updateBoxesList: UpdateBoxesList,
-            updateClassDistribution: UpdateClassDistribution,
-            updateStatistics: UpdateStatistics);
+        _imageNavigationHandler = new ImageNavigationHandler(annotationService, ctx);
+        _autoLabelingHandler = new AutoLabelingCommandHandler(autoLabelingService, ctx);
+        _classManagementHandler = new ClassManagementHandler(ctx);
+        _undoRedoHandler = new UndoRedoHandler(ctx);
+        _polygonDrawingHandler = new PolygonDrawingHandler(ctx);
+        _obbDrawingHandler = new ObbDrawingHandler(ctx);
+        _exportHandler = new ExportCommandHandler(annotationService, videoFrameService, ctx);
+        _reviewHandler = new ReviewCommandHandler(ctx);
+        _sam3Handler = new Sam3LabelingCommandHandler(autoLabelingService, ctx);
 
         _autoLabelingHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
         _imageNavigationHandler.PropertyChanged += (_, e) => RaisePropertyChanged(e.PropertyName);
@@ -198,7 +146,13 @@ public class AnnotationViewModel : BindableBase
     public AnnotationProject? Project
     {
         get => _project;
-        private set => SetProperty(ref _project, value);
+        private set
+        {
+            if (SetProperty(ref _project, value))
+            {
+                _imageNavigationHandler.RaiseCanNavigateChanged();
+            }
+        }
     }
 
     /// <summary>当前图像的标注数据。</summary>
@@ -753,6 +707,7 @@ public class AnnotationViewModel : BindableBase
         {
             await _annotationService.AddImagesAsync(Project, dialog.FileNames);
             UpdateStatistics();
+            _imageNavigationHandler.RaiseCanNavigateChanged();
 
             if (CurrentImageIndex < 0 && Project.Annotations.Count > 0)
             {
@@ -884,6 +839,7 @@ public class AnnotationViewModel : BindableBase
 
             await _annotationService.AddImagesAsync(Project, imageFiles);
             UpdateStatistics();
+            _imageNavigationHandler.RaiseCanNavigateChanged();
 
             if (CurrentImageIndex < 0 && Project.Annotations.Count > 0)
                 await _imageNavigationHandler.LoadImageAsync(0);

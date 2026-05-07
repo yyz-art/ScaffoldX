@@ -125,4 +125,62 @@ public class ProjectConfig
 
     /// <summary>是否生成发布脚本（publish.bat / publish.sh）。</summary>
     public bool GeneratePublishScripts { get; set; } = true;
+
+    // ── 便利方法 ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 设置指定驱动的启用状态。
+    /// </summary>
+    public void SetDriver(string driverName, bool enabled)
+    {
+        switch (driverName)
+        {
+            case "S7Net":        EnableSiemensS7 = enabled; break;
+            case "ModbusTcp":    EnableModbusTcp = enabled; break;
+            case "OpcUa":        EnableOpcUa = enabled; break;
+            case "MitsubishiMc": EnableMitsubishiMc = enabled; break;
+            case "OmronFins":    EnableOmronFins = enabled; break;
+        }
+    }
+
+    /// <summary>
+    /// 设置指定系统模块的启用状态。
+    /// </summary>
+    public void SetModule(string moduleName, bool enabled)
+    {
+        switch (moduleName)
+        {
+            case "UserManagement": EnableUserManagement = enabled; break;
+            case "RolePermission": EnableRolePermission = enabled; break;
+            case "SystemLog":      EnableSystemLog = enabled; break;
+            case "ThemeSwitcher":  EnableThemeSwitcher = enabled; break;
+        }
+    }
+
+    /// <summary>
+    /// 获取已启用的驱动名称列表。
+    /// </summary>
+    public List<string> GetSelectedDrivers()
+    {
+        var drivers = new List<string>();
+        if (EnableSiemensS7)    drivers.Add("S7Net");
+        if (EnableModbusTcp)    drivers.Add("ModbusTcp");
+        if (EnableOpcUa)        drivers.Add("OpcUa");
+        if (EnableMitsubishiMc) drivers.Add("MitsubishiMc");
+        if (EnableOmronFins)    drivers.Add("OmronFins");
+        return drivers;
+    }
+
+    /// <summary>
+    /// 获取已启用的系统模块名称列表。
+    /// </summary>
+    public List<string> GetSelectedModules()
+    {
+        var modules = new List<string>();
+        if (EnableUserManagement) modules.Add("UserManagement");
+        if (EnableRolePermission) modules.Add("RolePermission");
+        if (EnableSystemLog)      modules.Add("SystemLog");
+        if (EnableThemeSwitcher)  modules.Add("ThemeSwitcher");
+        return modules;
+    }
 }

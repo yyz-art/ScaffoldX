@@ -10,6 +10,7 @@ namespace ScaffoldX.Core.Tests.TemplateProcessing;
 /// </summary>
 public class PostProcessorTests
 {
+    private readonly PostProcessor _sut = new();
     private readonly ProjectConfig _config = new() { ProjectName = "TestProject" };
 
     [Fact]
@@ -19,7 +20,7 @@ public class PostProcessorTests
         var content = "line1\r\nline2\rline3\n";
 
         // Act
-        var result = PostProcessor.Process(content, "test.cs", _config);
+        var result = _sut.Process(content, "test.cs", _config);
 
         // Assert
         result.Should().NotContain("\r");
@@ -33,7 +34,7 @@ public class PostProcessorTests
         var content = "&lt;Window&gt; &amp; &quot;test&quot;";
 
         // Act
-        var result = PostProcessor.Process(content, "test.xaml", _config);
+        var result = _sut.Process(content, "test.xaml", _config);
 
         // Assert
         result.Should().Contain("<Window>");
@@ -48,7 +49,7 @@ public class PostProcessorTests
         var content = "&lt;Window&gt; &amp; &quot;test&quot;";
 
         // Act
-        var result = PostProcessor.Process(content, "test.cs", _config);
+        var result = _sut.Process(content, "test.cs", _config);
 
         // Assert
         result.Should().Contain("&lt;Window&gt;");
@@ -61,7 +62,7 @@ public class PostProcessorTests
         var content = "line1   \nline2\t\n";
 
         // Act
-        var result = PostProcessor.Process(content, "test.cs", _config);
+        var result = _sut.Process(content, "test.cs", _config);
 
         // Assert
         result.Should().Be("line1\nline2\n");
@@ -74,7 +75,7 @@ public class PostProcessorTests
         var content = "some content";
 
         // Act
-        var result = PostProcessor.Process(content, "test.cs", _config);
+        var result = _sut.Process(content, "test.cs", _config);
 
         // Assert
         result.Should().EndWith("\n");
@@ -87,7 +88,7 @@ public class PostProcessorTests
         var content = string.Empty;
 
         // Act
-        var result = PostProcessor.Process(content, "test.cs", _config);
+        var result = _sut.Process(content, "test.cs", _config);
 
         // Assert
         result.Should().BeEmpty();
@@ -104,7 +105,7 @@ public class PostProcessorTests
     public void Process_ShouldNotThrow_ForAnyFileType(string path)
     {
         // Act
-        var result = PostProcessor.Process("test", path, _config);
+        var result = _sut.Process("test", path, _config);
 
         // Assert - just verify it doesn't throw
         result.Should().NotBeNull();

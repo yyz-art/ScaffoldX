@@ -10,6 +10,8 @@ namespace ScaffoldX.Core.Tests.TemplateProcessing;
 /// </summary>
 public class VariableResolverTests
 {
+    private readonly VariableResolver _sut = new();
+
     [Fact]
     public void BuildVariableContext_ShouldReturnBasicVariables_WhenConfigProvided()
     {
@@ -26,7 +28,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context.Should().ContainKey("ProjectName");
@@ -49,7 +51,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context.Should().ContainKey("EnableVision");
@@ -73,7 +75,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context["EnableSiemensS7"].Should().Be(true);
@@ -92,7 +94,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context["XamlExt"].Should().Be("xaml");
@@ -110,7 +112,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context["XamlExt"].Should().Be("axaml");
@@ -124,7 +126,7 @@ public class VariableResolverTests
         var config = new ProjectConfig { ProjectName = "TestProject" };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context.Should().ContainKey("ScaffoldXVersion");
@@ -146,7 +148,7 @@ public class VariableResolverTests
         };
 
         // Act
-        var context = VariableResolver.BuildVariableContext(config);
+        var context = _sut.BuildVariableContext(config);
 
         // Assert
         context["EnableUserManagement"].Should().Be(true);
@@ -164,7 +166,7 @@ public class VariableResolverTests
     public void ToPascalCase_ShouldConvertCorrectly(string input, string expected)
     {
         // Act
-        var result = VariableResolver.ToPascalCase(input);
+        var result = _sut.ToPascalCase(input);
 
         // Assert
         result.Should().Be(expected);

@@ -1,6 +1,6 @@
 using Prism.Commands;
 using Prism.Mvvm;
-using ScaffoldX.App.Models;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
 
@@ -219,19 +219,25 @@ public class MainWindowViewModel : BindableBase
                 break;
             case 2:
                 SharedConfig.ProjectName = _step2Vm.ProjectName;
-                SharedConfig.OutputPath = _step2Vm.OutputPath;
+                SharedConfig.OutputDirectory = _step2Vm.OutputPath;
                 SharedConfig.NamespacePrefix = _step2Vm.NamespacePrefix;
                 SharedConfig.UIFramework = _step2Vm.UIFramework;
-                SharedConfig.DotNetVersion = _step2Vm.DotNetVersion;
-                SharedConfig.ProjectDescription = _step2Vm.ProjectDescription;
+                SharedConfig.TargetFramework = _step2Vm.DotNetVersion switch
+                {
+                    ".NET 6" => _step2Vm.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
+                    _        => _step2Vm.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
+                };
+                SharedConfig.Description = _step2Vm.ProjectDescription;
                 break;
         }
     }
 
     private void SyncConfigToStep4()
     {
-        // 同步步骤三的专项配置
-        SharedConfig.SelectedDrivers = _step3Vm.GetSelectedDrivers();
+        // 同步步骤三的专项配置：驱动选项
+        foreach (var driver in _step3Vm.DriverOptions)
+            SharedConfig.SetDriver(driver.Key, driver.IsSelected);
+
         SharedConfig.EnableSimulationDriver = _step3Vm.EnableSimulationDriver;
         SharedConfig.DefaultPLCIp = _step3Vm.DefaultPLCIp;
         SharedConfig.DefaultPLCPort = _step3Vm.DefaultPLCPort;
@@ -242,7 +248,12 @@ public class MainWindowViewModel : BindableBase
         SharedConfig.ModelType = _step3Vm.ModelType;
         SharedConfig.ModelPath = _step3Vm.ModelPath;
         SharedConfig.EnablePipeline = _step3Vm.EnablePipeline;
-        SharedConfig.SelectedModules = _step3Vm.GetSelectedModules();
+
+        // 同步步骤三的专项配置：系统模块
+        foreach (var module in _step3Vm.ModuleOptions)
+            SharedConfig.SetModule(module.Key, module.IsSelected);
+
+        SharedConfig.EnableVision = SharedConfig.ProjectType == "Vision";
         SharedConfig.EnableLoginWindow = _step3Vm.EnableLoginWindow;
         SharedConfig.ForcePasswordChange = _step3Vm.ForcePasswordChange;
 

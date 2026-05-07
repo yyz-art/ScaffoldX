@@ -362,30 +362,3 @@ public enum AutoLabelingMode
     /// <summary>图像分类。</summary>
     Classification
 }
-
-/// <summary>
-/// SAM3 模型元数据。
-/// </summary>
-public class Sam3ModelInfo
-{
-    /// <summary>模型文件目录路径。</summary>
-    public string ModelDirectory { get; set; } = string.Empty;
-
-    /// <summary>模型显示名称。</summary>
-    public string ModelName { get; set; } = string.Empty;
-
-    /// <summary>图像编码器模型文件名。</summary>
-    public string ImageEncoderPath { get; set; } = string.Empty;
-
-    /// <summary>提示编码器模型文件名。</summary>
-    public string PromptEncoderPath { get; set; } = string.Empty;
-
-    /// <summary>掩码解码器模型文件名。</summary>
-    public string MaskDecoderPath { get; set; } = string.Empty;
-
-    /// <summary>模型输入图像尺寸（正方形边长）。</summary>
-    public int InputSize { get; set; } = 1024;
-
-    /// <summary>是否已验证模型文件完整性。</summary>
-    public bool IsValidated { get; set; }
-}

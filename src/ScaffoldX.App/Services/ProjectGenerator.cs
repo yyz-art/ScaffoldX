@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using ScaffoldX.App.Models;
+using ScaffoldX.Core.Models;
 using ScaffoldX.Core.TemplateProcessing;
 
 namespace ScaffoldX.App.Services;
@@ -16,25 +17,27 @@ public class ProjectGenerator : IProjectGenerator
     private readonly ITemplateEngine _templateEngine;
     private readonly IHistoryService _historyService;
     private readonly IValidationService _validationService;
-    private readonly TemplateRegistry _templateRegistry;
+    private readonly ITemplateRegistry _templateRegistry;
+    private readonly IVariableResolver _variableResolver;
+    private readonly IPostProcessor _postProcessor;
 
     /// <summary>
     /// 初始化 <see cref="ProjectGenerator"/>，通过构造函数注入所有依赖。
     /// </summary>
-    /// <param name="templateEngine">Scriban 模板引擎。</param>
-    /// <param name="historyService">历史记录服务。</param>
-    /// <param name="validationService">输入验证服务。</param>
-    /// <param name="templateRegistry">模板注册表，管理所有 .stpl 模板的加载与查询。</param>
     public ProjectGenerator(
         ITemplateEngine templateEngine,
         IHistoryService historyService,
         IValidationService validationService,
-        TemplateRegistry templateRegistry)
+        ITemplateRegistry templateRegistry,
+        IVariableResolver variableResolver,
+        IPostProcessor postProcessor)
     {
         _templateEngine = templateEngine;
         _historyService = historyService;
         _validationService = validationService;
         _templateRegistry = templateRegistry;
+        _variableResolver = variableResolver;
+        _postProcessor = postProcessor;
     }
 
     /// <summary>
@@ -60,21 +63,20 @@ public class ProjectGenerator : IProjectGenerator
             }
 
             ValidationResult pathResult = _validationService.ValidateOutputPath(
-                config.OutputPath, config.ProjectName);
+                config.OutputDirectory, config.ProjectName);
             if (!pathResult.IsValid)
             {
                 return GenerationResult.Fail($"输出路径验证失败：{pathResult.ErrorMessage}");
             }
 
-            // 步骤 2：构建变量上下文（通过 Core 层 VariableResolver）
+            // 步骤 2：构建变量上下文
             progress.Report(new GenerationProgress("正在构建变量上下文…", 15));
-            var coreConfig = MapToCoreConfig(config);
-            var variables = VariableResolver.BuildVariableContext(coreConfig);
+            var variables = _variableResolver.BuildVariableContext(config);
 
             // 步骤 3：加载并选择模板集合
             progress.Report(new GenerationProgress("正在加载模板…", 25));
-            await _templateRegistry.LoadFromAssemblyAsync().ConfigureAwait(false);
-            var templates = _templateRegistry.GetTemplatesForConfig(coreConfig);
+            await _templateRegistry.LoadTemplatesAsync().ConfigureAwait(false);
+            var templates = _templateRegistry.GetTemplatesForConfig(config);
 
             if (templates.Count == 0)
             {
@@ -83,7 +85,7 @@ public class ProjectGenerator : IProjectGenerator
 
             // 步骤 4：渲染模板并写入文件
             progress.Report(new GenerationProgress("正在渲染并写入文件…", 40));
-            string projectRoot = Path.Combine(config.OutputPath, config.ProjectName);
+            string projectRoot = Path.Combine(config.OutputDirectory, config.ProjectName);
             Directory.CreateDirectory(projectRoot);
 
             int fileCount = 0;
@@ -100,7 +102,7 @@ public class ProjectGenerator : IProjectGenerator
                 string renderedContent = _templateEngine.Render(template.Content, variables);
 
                 // 后处理：行尾规范化、XML 实体还原、尾部空白清理
-                renderedContent = PostProcessor.Process(renderedContent, renderedPath, coreConfig);
+                renderedContent = _postProcessor.Process(renderedContent, renderedPath, config);
 
                 // 写入文件
                 string fullPath = Path.Combine(projectRoot, renderedPath);
@@ -129,18 +131,12 @@ public class ProjectGenerator : IProjectGenerator
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-            string targetFramework = config.DotNetVersion switch
-            {
-                ".NET 6" => config.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
-                _        => config.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
-            };
-
             await _historyService.SaveAsync(new ProjectHistory
             {
                 ProjectName     = config.ProjectName,
                 ProjectType     = config.ProjectType,
                 OutputPath      = projectRoot,
-                TargetFramework = targetFramework,
+                TargetFramework = config.TargetFramework,
                 UIFramework     = config.UIFramework,
                 CreatedAt       = DateTime.UtcNow,
                 ConfigJson      = configJson
@@ -159,73 +155,8 @@ public class ProjectGenerator : IProjectGenerator
     }
 
     /// <summary>
-    /// 将 App 层的 <see cref="Models.ProjectConfig"/> 映射为 Core 层的 <see cref="Core.Models.ProjectConfig"/>。
-    /// 两层的配置模型字段命名和结构不同，此方法负责桥接。
-    /// </summary>
-    /// <param name="appConfig">App 层的项目配置。</param>
-    /// <returns>Core 层的项目配置。</returns>
-    private static Core.Models.ProjectConfig MapToCoreConfig(Models.ProjectConfig appConfig)
-    {
-        string targetFramework = appConfig.DotNetVersion switch
-        {
-            ".NET 6" => appConfig.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
-            _        => appConfig.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
-        };
-
-        return new Core.Models.ProjectConfig
-        {
-            ProjectType     = appConfig.ProjectType,
-            ProjectName     = appConfig.ProjectName,
-            NamespacePrefix = appConfig.NamespacePrefix,
-            TargetFramework = targetFramework,
-            UIFramework     = appConfig.UIFramework,
-            OutputDirectory = appConfig.OutputPath,
-            Author          = string.Empty,
-            Company         = string.Empty,
-            Description     = appConfig.ProjectDescription,
-
-            // 采集类：从 SelectedDrivers 列表映射到布尔标志
-            EnableSiemensS7    = appConfig.SelectedDrivers.Contains("S7Net"),
-            EnableModbusTcp    = appConfig.SelectedDrivers.Contains("ModbusTcp"),
-            EnableOpcUa        = appConfig.SelectedDrivers.Contains("OpcUa"),
-            EnableMitsubishiMc = appConfig.SelectedDrivers.Contains("MitsubishiMc"),
-            EnableOmronFins    = appConfig.SelectedDrivers.Contains("OmronFins"),
-
-            // 采集扩展
-            EnableSimulationDriver = appConfig.EnableSimulationDriver,
-            DefaultPLCIp          = appConfig.DefaultPLCIp,
-            DefaultPLCPort        = appConfig.DefaultPLCPort,
-            S7Rack                = appConfig.S7Rack,
-            S7Slot                = appConfig.S7Slot,
-            OpcUaEndpoint         = appConfig.OpcUaEndpoint,
-
-            // 视觉类
-            EnableVision    = appConfig.ProjectType == "Vision",
-            CameraBrand     = appConfig.CameraBrand,
-            ModelType       = appConfig.ModelType,
-            EnablePipeline  = appConfig.EnablePipeline,
-            ModelPath       = appConfig.ModelPath,
-
-            // 系统类
-            EnableUserManagement  = appConfig.SelectedModules.Contains("UserManagement"),
-            EnableRolePermission  = appConfig.SelectedModules.Contains("RolePermission"),
-            EnableSystemLog       = appConfig.SelectedModules.Contains("SystemLog"),
-            EnableThemeSwitcher   = appConfig.SelectedModules.Contains("ThemeSwitcher"),
-            EnableLoginWindow     = appConfig.EnableLoginWindow,
-            EnableCrossPlatform   = appConfig.EnableCrossPlatform,
-            ForcePasswordChange   = appConfig.ForcePasswordChange,
-
-            // 其他
-            InitGitRepository     = true,
-            GeneratePublishScripts = true
-        };
-    }
-
-    /// <summary>
     /// 生成后处理步骤：执行 dotnet restore 恢复 NuGet 包。
     /// </summary>
-    /// <param name="projectRoot">生成的项目根目录。</param>
-    /// <param name="config">项目配置。</param>
     private static async Task PostProcessAsync(string projectRoot, ProjectConfig config)
     {
         var slnFile = Path.Combine(projectRoot, $"{config.ProjectName}.sln");

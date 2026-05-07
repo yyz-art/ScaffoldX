@@ -3,7 +3,9 @@ using Prism.Ioc;
 using ScaffoldX.App.Services;
 using ScaffoldX.App.ViewModels;
 using ScaffoldX.App.Views;
+using ScaffoldX.Core.FileGeneration;
 using ScaffoldX.Core.TemplateProcessing;
+using ScaffoldX.Core.Vision;
 
 namespace ScaffoldX.App;
 
@@ -24,21 +26,25 @@ public partial class App : Prism.Unity.PrismApplication
     /// <param name="containerRegistry">容器注册接口。</param>
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        // 服务注册（单例）
+        // Core 层服务注册
+        containerRegistry.RegisterSingleton<IVariableResolver, VariableResolver>();
+        containerRegistry.RegisterSingleton<IPostProcessor, PostProcessor>();
+        containerRegistry.RegisterSingleton<ITemplateSource, AssemblyTemplateSource>();
+        containerRegistry.RegisterSingleton<ITemplateRegistry, TemplateRegistry>();
+        containerRegistry.RegisterSingleton<IFileTreeBuilder, FileTreeBuilder>();
+
+        // Vision 引擎工厂（AutoLabelingService 通过工厂创建 Sam3Segmentor）
+        containerRegistry.RegisterSingleton<Func<ISam3SegmentationEngine>>(sp => () => new Sam3Segmentor());
+
+        // App 层服务注册
         containerRegistry.RegisterSingleton<IValidationService, ValidationService>();
         containerRegistry.RegisterSingleton<IHistoryService, HistoryService>();
         containerRegistry.RegisterSingleton<ITemplateEngine, ScribanTemplateEngine>();
-        containerRegistry.RegisterSingleton<TemplateRegistry>();
         containerRegistry.RegisterSingleton<IProjectGenerator, ProjectGenerator>();
         containerRegistry.RegisterSingleton<IAnnotationService, AnnotationService>();
         containerRegistry.RegisterSingleton<IAutoLabelingService, AutoLabelingService>();
         containerRegistry.RegisterSingleton<IYoloTrainingService, YoloTrainingService>();
         containerRegistry.RegisterSingleton<IVideoFrameService, VideoFrameService>();
-        containerRegistry.RegisterSingleton<IModelZooService>(sp => new ModelZooService());
-        containerRegistry.RegisterSingleton<IAnnotationInterpolationService, AnnotationInterpolationService>();
-        containerRegistry.RegisterSingleton<IExportReportService, ExportReportService>();
-        containerRegistry.RegisterSingleton<IRecentFilesService, RecentFilesService>();
-
         // ViewModel 注册（单例，在步骤间共享状态）
         containerRegistry.RegisterSingleton<ProjectHistoryViewModel>();
         containerRegistry.RegisterSingleton<Step1ViewModel>();

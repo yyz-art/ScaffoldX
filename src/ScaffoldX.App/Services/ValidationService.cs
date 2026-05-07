@@ -10,6 +10,16 @@ namespace ScaffoldX.App.Services;
 /// </summary>
 public class ValidationService : IValidationService
 {
+    private readonly IVariableResolver _variableResolver;
+
+    /// <summary>
+    /// 初始化验证服务。
+    /// </summary>
+    /// <param name="variableResolver">变量解析器，用于 PascalCase 转换。</param>
+    public ValidationService(IVariableResolver variableResolver)
+    {
+        _variableResolver = variableResolver;
+    }
     private static readonly Regex _projectNameRegex =
         new(@"^[A-Za-z][A-Za-z0-9_]{0,49}$", RegexOptions.Compiled);
 
@@ -77,7 +87,7 @@ public class ValidationService : IValidationService
     /// </summary>
     /// <param name="input">原始输入字符串。</param>
     /// <returns>PascalCase 格式的字符串。</returns>
-    public string ToPascalCase(string input) => VariableResolver.ToPascalCase(input);
+    public string ToPascalCase(string input) => _variableResolver.ToPascalCase(input);
 
     /// <summary>
     /// 验证 IPv4 地址格式是否合法。

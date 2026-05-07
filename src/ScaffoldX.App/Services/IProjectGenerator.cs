@@ -1,4 +1,5 @@
 using ScaffoldX.App.Models;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.Services;
 

@@ -9,26 +9,16 @@ namespace ScaffoldX.App.ViewModels;
 /// </summary>
 public class ClassManagementHandler : BindableBase
 {
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Action _updateClassesList;
-    private readonly Action<string> _setStatusMessage;
+    private readonly AnnotationContext _ctx;
 
     private int _selectedClassIndex;
 
     /// <summary>
     /// 初始化类别管理处理器。
     /// </summary>
-    /// <param name="getProject">获取当前项目的回调。</param>
-    /// <param name="updateClassesList">更新类别列表的回调。</param>
-    /// <param name="setStatusMessage">设置状态消息的回调。</param>
-    public ClassManagementHandler(
-        Func<AnnotationProject?> getProject,
-        Action updateClassesList,
-        Action<string> setStatusMessage)
+    public ClassManagementHandler(AnnotationContext ctx)
     {
-        _getProject = getProject;
-        _updateClassesList = updateClassesList;
-        _setStatusMessage = setStatusMessage;
+        _ctx = ctx;
 
         AddClassCommand = new DelegateCommand(ExecuteAddClass);
         RemoveClassCommand = new DelegateCommand(ExecuteRemoveClass, CanRemoveClass);
@@ -47,7 +37,7 @@ public class ClassManagementHandler : BindableBase
     {
         get
         {
-            var project = _getProject();
+            var project = _ctx.GetProject();
             if (project == null || SelectedClassIndex < 0 || SelectedClassIndex >= project.Classes.Count)
                 return string.Empty;
             return project.Classes[SelectedClassIndex].Name;
@@ -68,7 +58,7 @@ public class ClassManagementHandler : BindableBase
     /// </summary>
     private void ExecuteAddClass()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null) return;
 
         var newIndex = project.Classes.Count;
@@ -80,8 +70,8 @@ public class ClassManagementHandler : BindableBase
         };
 
         project.Classes.Add(newClass);
-        _updateClassesList();
-        _setStatusMessage($"已添加类别: {newClass.Name}");
+        _ctx.UpdateClassesList();
+        _ctx.SetStatusMessage($"已添加类别: {newClass.Name}");
     }
 
     /// <summary>
@@ -89,7 +79,7 @@ public class ClassManagementHandler : BindableBase
     /// </summary>
     private bool CanRemoveClass()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         return project != null && project.Classes.Count > 1;
     }
 
@@ -98,13 +88,13 @@ public class ClassManagementHandler : BindableBase
     /// </summary>
     private void ExecuteRemoveClass()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null || project.Classes.Count <= 1) return;
 
         var lastClass = project.Classes.Last();
         project.Classes.Remove(lastClass);
-        _updateClassesList();
-        _setStatusMessage($"已移除类别: {lastClass.Name}");
+        _ctx.UpdateClassesList();
+        _ctx.SetStatusMessage($"已移除类别: {lastClass.Name}");
     }
 
     /// <summary>
@@ -113,10 +103,10 @@ public class ClassManagementHandler : BindableBase
     /// <param name="index">类别索引。</param>
     private void ExecuteSelectClass(int index)
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null || index < 0 || index >= project.Classes.Count) return;
         SelectedClassIndex = index;
-        _setStatusMessage($"已切换类别: {project.Classes[index].Name}");
+        _ctx.SetStatusMessage($"已切换类别: {project.Classes[index].Name}");
     }
 
     /// <summary>

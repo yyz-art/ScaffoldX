@@ -6,14 +6,14 @@ namespace ScaffoldX.Core.TemplateProcessing;
 /// 将 <see cref="ProjectConfig"/> 转换为 Scriban 模板变量字典。
 /// 变量键采用 PascalCase，与 .stpl 模板中的占位符一致。
 /// </summary>
-public static class VariableResolver
+public class VariableResolver : IVariableResolver
 {
     /// <summary>
     /// 根据项目配置构建完整的 Scriban 变量上下文字典。
     /// </summary>
     /// <param name="config">用户在向导中填写的项目配置。</param>
     /// <returns>可直接传入 Scriban ScriptObject 的键值字典。</returns>
-    public static Dictionary<string, object> BuildVariableContext(ProjectConfig config)
+    public Dictionary<string, object> BuildVariableContext(ProjectConfig config)
     {
         var namespacePrefix = string.IsNullOrWhiteSpace(config.NamespacePrefix)
             ? ToPascalCase(config.ProjectName)
@@ -123,7 +123,7 @@ public static class VariableResolver
     /// </summary>
     /// <param name="input">待转换的原始字符串。</param>
     /// <returns>PascalCase 格式的字符串。</returns>
-    public static string ToPascalCase(string input)
+    public string ToPascalCase(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
         {

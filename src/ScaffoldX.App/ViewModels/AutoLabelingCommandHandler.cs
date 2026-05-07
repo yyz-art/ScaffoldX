@@ -15,14 +15,7 @@ namespace ScaffoldX.App.ViewModels;
 public class AutoLabelingCommandHandler : BindableBase
 {
     private readonly IAutoLabelingService _autoLabelingService;
-    private readonly Func<AnnotationData?> _getCurrentAnnotation;
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Func<BitmapImage?> _getCurrentImage;
-    private readonly Action<string> _setStatusMessage;
-    private readonly Action _pushUndoSnapshot;
-    private readonly Action _updateBoxesList;
-    private readonly Action _updateClassDistribution;
-    private readonly Action _updateStatistics;
+    private readonly AnnotationContext _ctx;
     private readonly ILogger _logger = Log.ForContext<AutoLabelingCommandHandler>();
 
     private bool _isAutoDetecting;
@@ -33,35 +26,10 @@ public class AutoLabelingCommandHandler : BindableBase
     /// <summary>
     /// 初始化自动标注命令处理器。
     /// </summary>
-    /// <param name="autoLabelingService">自动标注服务。</param>
-    /// <param name="getCurrentAnnotation">获取当前标注数据的回调。</param>
-    /// <param name="getProject">获取当前项目的回调。</param>
-    /// <param name="getCurrentImage">获取当前图像的回调。</param>
-    /// <param name="setStatusMessage">设置状态消息的回调。</param>
-    /// <param name="pushUndoSnapshot">推送撤销快照的回调。</param>
-    /// <param name="updateBoxesList">更新边界框列表的回调。</param>
-    /// <param name="updateClassDistribution">更新类别分布的回调。</param>
-    /// <param name="updateStatistics">更新统计信息的回调。</param>
-    public AutoLabelingCommandHandler(
-        IAutoLabelingService autoLabelingService,
-        Func<AnnotationData?> getCurrentAnnotation,
-        Func<AnnotationProject?> getProject,
-        Func<BitmapImage?> getCurrentImage,
-        Action<string> setStatusMessage,
-        Action pushUndoSnapshot,
-        Action updateBoxesList,
-        Action updateClassDistribution,
-        Action updateStatistics)
+    public AutoLabelingCommandHandler(IAutoLabelingService autoLabelingService, AnnotationContext ctx)
     {
         _autoLabelingService = autoLabelingService;
-        _getCurrentAnnotation = getCurrentAnnotation;
-        _getProject = getProject;
-        _getCurrentImage = getCurrentImage;
-        _setStatusMessage = setStatusMessage;
-        _pushUndoSnapshot = pushUndoSnapshot;
-        _updateBoxesList = updateBoxesList;
-        _updateClassDistribution = updateClassDistribution;
-        _updateStatistics = updateStatistics;
+        _ctx = ctx;
 
         LoadModelCommand = new DelegateCommand(ExecuteLoadModel);
         UnloadModelCommand = new DelegateCommand(ExecuteUnloadModel, () => IsModelLoaded);
@@ -140,30 +108,25 @@ public class AutoLabelingCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteLoadModel()
     {
-        var dialog = new OpenFileDialog
+        var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog
         {
-            Filter = "ONNX 模型|*.onnx|所有文件|*.*",
-            Title = "选择 ONNX 模型文件"
+            Description = "选择模型目录（包含 encoder.pt、text_encoder.pt、decoder.pt）"
         };
 
         if (dialog.ShowDialog() != true) return;
 
-        var modelDir = Path.GetDirectoryName(dialog.FileName) ?? string.Empty;
-        var classesFile = Path.Combine(modelDir, "classes.txt");
-        var classesPath = File.Exists(classesFile) ? classesFile : null;
-
         try
         {
-            _setStatusMessage("正在加载模型...");
-            await _autoLabelingService.LoadModelAsync(dialog.FileName, classesPath);
+            _ctx.SetStatusMessage("正在加载模型...");
+            await _autoLabelingService.LoadModelAsync(dialog.SelectedPath);
             IsModelLoaded = true;
-            _setStatusMessage($"模型已加载: {Path.GetFileName(dialog.FileName)}");
-            _logger.Information("自动标注模型已加载: {Path}", dialog.FileName);
+            _ctx.SetStatusMessage($"模型已加载: {Path.GetFileName(dialog.SelectedPath)}");
+            _logger.Information("自动标注模型已加载: {Path}", dialog.SelectedPath);
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "加载模型失败");
-            _setStatusMessage($"加载模型失败: {ex.Message}");
+            _ctx.SetStatusMessage($"加载模型失败: {ex.Message}");
         }
     }
 
@@ -176,12 +139,12 @@ public class AutoLabelingCommandHandler : BindableBase
         {
             _autoLabelingService.UnloadModel();
             IsModelLoaded = false;
-            _setStatusMessage("模型已卸载");
+            _ctx.SetStatusMessage("模型已卸载");
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "卸载模型失败");
-            _setStatusMessage($"卸载失败: {ex.Message}");
+            _ctx.SetStatusMessage($"卸载失败: {ex.Message}");
         }
     }
 
@@ -189,22 +152,22 @@ public class AutoLabelingCommandHandler : BindableBase
     /// 判断是否可以对当前图像执行自动检测。
     /// </summary>
     private bool CanAutoDetectCurrent()
-        => IsModelLoaded && _getCurrentAnnotation() != null && _getCurrentImage() != null && !IsAutoDetecting;
+        => IsModelLoaded && _ctx.GetCurrentAnnotation() != null && _ctx.GetCurrentImage() != null && !IsAutoDetecting;
 
     /// <summary>
     /// 对当前图像执行自动检测，将检测到的边界框添加到标注数据。
     /// </summary>
     private async void ExecuteAutoDetectCurrent()
     {
-        var currentAnnotation = _getCurrentAnnotation();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (currentAnnotation == null) return;
 
         try
         {
             IsAutoDetecting = true;
-            _setStatusMessage("正在自动标注当前图像...");
+            _ctx.SetStatusMessage("正在自动标注当前图像...");
 
-            _pushUndoSnapshot();
+            _ctx.PushUndoSnapshot();
 
             var detections = await _autoLabelingService.DetectAsync(
                 currentAnnotation.ImagePath, ConfidenceThreshold);
@@ -214,14 +177,14 @@ public class AutoLabelingCommandHandler : BindableBase
                 currentAnnotation.Boxes.Add(box);
             }
 
-            _updateBoxesList();
-            _updateClassDistribution();
-            _setStatusMessage($"自动标注完成: 检测到 {detections.Count} 个目标");
+            _ctx.UpdateBoxesList();
+            _ctx.UpdateClassDistribution();
+            _ctx.SetStatusMessage($"自动标注完成: 检测到 {detections.Count} 个目标");
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "自动标注失败");
-            _setStatusMessage($"自动标注失败: {ex.Message}");
+            _ctx.SetStatusMessage($"自动标注失败: {ex.Message}");
         }
         finally
         {
@@ -233,14 +196,14 @@ public class AutoLabelingCommandHandler : BindableBase
     /// 判断是否可以执行批量自动检测。
     /// </summary>
     private bool CanAutoDetectAll()
-        => IsModelLoaded && _getProject() is { Annotations.Count: > 0 } && !IsAutoDetecting;
+        => IsModelLoaded && _ctx.GetProject() is { Annotations.Count: > 0 } && !IsAutoDetecting;
 
     /// <summary>
     /// 对所有未标注图像执行批量自动检测。
     /// </summary>
     private async void ExecuteAutoDetectAll()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null) return;
 
         var unannotated = project.Annotations
@@ -250,7 +213,7 @@ public class AutoLabelingCommandHandler : BindableBase
 
         if (unannotated.Count == 0)
         {
-            _setStatusMessage("所有图像均已标注，无需自动标注");
+            _ctx.SetStatusMessage("所有图像均已标注，无需自动标注");
             return;
         }
 
@@ -266,7 +229,7 @@ public class AutoLabelingCommandHandler : BindableBase
                 RaisePropertyChanged(nameof(AutoDetectProgressText));
             });
 
-            _setStatusMessage($"正在批量自动标注 {unannotated.Count} 张图像...");
+            _ctx.SetStatusMessage($"正在批量自动标注 {unannotated.Count} 张图像...");
 
             var results = await _autoLabelingService.DetectBatchAsync(
                 unannotated, ConfidenceThreshold, progress);
@@ -284,14 +247,14 @@ public class AutoLabelingCommandHandler : BindableBase
                 }
             }
 
-            _updateBoxesList();
-            _updateStatistics();
-            _setStatusMessage($"批量自动标注完成: {unannotated.Count} 张图像, 共 {totalDetections} 个目标");
+            _ctx.UpdateBoxesList();
+            _ctx.UpdateStatistics();
+            _ctx.SetStatusMessage($"批量自动标注完成: {unannotated.Count} 张图像, 共 {totalDetections} 个目标");
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "批量自动标注失败");
-            _setStatusMessage($"批量自动标注失败: {ex.Message}");
+            _ctx.SetStatusMessage($"批量自动标注失败: {ex.Message}");
         }
         finally
         {

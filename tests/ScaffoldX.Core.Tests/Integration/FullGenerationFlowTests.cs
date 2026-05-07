@@ -1,6 +1,7 @@
 using FluentAssertions;
 using ScaffoldX.Core.Models;
 using ScaffoldX.Core.TemplateProcessing;
+using ScaffoldX.Core.FileGeneration;
 using Xunit;
 
 namespace ScaffoldX.Core.Tests.Integration;
@@ -11,7 +12,9 @@ namespace ScaffoldX.Core.Tests.Integration;
 /// </summary>
 public class FullGenerationFlowTests
 {
-    private readonly TemplateRegistry _registry = new();
+    private readonly TemplateRegistry _registry = new(new AssemblyTemplateSource());
+    private readonly VariableResolver _variableResolver = new();
+    private readonly PostProcessor _postProcessor = new();
 
     /// <summary>
     /// 验证采集项目配置下，S7 驱动模板被正确选中且内容不含指令标记。
@@ -20,7 +23,7 @@ public class FullGenerationFlowTests
     public async Task CollectionProject_ShouldSelectS7DriverTemplate_WhenSiemensS7Enabled()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "TestCollection",
@@ -33,7 +36,7 @@ public class FullGenerationFlowTests
 
         // Act
         var templates = _registry.GetTemplatesForConfig(config);
-        var variables = VariableResolver.BuildVariableContext(config);
+        var variables = _variableResolver.BuildVariableContext(config);
 
         // Assert
         templates.Should().Contain(t => t.Name.Contains("S7"));
@@ -54,7 +57,7 @@ public class FullGenerationFlowTests
     public async Task VisionProject_ShouldSelectVisionTemplates_WhenVisionEnabled()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "TestVision",
@@ -79,7 +82,7 @@ public class FullGenerationFlowTests
     public async Task SystemProject_ShouldSelectSystemTemplates_WhenModulesEnabled()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "TestSystem",
@@ -107,7 +110,7 @@ public class FullGenerationFlowTests
     public async Task MixedConfig_ShouldSelectTemplatesFromMultipleCategories()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "MixedProject",
@@ -152,7 +155,7 @@ public class FullGenerationFlowTests
         };
 
         // Act
-        var ctx = VariableResolver.BuildVariableContext(config);
+        var ctx = _variableResolver.BuildVariableContext(config);
 
         // Assert — 基础变量
         ctx.Should().ContainKey("ProjectName");
@@ -186,7 +189,7 @@ public class FullGenerationFlowTests
     public async Task CommonTemplates_ShouldAlwaysBeIncluded()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "MinimalProject",
@@ -218,7 +221,7 @@ public class FullGenerationFlowTests
     public async Task AllTemplates_ShouldHaveValidOutputPathTemplates()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
 
         // Act & Assert
         foreach (var template in _registry.GetAllTemplates())
@@ -240,8 +243,8 @@ public class FullGenerationFlowTests
         var xamlContent = "<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">&lt;test&gt;</Window>";
 
         // Act
-        var processedCs = PostProcessor.Process(csContent, "Test.cs", config);
-        var processedXaml = PostProcessor.Process(xamlContent, "Test.xaml", config);
+        var processedCs = _postProcessor.Process(csContent, "Test.cs", config);
+        var processedXaml = _postProcessor.Process(xamlContent, "Test.xaml", config);
 
         // Assert
         processedCs.Should().NotContain("\r\n", "C# 文件行尾应统一为 LF");
@@ -259,7 +262,7 @@ public class FullGenerationFlowTests
     public async Task VisionTemplates_ShouldNotBeIncluded_WhenVisionDisabled()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "NoVision",
@@ -285,7 +288,7 @@ public class FullGenerationFlowTests
     public async Task SystemTemplates_ShouldNotBeIncluded_WhenAllModulesDisabled()
     {
         // Arrange
-        await _registry.LoadFromAssemblyAsync();
+        await _registry.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             ProjectName = "NoSystem",

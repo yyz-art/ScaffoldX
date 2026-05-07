@@ -12,9 +12,16 @@ namespace ScaffoldX.App.Services;
 public class AutoLabelingService : IAutoLabelingService, IDisposable
 {
     private readonly ILogger _logger = Log.ForContext<AutoLabelingService>();
-    private Sam3Segmentor? _sam3;
+    private readonly SemaphoreSlim _cacheLock = new(1, 1);
+    private readonly Func<ISam3SegmentationEngine> _engineFactory;
+    private ISam3SegmentationEngine? _sam3;
     private ImageEmbedding? _cachedEmbedding;
     private string? _cachedEmbeddingPath;
+
+    public AutoLabelingService(Func<ISam3SegmentationEngine> engineFactory)
+    {
+        _engineFactory = engineFactory;
+    }
 
     /// <inheritdoc/>
     public bool IsModelLoaded => _sam3?.IsLoaded == true;
@@ -33,15 +40,15 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
     {
         UnloadModel();
 
-        // Detection mode: load SAM3 from the model directory (expects encoder.pt, text_encoder.pt, decoder.pt)
-        _sam3 = new Sam3Segmentor();
-        var modelDir = Path.GetDirectoryName(modelPath) ?? string.Empty;
+        // modelPath can be a directory (SAM3) or a file path (legacy)
+        var modelDir = Directory.Exists(modelPath) ? modelPath : Path.GetDirectoryName(modelPath) ?? string.Empty;
 
+        _sam3 = _engineFactory();
         await _sam3.LoadModelAsync(modelDir);
-        LoadedModelPath = modelPath;
+        LoadedModelPath = modelDir;
         CurrentMode = AutoLabelingMode.Detection;
 
-        _logger.Information("检测模型已加载: {ModelPath}", modelPath);
+        _logger.Information("检测模型已加载: {ModelDir}", modelDir);
     }
 
     /// <inheritdoc/>
@@ -49,7 +56,7 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
     {
         UnloadModel();
 
-        _sam3 = new Sam3Segmentor();
+        _sam3 = _engineFactory();
         await _sam3.LoadModelAsync(modelDirectory, ct);
         LoadedModelPath = modelDirectory;
         CurrentMode = AutoLabelingMode.Segmentation;
@@ -60,9 +67,18 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
     /// <inheritdoc/>
     public void UnloadModel()
     {
-        _cachedEmbedding?.Dispose();
-        _cachedEmbedding = null;
-        _cachedEmbeddingPath = null;
+        _cacheLock.Wait();
+        try
+        {
+            _cachedEmbedding?.Dispose();
+            _cachedEmbedding = null;
+            _cachedEmbeddingPath = null;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+
         _sam3?.Dispose();
         _sam3 = null;
         LoadedModelPath = null;
@@ -81,10 +97,21 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
         using var image = new Bitmap(imagePath);
 
         // 使用 SAM 3 的自动分割获取掩码，然后转换为边界框
-        _cachedEmbedding?.Dispose();
-        _cachedEmbedding = await _sam3.EncodeImageAsync(image);
-        _cachedEmbeddingPath = imagePath;
-        var results = await _sam3.SegmentByTextAsync(_cachedEmbedding, new[] { "object" }, confidenceThreshold);
+        await _cacheLock.WaitAsync();
+        ImageEmbedding embedding;
+        try
+        {
+            _cachedEmbedding?.Dispose();
+            _cachedEmbedding = await _sam3.EncodeImageAsync(image);
+            _cachedEmbeddingPath = imagePath;
+            embedding = _cachedEmbedding;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+
+        var results = await _sam3.SegmentByTextAsync(embedding, new[] { "object" }, confidenceThreshold);
 
         return results.Select(r => SegmentationToBBox(r, image.Width, image.Height)).ToList();
     }
@@ -139,10 +166,22 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
             throw new FileNotFoundException("图像文件不存在", imagePath);
 
         using var image = new Bitmap(imagePath);
-        _cachedEmbedding?.Dispose();
-        _cachedEmbedding = await _sam3.EncodeImageAsync(image, ct);
-        _cachedEmbeddingPath = imagePath;
-        var results = await _sam3.SegmentByTextAsync(_cachedEmbedding, textPrompts, threshold, ct);
+
+        await _cacheLock.WaitAsync();
+        ImageEmbedding embedding;
+        try
+        {
+            _cachedEmbedding?.Dispose();
+            _cachedEmbedding = await _sam3.EncodeImageAsync(image, ct);
+            _cachedEmbeddingPath = imagePath;
+            embedding = _cachedEmbedding;
+        }
+        finally
+        {
+            _cacheLock.Release();
+        }
+
+        var results = await _sam3.SegmentByTextAsync(embedding, textPrompts, threshold, ct);
 
         return results.Select(r => ToSegmentationAnnotation(r)).ToList();
     }
@@ -159,14 +198,24 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
 
         using var image = new Bitmap(imagePath);
 
-        if (_cachedEmbedding == null || _cachedEmbeddingPath != imagePath)
+        await _cacheLock.WaitAsync();
+        ImageEmbedding embedding;
+        try
         {
-            _cachedEmbedding?.Dispose();
-            _cachedEmbedding = await _sam3.EncodeImageAsync(image, ct);
-            _cachedEmbeddingPath = imagePath;
+            if (_cachedEmbedding == null || _cachedEmbeddingPath != imagePath)
+            {
+                _cachedEmbedding?.Dispose();
+                _cachedEmbedding = await _sam3.EncodeImageAsync(image, ct);
+                _cachedEmbeddingPath = imagePath;
+            }
+            embedding = _cachedEmbedding!;
+        }
+        finally
+        {
+            _cacheLock.Release();
         }
 
-        var result = await _sam3.SegmentByPointsAsync(_cachedEmbedding, positivePoints, negativePoints, ct);
+        var result = await _sam3.SegmentByPointsAsync(embedding, positivePoints, negativePoints, ct);
         return ToSegmentationAnnotation(result);
     }
 
@@ -219,5 +268,6 @@ public class AutoLabelingService : IAutoLabelingService, IDisposable
     public void Dispose()
     {
         UnloadModel();
+        _cacheLock.Dispose();
     }
 }

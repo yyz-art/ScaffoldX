@@ -11,10 +11,7 @@ namespace ScaffoldX.App.ViewModels;
 public class UndoRedoHandler : BindableBase
 {
     private readonly UndoRedoManager<AnnotationSnapshot> _undoRedoManager = new();
-    private readonly Func<AnnotationData?> _getCurrentAnnotation;
-    private readonly Action _updateBoxesList;
-    private readonly Action _updateClassDistribution;
-    private readonly Action<string> _setStatusMessage;
+    private readonly AnnotationContext _ctx;
 
     /// <summary>
     /// 标注数据快照，用于撤销/重做操作。
@@ -27,20 +24,9 @@ public class UndoRedoHandler : BindableBase
     /// <summary>
     /// 初始化撤销/重做处理器。
     /// </summary>
-    /// <param name="getCurrentAnnotation">获取当前标注数据的回调。</param>
-    /// <param name="updateBoxesList">更新边界框列表的回调。</param>
-    /// <param name="updateClassDistribution">更新类别分布的回调。</param>
-    /// <param name="setStatusMessage">设置状态消息的回调。</param>
-    public UndoRedoHandler(
-        Func<AnnotationData?> getCurrentAnnotation,
-        Action updateBoxesList,
-        Action updateClassDistribution,
-        Action<string> setStatusMessage)
+    public UndoRedoHandler(AnnotationContext ctx)
     {
-        _getCurrentAnnotation = getCurrentAnnotation;
-        _updateBoxesList = updateBoxesList;
-        _updateClassDistribution = updateClassDistribution;
-        _setStatusMessage = setStatusMessage;
+        _ctx = ctx;
 
         UndoCommand = new DelegateCommand(ExecuteUndo, CanUndo);
         RedoCommand = new DelegateCommand(ExecuteRedo, CanRedo);
@@ -57,7 +43,7 @@ public class UndoRedoHandler : BindableBase
     /// </summary>
     public void PushUndoSnapshot()
     {
-        var currentAnnotation = _getCurrentAnnotation();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (currentAnnotation == null) return;
         _undoRedoManager.PushSnapshot(CloneSnapshot(currentAnnotation));
     }
@@ -65,45 +51,45 @@ public class UndoRedoHandler : BindableBase
     /// <summary>
     /// 判断是否可以撤销。
     /// </summary>
-    private bool CanUndo() => _undoRedoManager.CanUndo && _getCurrentAnnotation() != null;
+    private bool CanUndo() => _undoRedoManager.CanUndo && _ctx.GetCurrentAnnotation() != null;
 
     /// <summary>
     /// 执行撤销操作，恢复到上一个快照状态。
     /// </summary>
     private void ExecuteUndo()
     {
-        var currentAnnotation = _getCurrentAnnotation();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (currentAnnotation == null) return;
 
         var snapshot = _undoRedoManager.Undo(CloneSnapshot(currentAnnotation));
         if (snapshot == null) return;
 
         RestoreSnapshot(currentAnnotation, snapshot);
-        _updateBoxesList();
-        _updateClassDistribution();
-        _setStatusMessage("已撤销");
+        _ctx.UpdateBoxesList();
+        _ctx.UpdateClassDistribution();
+        _ctx.SetStatusMessage("已撤销");
     }
 
     /// <summary>
     /// 判断是否可以重做。
     /// </summary>
-    private bool CanRedo() => _undoRedoManager.CanRedo && _getCurrentAnnotation() != null;
+    private bool CanRedo() => _undoRedoManager.CanRedo && _ctx.GetCurrentAnnotation() != null;
 
     /// <summary>
     /// 执行重做操作，恢复到下一个快照状态。
     /// </summary>
     private void ExecuteRedo()
     {
-        var currentAnnotation = _getCurrentAnnotation();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (currentAnnotation == null) return;
 
         var snapshot = _undoRedoManager.Redo(CloneSnapshot(currentAnnotation));
         if (snapshot == null) return;
 
         RestoreSnapshot(currentAnnotation, snapshot);
-        _updateBoxesList();
-        _updateClassDistribution();
-        _setStatusMessage("已重做");
+        _ctx.UpdateBoxesList();
+        _ctx.UpdateClassDistribution();
+        _ctx.SetStatusMessage("已重做");
     }
 
     /// <summary>

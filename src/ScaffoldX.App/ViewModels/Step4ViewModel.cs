@@ -5,6 +5,7 @@ using Prism.Commands;
 using Prism.Mvvm;
 using ScaffoldX.App.Models;
 using ScaffoldX.App.Services;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
 
@@ -126,10 +127,10 @@ public class Step4ViewModel : BindableBase
     /// <summary>目标框架显示文字。</summary>
     public string TargetFrameworkDisplay => _config is null
         ? string.Empty
-        : $"{_config.UIFramework} / {_config.DotNetVersion}";
+        : $"{_config.UIFramework} / {_config.TargetFramework}";
 
     /// <summary>输出路径。</summary>
-    public string OutputPath => _config?.OutputPath ?? string.Empty;
+    public string OutputPath => _config?.OutputDirectory ?? string.Empty;
 
     /// <summary>预估生成文件数量。</summary>
     public int EstimatedFileCount => _lastResult?.FileCount > 0 ? _lastResult.FileCount : EstimateFileCount();
@@ -215,7 +216,7 @@ public class Step4ViewModel : BindableBase
 
     private void ExecuteOpenFolder()
     {
-        var path = _lastResult?.OutputPath ?? _config?.OutputPath;
+        var path = _lastResult?.OutputPath ?? _config?.OutputDirectory;
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return;
 
         Process.Start(new ProcessStartInfo
@@ -228,7 +229,7 @@ public class Step4ViewModel : BindableBase
 
     private void ExecuteOpenInVs()
     {
-        var path = _lastResult?.OutputPath ?? _config?.OutputPath;
+        var path = _lastResult?.OutputPath ?? _config?.OutputDirectory;
         if (string.IsNullOrEmpty(path)) return;
 
         var slnFile = Directory.GetFiles(path, "*.sln", SearchOption.TopDirectoryOnly).FirstOrDefault();

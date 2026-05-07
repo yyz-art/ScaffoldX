@@ -14,13 +14,7 @@ namespace ScaffoldX.App.ViewModels;
 public class ImageNavigationHandler : BindableBase
 {
     private readonly IAnnotationService _annotationService;
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Func<AnnotationData?> _getCurrentAnnotation;
-    private readonly Action<AnnotationData?> _setCurrentAnnotation;
-    private readonly Func<int> _getTotalImages;
-    private readonly Action<string> _setStatusMessage;
-    private readonly Action _updateBoxesList;
-    private readonly Action _updateStatistics;
+    private readonly AnnotationContext _ctx;
     private readonly ILogger _logger = Log.ForContext<ImageNavigationHandler>();
 
     private int _currentImageIndex = -1;
@@ -29,32 +23,10 @@ public class ImageNavigationHandler : BindableBase
     /// <summary>
     /// 初始化图像导航处理器。
     /// </summary>
-    /// <param name="annotationService">标注服务。</param>
-    /// <param name="getProject">获取当前项目的回调。</param>
-    /// <param name="getCurrentAnnotation">获取当前标注数据的回调。</param>
-    /// <param name="setCurrentAnnotation">设置当前标注数据的回调。</param>
-    /// <param name="getTotalImages">获取总图像数的回调。</param>
-    /// <param name="setStatusMessage">设置状态消息的回调。</param>
-    /// <param name="updateBoxesList">更新边界框列表的回调。</param>
-    /// <param name="updateStatistics">更新统计信息的回调。</param>
-    public ImageNavigationHandler(
-        IAnnotationService annotationService,
-        Func<AnnotationProject?> getProject,
-        Func<AnnotationData?> getCurrentAnnotation,
-        Action<AnnotationData?> setCurrentAnnotation,
-        Func<int> getTotalImages,
-        Action<string> setStatusMessage,
-        Action updateBoxesList,
-        Action updateStatistics)
+    public ImageNavigationHandler(IAnnotationService annotationService, AnnotationContext ctx)
     {
         _annotationService = annotationService;
-        _getProject = getProject;
-        _getCurrentAnnotation = getCurrentAnnotation;
-        _setCurrentAnnotation = setCurrentAnnotation;
-        _getTotalImages = getTotalImages;
-        _setStatusMessage = setStatusMessage;
-        _updateBoxesList = updateBoxesList;
-        _updateStatistics = updateStatistics;
+        _ctx = ctx;
 
         PreviousImageCommand = new DelegateCommand(ExecutePreviousImage, CanNavigateImage);
         NextImageCommand = new DelegateCommand(ExecuteNextImage, CanNavigateImage);
@@ -81,9 +53,9 @@ public class ImageNavigationHandler : BindableBase
     }
 
     /// <summary>图像导航文字。</summary>
-    public string ImageNavigationText => _getProject() == null
+    public string ImageNavigationText => _ctx.GetProject() == null
         ? "无图像"
-        : $"{CurrentImageIndex + 1} / {_getTotalImages()}";
+        : $"{CurrentImageIndex + 1} / {_ctx.GetTotalImages()}";
 
     /// <summary>上一张图像命令。</summary>
     public DelegateCommand PreviousImageCommand { get; }
@@ -96,7 +68,7 @@ public class ImageNavigationHandler : BindableBase
     /// </summary>
     private bool CanNavigateImage()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         return project != null && project.Annotations.Count > 0;
     }
 
@@ -116,7 +88,7 @@ public class ImageNavigationHandler : BindableBase
         catch (Exception ex)
         {
             _logger.Error(ex, "切换上一张图像失败");
-            _setStatusMessage($"导航失败: {ex.Message}");
+            _ctx.SetStatusMessage($"导航失败: {ex.Message}");
         }
     }
 
@@ -127,7 +99,7 @@ public class ImageNavigationHandler : BindableBase
     {
         try
         {
-            var project = _getProject();
+            var project = _ctx.GetProject();
             if (project != null && CurrentImageIndex < project.Annotations.Count - 1)
             {
                 await SaveCurrentAnnotationAsync();
@@ -137,8 +109,17 @@ public class ImageNavigationHandler : BindableBase
         catch (Exception ex)
         {
             _logger.Error(ex, "切换下一张图像失败");
-            _setStatusMessage($"导航失败: {ex.Message}");
+            _ctx.SetStatusMessage($"导航失败: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// 通知导航命令重新评估 CanExecute。
+    /// </summary>
+    public void RaiseCanNavigateChanged()
+    {
+        PreviousImageCommand.RaiseCanExecuteChanged();
+        NextImageCommand.RaiseCanExecuteChanged();
     }
 
     /// <summary>
@@ -147,14 +128,14 @@ public class ImageNavigationHandler : BindableBase
     /// <param name="index">图像索引。</param>
     public Task LoadImageAsync(int index)
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null || index < 0 || index >= project.Annotations.Count)
             return Task.CompletedTask;
 
         CurrentImageIndex = index;
-        _setCurrentAnnotation(project.Annotations[index]);
+        _ctx.SetCurrentAnnotation(project.Annotations[index]);
 
-        var currentAnnotation = _getCurrentAnnotation();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (currentAnnotation == null) return Task.CompletedTask;
 
         try
@@ -172,7 +153,7 @@ public class ImageNavigationHandler : BindableBase
         {
             _logger.Error(ex, "加载图像失败: {ImagePath}", currentAnnotation.ImagePath);
             CurrentImage = null;
-            _setStatusMessage($"加载图像失败: {ex.Message}");
+            _ctx.SetStatusMessage($"加载图像失败: {ex.Message}");
             return Task.CompletedTask;
         }
 
@@ -182,8 +163,8 @@ public class ImageNavigationHandler : BindableBase
             currentAnnotation.ImageHeight = CurrentImage.PixelHeight;
         }
 
-        _updateBoxesList();
-        _setStatusMessage($"图像 {index + 1}/{project.Annotations.Count}: {Path.GetFileName(currentAnnotation.ImagePath)}");
+        _ctx.UpdateBoxesList();
+        _ctx.SetStatusMessage($"图像 {index + 1}/{project.Annotations.Count}: {Path.GetFileName(currentAnnotation.ImagePath)}");
         return Task.CompletedTask;
     }
 
@@ -192,11 +173,11 @@ public class ImageNavigationHandler : BindableBase
     /// </summary>
     public async Task SaveCurrentAnnotationAsync()
     {
-        var project = _getProject();
-        var currentAnnotation = _getCurrentAnnotation();
+        var project = _ctx.GetProject();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
         if (project == null || currentAnnotation == null) return;
 
         await _annotationService.UpdateAnnotationAsync(project, currentAnnotation);
-        _updateStatistics();
+        _ctx.UpdateStatistics();
     }
 }

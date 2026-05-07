@@ -21,7 +21,7 @@ public interface IAutoLabelingService
     AutoLabelingMode CurrentMode { get; }
 
     /// <summary>
-    /// 加载检测模型（YOLO TorchScript）。
+    /// 加载检测模型。modelPath 为模型目录（包含 encoder.pt 等）或单个 .pt 文件路径。
     /// </summary>
     Task LoadModelAsync(string modelPath, string? classesFilePath = null, IEnumerable<string>? classNames = null);
 

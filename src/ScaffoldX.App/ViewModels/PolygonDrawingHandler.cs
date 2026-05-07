@@ -12,62 +12,20 @@ namespace ScaffoldX.App.ViewModels;
 /// </summary>
 public class PolygonDrawingHandler : BindableBase
 {
-    private readonly DrawingStateManager _drawingState;
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Func<AnnotationData?> _getCurrentAnnotation;
-    private readonly Func<BitmapImage?> _getCurrentImage;
-    private readonly Func<int> _getSelectedClassIndex;
-    private readonly Func<bool> _getIsObbMode;
-    private readonly Action _disableObbMode;
-    private readonly Action<string> _setStatusMessage;
-    private readonly Action _pushUndoSnapshot;
-    private readonly Action _updateBoxesList;
-    private readonly Action _updateClassDistribution;
+    private readonly AnnotationContext _ctx;
 
     private bool _isPolygonMode;
 
     /// <summary>
     /// 初始化多边形绘制处理器。
     /// </summary>
-    /// <param name="drawingState">绘图状态管理器。</param>
-    /// <param name="getProject">获取当前项目的回调。</param>
-    /// <param name="getCurrentAnnotation">获取当前标注数据的回调。</param>
-    /// <param name="getCurrentImage">获取当前图像的回调。</param>
-    /// <param name="getSelectedClassIndex">获取当前选中类别索引的回调。</param>
-    /// <param name="getIsObbMode">获取是否处于 OBB 模式的回调。</param>
-    /// <param name="disableObbMode">禁用 OBB 模式的回调。</param>
-    /// <param name="setStatusMessage">设置状态消息的回调。</param>
-    /// <param name="pushUndoSnapshot">推送撤销快照的回调。</param>
-    /// <param name="updateBoxesList">更新边界框列表的回调。</param>
-    /// <param name="updateClassDistribution">更新类别分布的回调。</param>
-    public PolygonDrawingHandler(
-        DrawingStateManager drawingState,
-        Func<AnnotationProject?> getProject,
-        Func<AnnotationData?> getCurrentAnnotation,
-        Func<BitmapImage?> getCurrentImage,
-        Func<int> getSelectedClassIndex,
-        Func<bool> getIsObbMode,
-        Action disableObbMode,
-        Action<string> setStatusMessage,
-        Action pushUndoSnapshot,
-        Action updateBoxesList,
-        Action updateClassDistribution)
+    public PolygonDrawingHandler(AnnotationContext ctx)
     {
-        _drawingState = drawingState;
-        _getProject = getProject;
-        _getCurrentAnnotation = getCurrentAnnotation;
-        _getCurrentImage = getCurrentImage;
-        _getSelectedClassIndex = getSelectedClassIndex;
-        _getIsObbMode = getIsObbMode;
-        _disableObbMode = disableObbMode;
-        _setStatusMessage = setStatusMessage;
-        _pushUndoSnapshot = pushUndoSnapshot;
-        _updateBoxesList = updateBoxesList;
-        _updateClassDistribution = updateClassDistribution;
+        _ctx = ctx;
 
         TogglePolygonModeCommand = new DelegateCommand(ExecuteTogglePolygonMode);
         FinishPolygonCommand = new DelegateCommand(ExecuteFinishPolygon, CanFinishPolygon);
-        CancelPolygonCommand = new DelegateCommand(ExecuteCancelPolygon, () => _drawingState.IsDrawingPolygon);
+        CancelPolygonCommand = new DelegateCommand(ExecuteCancelPolygon, () => _ctx.DrawingState.IsDrawingPolygon);
         PolygonMouseDownCommand = new DelegateCommand<Point?>(p => { if (p.HasValue) ExecutePolygonMouseDown(p.Value); });
         PolygonDoubleClickCommand = new DelegateCommand<Point?>(p => { if (p.HasValue) ExecutePolygonDoubleClick(p.Value); });
     }
@@ -113,9 +71,9 @@ public class PolygonDrawingHandler : BindableBase
     public void ExecuteTogglePolygonMode()
     {
         IsPolygonMode = !IsPolygonMode;
-        if (IsPolygonMode && _getIsObbMode())
-            _disableObbMode();
-        _setStatusMessage(IsPolygonMode ? "多边形模式：单击添加顶点，双击完成" : "边界框模式");
+        if (IsPolygonMode && _ctx.GetIsObbMode())
+            _ctx.DisableObbMode();
+        _ctx.SetStatusMessage(IsPolygonMode ? "多边形模式：单击添加顶点，双击完成" : "边界框模式");
     }
 
     /// <summary>
@@ -124,9 +82,9 @@ public class PolygonDrawingHandler : BindableBase
     /// <param name="point">鼠标点击的屏幕坐标。</param>
     public void ExecutePolygonMouseDown(Point point)
     {
-        if (!IsPolygonMode || _getProject() == null || _getCurrentAnnotation() == null) return;
+        if (!IsPolygonMode || _ctx.GetProject() == null || _ctx.GetCurrentAnnotation() == null) return;
 
-        _drawingState.IsDrawingPolygon = true;
+        _ctx.DrawingState.IsDrawingPolygon = true;
         CurrentPolygonPoints.Add(point);
         RaisePropertyChanged(nameof(CurrentPolygonPoints));
         CancelPolygonCommand.RaiseCanExecuteChanged();
@@ -139,7 +97,7 @@ public class PolygonDrawingHandler : BindableBase
     /// <param name="point">双击的屏幕坐标。</param>
     public void ExecutePolygonDoubleClick(Point point)
     {
-        if (!IsPolygonMode || !_drawingState.IsDrawingPolygon) return;
+        if (!IsPolygonMode || !_ctx.DrawingState.IsDrawingPolygon) return;
 
         if (CurrentPolygonPoints.Count > 0 && CurrentPolygonPoints.Last() != point)
             CurrentPolygonPoints.Add(point);
@@ -150,22 +108,22 @@ public class PolygonDrawingHandler : BindableBase
     /// <summary>
     /// 判断是否可以完成多边形绘制（至少 3 个顶点）。
     /// </summary>
-    private bool CanFinishPolygon() => _drawingState.IsDrawingPolygon && CurrentPolygonPoints.Count >= 3;
+    private bool CanFinishPolygon() => _ctx.DrawingState.IsDrawingPolygon && CurrentPolygonPoints.Count >= 3;
 
     /// <summary>
     /// 完成多边形绘制，创建多边形标注并添加到当前标注数据。
     /// </summary>
     public void ExecuteFinishPolygon()
     {
-        var currentAnnotation = _getCurrentAnnotation();
-        var currentImage = _getCurrentImage();
+        var currentAnnotation = _ctx.GetCurrentAnnotation();
+        var currentImage = _ctx.GetCurrentImage();
         if (currentAnnotation == null || currentImage == null || CurrentPolygonPoints.Count < 3)
             return;
 
-        _pushUndoSnapshot();
+        _ctx.PushUndoSnapshot();
 
-        var project = _getProject();
-        var selectedIndex = _getSelectedClassIndex();
+        var project = _ctx.GetProject();
+        var selectedIndex = _ctx.GetSelectedClassIndex();
         var selectedClass = selectedIndex < project!.Classes.Count
             ? project.Classes[selectedIndex]
             : project.Classes.FirstOrDefault();
@@ -186,13 +144,13 @@ public class PolygonDrawingHandler : BindableBase
         };
 
         currentAnnotation.Polygons.Add(polygon);
-        _drawingState.IsDrawingPolygon = false;
+        _ctx.DrawingState.IsDrawingPolygon = false;
         CurrentPolygonPoints.Clear();
 
         RaisePropertyChanged(nameof(CurrentPolygonPoints));
-        _updateBoxesList();
-        _updateClassDistribution();
-        _setStatusMessage($"已添加多边形标注: {selectedClass.Name} ({normalizedPoints.Count} 个顶点)");
+        _ctx.UpdateBoxesList();
+        _ctx.UpdateClassDistribution();
+        _ctx.SetStatusMessage($"已添加多边形标注: {selectedClass.Name} ({normalizedPoints.Count} 个顶点)");
     }
 
     /// <summary>
@@ -200,11 +158,11 @@ public class PolygonDrawingHandler : BindableBase
     /// </summary>
     public void ExecuteCancelPolygon()
     {
-        _drawingState.IsDrawingPolygon = false;
+        _ctx.DrawingState.IsDrawingPolygon = false;
         CurrentPolygonPoints.Clear();
         RaisePropertyChanged(nameof(CurrentPolygonPoints));
         CancelPolygonCommand.RaiseCanExecuteChanged();
         FinishPolygonCommand.RaiseCanExecuteChanged();
-        _setStatusMessage("已取消多边形绘制");
+        _ctx.SetStatusMessage("已取消多边形绘制");
     }
 }

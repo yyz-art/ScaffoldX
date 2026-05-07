@@ -14,14 +14,14 @@ public class TemplateRegistryTests
 
     public TemplateRegistryTests()
     {
-        _sut = new TemplateRegistry();
+        _sut = new TemplateRegistry(new AssemblyTemplateSource());
     }
 
     [Fact]
-    public async Task LoadFromAssemblyAsync_ShouldLoadTemplates_WhenAssemblyExists()
+    public async Task LoadTemplatesAsync_ShouldLoadTemplates_WhenAssemblyExists()
     {
         // Arrange & Act
-        var count = await _sut.LoadFromAssemblyAsync();
+        var count = await _sut.LoadTemplatesAsync();
 
         // Assert
         count.Should().BeGreaterThan(0);
@@ -32,7 +32,7 @@ public class TemplateRegistryTests
     public async Task GetTemplatesForConfig_ShouldReturnVisionTemplates_WhenVisionEnabled()
     {
         // Arrange
-        await _sut.LoadFromAssemblyAsync();
+        await _sut.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             EnableVision = true,
@@ -55,7 +55,7 @@ public class TemplateRegistryTests
     public async Task GetTemplatesForConfig_ShouldNotReturnVisionTemplates_WhenVisionDisabled()
     {
         // Arrange
-        await _sut.LoadFromAssemblyAsync();
+        await _sut.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             EnableVision = false,
@@ -77,7 +77,7 @@ public class TemplateRegistryTests
     public async Task GetTemplatesForConfig_ShouldIncludeCommonTemplates_Always()
     {
         // Arrange
-        await _sut.LoadFromAssemblyAsync();
+        await _sut.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             EnableVision = false,
@@ -99,7 +99,7 @@ public class TemplateRegistryTests
     public async Task GetTemplatesForConfig_ShouldReturnSystemTemplates_WhenSystemModulesEnabled()
     {
         // Arrange
-        await _sut.LoadFromAssemblyAsync();
+        await _sut.LoadTemplatesAsync();
         var config = new ProjectConfig
         {
             EnableUserManagement = true,

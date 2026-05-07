@@ -9,13 +9,7 @@ namespace ScaffoldX.App.ViewModels;
 /// </summary>
 public class ReviewCommandHandler : BindableBase
 {
-    private readonly Func<AnnotationProject?> _getProject;
-    private readonly Func<int> _getCurrentImageIndex;
-    private readonly Func<int, Task> _loadImageAsync;
-    private readonly Action<string> _setStatusMessage;
-    private readonly Action _updateStatistics;
-    private readonly Func<int> _getPolylineCount;
-    private readonly Func<int> _getCircleCount;
+    private readonly AnnotationContext _ctx;
 
     private string _reviewSummaryText = string.Empty;
     private int _unannotatedImageCount;
@@ -24,29 +18,9 @@ public class ReviewCommandHandler : BindableBase
     /// <summary>
     /// Initializes the review handler.
     /// </summary>
-    /// <param name="getProject">Callback to get the current project.</param>
-    /// <param name="getCurrentImageIndex">Callback to get the current image index.</param>
-    /// <param name="loadImageAsync">Callback to load an image by index.</param>
-    /// <param name="setStatusMessage">Callback to set the status message.</param>
-    /// <param name="updateStatistics">Callback to update project statistics in the ViewModel.</param>
-    /// <param name="getPolylineCount">Callback to get the current image polyline count.</param>
-    /// <param name="getCircleCount">Callback to get the current image circle count.</param>
-    public ReviewCommandHandler(
-        Func<AnnotationProject?> getProject,
-        Func<int> getCurrentImageIndex,
-        Func<int, Task> loadImageAsync,
-        Action<string> setStatusMessage,
-        Action updateStatistics,
-        Func<int> getPolylineCount,
-        Func<int> getCircleCount)
+    public ReviewCommandHandler(AnnotationContext ctx)
     {
-        _getProject = getProject;
-        _getCurrentImageIndex = getCurrentImageIndex;
-        _loadImageAsync = loadImageAsync;
-        _setStatusMessage = setStatusMessage;
-        _updateStatistics = updateStatistics;
-        _getPolylineCount = getPolylineCount;
-        _getCircleCount = getCircleCount;
+        _ctx = ctx;
 
         GotoNextUnannotatedCommand = new DelegateCommand(ExecuteGotoNextUnannotated, () => HasUnannotatedImages);
         RefreshReviewSummaryCommand = new DelegateCommand(ExecuteRefreshReviewSummary);
@@ -85,7 +59,7 @@ public class ReviewCommandHandler : BindableBase
     /// </summary>
     public void UpdateReviewSummary()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
 
         if (project == null)
         {
@@ -142,10 +116,10 @@ public class ReviewCommandHandler : BindableBase
     /// </summary>
     private async void ExecuteGotoNextUnannotated()
     {
-        var project = _getProject();
+        var project = _ctx.GetProject();
         if (project == null) return;
 
-        var currentIndex = _getCurrentImageIndex();
+        var currentIndex = _ctx.GetCurrentImageIndex();
         var startIndex = currentIndex + 1;
 
         for (int i = 0; i < project.Annotations.Count; i++)
@@ -153,13 +127,13 @@ public class ReviewCommandHandler : BindableBase
             var checkIndex = (startIndex + i) % project.Annotations.Count;
             if (!IsAnnotated(project.Annotations[checkIndex]))
             {
-                await _loadImageAsync(checkIndex);
-                _setStatusMessage($"已跳转到未标注图像 #{checkIndex + 1}");
+                await _ctx.LoadImageAsync(checkIndex);
+                _ctx.SetStatusMessage($"已跳转到未标注图像 #{checkIndex + 1}");
                 return;
             }
         }
 
-        _setStatusMessage("所有图像均已标注");
+        _ctx.SetStatusMessage("所有图像均已标注");
     }
 
     /// <summary>
@@ -167,9 +141,9 @@ public class ReviewCommandHandler : BindableBase
     /// </summary>
     private void ExecuteRefreshReviewSummary()
     {
-        _updateStatistics();
+        _ctx.UpdateStatistics();
         UpdateReviewSummary();
-        _setStatusMessage("审查摘要已刷新");
+        _ctx.SetStatusMessage("审查摘要已刷新");
     }
 
     /// <summary>

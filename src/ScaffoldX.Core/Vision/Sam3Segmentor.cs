@@ -56,27 +56,72 @@ public class Sam3Segmentor : ISam3SegmentationEngine
             var textEncoderPath = Path.Combine(modelDir, "text_encoder.pt");
             var decoderPath = Path.Combine(modelDir, "decoder.pt");
 
-            if (!File.Exists(encoderPath))
-                throw new FileNotFoundException("图像编码器模型不存在", encoderPath);
-            if (!File.Exists(textEncoderPath))
-                throw new FileNotFoundException("文本编码器模型不存在", textEncoderPath);
-            if (!File.Exists(decoderPath))
-                throw new FileNotFoundException("解码器模型不存在", decoderPath);
-
-            await Task.Run(() =>
+            // Support single combined model file as fallback
+            var combinedPath = Path.Combine(modelDir, "sam3.pt");
+            if (!File.Exists(encoderPath) && !File.Exists(textEncoderPath) && !File.Exists(decoderPath))
             {
-                try
+                if (!Directory.Exists(modelDir))
+                    throw new FileNotFoundException("模型目录不存在", modelDir);
+
+                // Look for any .pt file in the directory
+                var ptFiles = Directory.GetFiles(modelDir, "*.pt");
+                if (ptFiles.Length == 1)
                 {
-                    _imageEncoder = torch.jit.load(encoderPath);
-                    _textEncoder = torch.jit.load(textEncoderPath);
-                    _decoder = torch.jit.load(decoderPath);
+                    combinedPath = ptFiles[0];
                 }
-                catch
+                else if (ptFiles.Length == 0)
                 {
-                    DisposeModels();
-                    throw;
+                    throw new FileNotFoundException(
+                        $"模型目录中未找到模型文件。需要 encoder.pt + text_encoder.pt + decoder.pt，或单个合并模型文件。目录: {modelDir}");
                 }
-            }, ct);
+                else
+                {
+                    throw new FileNotFoundException(
+                        $"模型目录中有多个 .pt 文件但缺少 encoder.pt/text_encoder.pt/decoder.pt。请使用包含这 3 个文件的目录。目录: {modelDir}");
+                }
+
+                // Load single combined model — use it for all three components
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        var model = torch.jit.load(combinedPath);
+                        _imageEncoder = model;
+                        _textEncoder = model;
+                        _decoder = model;
+                    }
+                    catch (Exception ex)
+                    {
+                        DisposeModels();
+                        throw new InvalidOperationException($"加载模型失败: {combinedPath}。请确认文件是有效的 TorchScript 模型。", ex);
+                    }
+                }, ct);
+            }
+            else
+            {
+                // Load 3 separate model files
+                if (!File.Exists(encoderPath))
+                    throw new FileNotFoundException("图像编码器模型不存在", encoderPath);
+                if (!File.Exists(textEncoderPath))
+                    throw new FileNotFoundException("文本编码器模型不存在", textEncoderPath);
+                if (!File.Exists(decoderPath))
+                    throw new FileNotFoundException("解码器模型不存在", decoderPath);
+
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        _imageEncoder = torch.jit.load(encoderPath);
+                        _textEncoder = torch.jit.load(textEncoderPath);
+                        _decoder = torch.jit.load(decoderPath);
+                    }
+                    catch
+                    {
+                        DisposeModels();
+                        throw;
+                    }
+                }, ct);
+            }
 
             var vocabPath = Path.Combine(modelDir, "vocab.json");
             var mergesPath = Path.Combine(modelDir, "merges.txt");
@@ -97,8 +142,8 @@ public class Sam3Segmentor : ISam3SegmentationEngine
         return await Task.Run(() =>
         {
             using var tensor = BitmapToNormalizedTensor(image, InputSize, InputSize);
-            var embedding = (torch.Tensor)_imageEncoder!.forward(tensor);
-            return new ImageEmbedding(embedding.detach().clone(), image.Width, image.Height, InputSize, InputSize);
+            using var rawEmbedding = (torch.Tensor)_imageEncoder!.forward(tensor);
+            return new ImageEmbedding(rawEmbedding.detach().clone(), image.Width, image.Height, InputSize, InputSize);
         }, ct);
     }
 
