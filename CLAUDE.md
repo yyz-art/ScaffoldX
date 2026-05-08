@@ -350,3 +350,56 @@ For batch development workflows, use the orchestration system defined in `docs/a
 Skills workflow order: `/grill-with-docs` → `/to-prd` → `/to-issues` → `/tdd` → `/diagnose`
 
 Sub-agent registry template: `docs/agents/sub-agent-registry.md`
+
+### Continuous Development Workflow (持续开发工作流)
+
+**IMPORTANT: 主智能体（Claude）是编排者，不直接写代码。所有实现工作委托给子智能体。**
+
+当用户说"开始开发"、"全方面完善"、"继续执行"等指令时，按以下流程循环执行直到项目可验收：
+
+#### 启动条件检查
+1. `gh auth status` — 确认 GitHub 认证
+2. `dotnet test` — 确认当前测试全部通过
+3. 读取 `docs/agents/orchestrator.md` — 加载编排规范
+4. 读取 `CONTEXT.md` + `docs/adr/` — 加载领域上下文
+5. 检查 GitHub open issues — 了解待办事项
+
+#### 循环执行流程
+```
+WHILE 项目未达到可验收状态:
+  1. ANALYZE — 运行架构分析（/improve-codebase-architecture 或手动探索）
+  2. PLAN — 创建 PRD + 拆分 Issues（/to-prd → /to-issues）
+  3. BATCH DEVELOP — 按依赖层级并行启动 dev-{n} 子智能体
+  4. BATCH TEST — 并行启动 test-{n} 子智能体验证
+  5. FIX LOOP (max 3 rounds):
+     FOR each bug:
+       SendMessage(to="dev-{n}") — 恢复原开发者修复
+       SendMessage(to="test-{n}") — 恢复原测试者验收
+     IF round >= 3 and still bugs: ESCALATE to human
+  6. COMMIT — 提交本轮所有变更
+  7. LOG — 生成 WORKFLOW_LOG
+  8. REPEAT — 回到步骤 1 继续下一轮
+```
+
+#### 子智能体启动规范
+- 使用 `Agent(name="dev-{issue}", run_in_background=true)` 启动
+- 使用 `Agent(name="test-{issue}", run_in_background=true)` 启动测试
+- 等待完成通知（task-notification）后继续下一步
+- 独立任务必须并行启动，有依赖的串行等待
+
+#### 完成标准（可验收）
+- [ ] 所有 GitHub Issues 关闭
+- [ ] `dotnet test` 全部通过（Core + App）
+- [ ] 架构无 God object（单文件 < 500 行）
+- [ ] 所有接口遵循 ISP 原则
+- [ ] 所有 handler 可通过 mock 接口独立测试
+- [ ] 无重复代码（DRY）
+- [ ] 无 magic number（使用常量）
+- [ ] PRD 中所有功能实现完成
+
+#### 会话恢复
+如果会话中断，新会话应：
+1. 读取 CLAUDE.md 和 docs/agents/orchestrator.md
+2. 检查 git log 了解上次提交
+3. 检查 GitHub open issues
+4. 从上次中断处继续执行循环
