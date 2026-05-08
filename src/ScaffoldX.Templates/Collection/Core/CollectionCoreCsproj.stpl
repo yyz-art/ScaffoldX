@@ -1,0 +1,12 @@
+##OUTPUT: src/{{ProjectName}}.Collection/{{ProjectName}}.Collection.csproj
+##REQUIRED: false
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{ NamespacePrefix }}.Collection</RootNamespace>
+    <AssemblyName>{{ ProjectName }}.Collection</AssemblyName>
+  </PropertyGroup>
+
+</Project>

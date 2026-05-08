@@ -1,12 +1,9 @@
 ##OUTPUT: src/{{ProjectName}}.App/Bootstrapper.cs
-using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
 using Prism.Ioc;
 using Prism.Modularity;
 using Prism.Unity;
-using {{ NamespacePrefix }}.App.Views;
 using {{ NamespacePrefix }}.Modules.Shell;
 using {{ NamespacePrefix }}.Modules.Diagnostic;
 using {{ NamespacePrefix }}.Core.Abstractions;
@@ -18,22 +15,8 @@ namespace {{ NamespacePrefix }}.App
     /// <summary>
     /// Prism 启动引导程序，统一管理 Shell 创建、服务注册、模块编录和启动初始化。
     /// </summary>
-    internal class Bootstrapper : PrismApplication
+    public class Bootstrapper : PrismApplication
     {
-        /// <summary>
-        /// MaterialDesign 调色板名称到十六进制颜色的映射（大小写不敏感查找）。
-        /// </summary>
-        private static readonly Dictionary<string, string> MaterialColorMap = new(System.StringComparer.OrdinalIgnoreCase)
-        {
-            ["Red"] = "#F44336", ["Pink"] = "#E91E63", ["Purple"] = "#9C27B0",
-            ["DeepPurple"] = "#673AB7", ["Indigo"] = "#3F51B5", ["Blue"] = "#2196F3",
-            ["LightBlue"] = "#03A9F4", ["Cyan"] = "#00BCD4", ["Teal"] = "#009688",
-            ["Green"] = "#4CAF50", ["LightGreen"] = "#8BC34A", ["Lime"] = "#CDDC39",
-            ["Yellow"] = "#FFEB3B", ["Amber"] = "#FFC107", ["Orange"] = "#FF9800",
-            ["DeepOrange"] = "#FF5722", ["Brown"] = "#795548", ["Grey"] = "#9E9E9E",
-            ["BlueGrey"] = "#607D8B", ["Black"] = "#000000", ["White"] = "#FFFFFF"
-        };
-
         /// <summary>
         /// 创建主窗口 Shell。
         /// </summary>
@@ -91,22 +74,17 @@ namespace {{ NamespacePrefix }}.App
         /// </summary>
         private void ApplyTheme(ThemeInfo theme)
         {
-            var baseTheme = theme.BaseTheme.Equals("Dark", System.StringComparison.OrdinalIgnoreCase)
-                ? Theme.Dark : Theme.Light;
-
-            var primary = ParseColor(theme.PrimaryColor);
-            var secondary = ParseColor(theme.SecondaryColor);
-
-            if (primary.HasValue && secondary.HasValue)
+            var bundledTheme = FindBundledTheme();
+            if (bundledTheme == null)
             {
-                var bundledTheme = FindBundledTheme();
-                if (bundledTheme != null)
-                {
-                    bundledTheme.SetBaseTheme(baseTheme);
-                    bundledTheme.SetPrimaryColor(primary.Value);
-                    bundledTheme.SetSecondaryColor(secondary.Value);
-                }
+                return;
             }
+
+            // MaterialDesign 5.x BundledTheme 使用 BaseTheme/PrimaryColor/SecondaryColor 属性
+            bundledTheme.BaseTheme = theme.BaseTheme.Equals("Dark", System.StringComparison.OrdinalIgnoreCase)
+                ? BaseTheme.Dark : BaseTheme.Light;
+            bundledTheme.PrimaryColor = theme.PrimaryColor;
+            bundledTheme.SecondaryColor = theme.SecondaryColor;
         }
 
         /// <summary>
@@ -131,28 +109,6 @@ namespace {{ NamespacePrefix }}.App
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// 将 MaterialDesign 调色板名称或十六进制颜色字符串解析为 Color。
-        /// </summary>
-        private static System.Windows.Media.Color? ParseColor(string colorName)
-        {
-            // 先查找 MaterialDesign 调色板名称
-            if (MaterialColorMap.TryGetValue(colorName, out var hex))
-            {
-                return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-            }
-
-            // 回退：直接尝试解析十六进制字符串
-            try
-            {
-                return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorName);
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         /// <summary>

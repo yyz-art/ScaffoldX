@@ -10,11 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NModbus4" Version="2.1.1" />
+    <PackageReference Include="NModbus" Version="3.0.81" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+    <ProjectReference Include="..\{{ ProjectName }}.Collection\{{ ProjectName }}.Collection.csproj" />
   </ItemGroup>
 
 </Project>

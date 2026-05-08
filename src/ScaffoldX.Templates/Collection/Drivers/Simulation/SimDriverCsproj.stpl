@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\{{ ProjectName }}.Core\{{ ProjectName }}.Core.csproj" />
+    <ProjectReference Include="..\{{ ProjectName }}.Collection\{{ ProjectName }}.Collection.csproj" />
   </ItemGroup>
 
 </Project>

@@ -72,11 +72,11 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         /// </summary>
         private void RefreshLocalizedTexts()
         {
-            OnPropertyChanged(nameof(WelcomeText));
-            OnPropertyChanged(nameof(RunningStatusText));
-            OnPropertyChanged(nameof(PluginCountText));
-            OnPropertyChanged(nameof(AlarmCountText));
-            OnPropertyChanged(nameof(FooterText));
+            RaisePropertyChanged(nameof(WelcomeText));
+            RaisePropertyChanged(nameof(RunningStatusText));
+            RaisePropertyChanged(nameof(PluginCountText));
+            RaisePropertyChanged(nameof(AlarmCountText));
+            RaisePropertyChanged(nameof(FooterText));
         }
     }
 }

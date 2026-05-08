@@ -168,8 +168,8 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         /// </summary>
         private void RefreshLocalizedTexts()
         {
-            OnPropertyChanged(nameof(LanguageLabel));
-            OnPropertyChanged(nameof(ThemeLabel));
+            RaisePropertyChanged(nameof(LanguageLabel));
+            RaisePropertyChanged(nameof(ThemeLabel));
             ConnectionStatusText = _localization.GetString("Disconnected");
         }
     }
