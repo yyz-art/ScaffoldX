@@ -46,22 +46,22 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="数据集路径:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DatasetPath, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Config.DatasetPath, UpdateSourceTrigger=PropertyChanged}"
                              Margin="8,0" IsReadOnly="True"/>
                     <Button Grid.Row="0" Grid.Column="2" Content="浏览" Command="{Binding BrowseDatasetCommand}"
                             Style="{StaticResource MaterialDesignFlatButton}"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="输出路径:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding OutputPath, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.OutputPath, UpdateSourceTrigger=PropertyChanged}"
                              Margin="8,8" IsReadOnly="True"/>
                     <Button Grid.Row="1" Grid.Column="2" Content="浏览" Command="{Binding BrowseOutputCommand}"
                             Style="{StaticResource MaterialDesignFlatButton}" Margin="0,8,0,0"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="类别数量:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding NumClasses}" Margin="8,8"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.NumClasses}" Margin="8,8"/>
 
                     <TextBlock Grid.Row="3" Grid.Column="0" Text="类别名称:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ClassNamesText}" Margin="8,8"
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Config.ClassNamesText}" Margin="8,8"
                              ToolTip="多个类别用逗号分隔，如: cat,dog,person"/>
                 </Grid>
 
@@ -85,26 +85,26 @@
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="预训练模型:" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableModels}"
-                              SelectedValue="{Binding PretrainedModel}" SelectedValuePath="Name"
+                              SelectedValue="{Binding Config.PretrainedModel}" SelectedValuePath="Name"
                               Margin="8,0" DisplayMemberPath="Name"/>
 
                     <TextBlock Grid.Row="0" Grid.Column="2" Text="训练轮数:" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding Epochs}" Margin="8,0"/>
+                    <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding Config.Epochs}" Margin="8,0"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="批次大小:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BatchSize}" Margin="8,8"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.BatchSize}" Margin="8,8"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="2" Text="图像尺寸:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding ImageSize}" Margin="8,8"/>
+                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding Config.ImageSize}" Margin="8,8"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="学习率:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LearningRate}" Margin="8,8"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Config.LearningRate}" Margin="8,8"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="2" Text="工作线程:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding Workers}" Margin="8,8"/>
+                    <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding Config.Workers}" Margin="8,8"/>
 
                     <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="使用 GPU"
-                              IsChecked="{Binding UseGpu}" Margin="0,8,0,0"/>
+                              IsChecked="{Binding Config.UseGpu}" Margin="0,8,0,0"/>
                 </Grid>
 
                 <!-- 训练按钮 -->
@@ -175,7 +175,7 @@
                 <!-- 预训练模型信息 -->
                 <TextBlock Text="预训练模型" FontWeight="SemiBold" Margin="0,0,0,8"/>
                 <ListBox ItemsSource="{Binding AvailableModels}" Height="200"
-                         SelectedValue="{Binding PretrainedModel}" SelectedValuePath="Name">
+                         SelectedValue="{Binding Config.PretrainedModel}" SelectedValuePath="Name">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>

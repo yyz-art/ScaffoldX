@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows.Data;
+using ScaffoldX.App.Constants;
 
 namespace ScaffoldX.App.Converters;
 
@@ -13,9 +14,9 @@ public class RadiansToDegreesConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is float radians)
-            return Math.Round(radians * 180.0 / Math.PI, 1);
+            return Math.Round(radians * MathConstants.RadiansToDegrees, 1);
         if (value is double doubleRadians)
-            return Math.Round(doubleRadians * 180.0 / Math.PI, 1);
+            return Math.Round(doubleRadians * MathConstants.RadiansToDegrees, 1);
         return 0.0;
     }
 
@@ -23,7 +24,7 @@ public class RadiansToDegreesConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is double degrees)
-            return (float)(degrees * Math.PI / 180.0);
+            return (float)(degrees * MathConstants.DegreesToRadians);
         return 0f;
     }
 }

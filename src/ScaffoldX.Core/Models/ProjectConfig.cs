@@ -85,10 +85,10 @@ public class ProjectConfig
     public bool EnableSimulationDriver { get; set; } = true;
 
     /// <summary>默认 PLC IP 地址。</summary>
-    public string DefaultPLCIp { get; set; } = "192.168.1.1";
+    public string DefaultPLCIp { get; set; } = PlcDefaults.DefaultPlcIp;
 
     /// <summary>默认 PLC 端口。</summary>
-    public int DefaultPLCPort { get; set; } = 102;
+    public int DefaultPLCPort { get; set; } = PlcDefaults.DefaultPlcPort;
 
     /// <summary>S7 机架号。</summary>
     public int S7Rack { get; set; } = 0;
@@ -97,7 +97,7 @@ public class ProjectConfig
     public int S7Slot { get; set; } = 1;
 
     /// <summary>OPC-UA 端点 URL。</summary>
-    public string OpcUaEndpoint { get; set; } = "opc.tcp://localhost:4840";
+    public string OpcUaEndpoint { get; set; } = PlcDefaults.DefaultOpcUaEndpoint;
 
     // ── 视觉扩展选项 ──────────────────────────────────────────────────────
 

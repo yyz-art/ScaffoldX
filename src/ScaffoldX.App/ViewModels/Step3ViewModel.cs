@@ -1,4 +1,5 @@
 using Prism.Mvvm;
+using ScaffoldX.App.Constants;
 using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
@@ -58,10 +59,10 @@ public class Step3ViewModel : BindableBase
     public Step3ViewModel() : this(new ProjectConfig
     {
         EnableSimulationDriver = true,
-        DefaultPLCIp = "192.168.1.1",
-        DefaultPLCPort = 102,
+        DefaultPLCIp = PlcDefaults.DefaultPlcIp,
+        DefaultPLCPort = PlcDefaults.DefaultPlcPort,
         S7Slot = 1,
-        OpcUaEndpoint = "opc.tcp://localhost:4840",
+        OpcUaEndpoint = PlcDefaults.DefaultOpcUaEndpoint,
         CameraBrand = "海康",
         ModelType = "Classification",
         EnablePipeline = true,
@@ -304,12 +305,12 @@ public class Step3ViewModel : BindableBase
     {
         ProjectType = projectType;
 
-        // 采集类：Modbus 默认端口 502
+        // 采集类：Modbus 默认端口
         if (projectType == "Collection")
         {
             var modbus = DriverOptions.FirstOrDefault(d => d.Key == "ModbusTcp");
             if (modbus?.IsSelected == true)
-                DefaultPLCPort = 502;
+                DefaultPLCPort = PlcDefaults.DefaultModbusPort;
         }
     }
 

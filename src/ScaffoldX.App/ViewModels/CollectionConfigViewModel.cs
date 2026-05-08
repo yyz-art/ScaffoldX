@@ -1,4 +1,5 @@
 using Prism.Mvvm;
+using ScaffoldX.App.Constants;
 using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
@@ -148,11 +149,11 @@ public class CollectionConfigViewModel : BindableBase
     public void Reset()
     {
         EnableSimulationDriver = true;
-        DefaultPLCIp = "192.168.1.1";
-        DefaultPLCPort = 102;
+        DefaultPLCIp = PlcDefaults.DefaultPlcIp;
+        DefaultPLCPort = PlcDefaults.DefaultPlcPort;
         S7Rack = 0;
         S7Slot = 1;
-        OpcUaEndpoint = "opc.tcp://localhost:4840";
+        OpcUaEndpoint = PlcDefaults.DefaultOpcUaEndpoint;
         foreach (var d in DriverOptions) d.IsSelected = false;
     }
 

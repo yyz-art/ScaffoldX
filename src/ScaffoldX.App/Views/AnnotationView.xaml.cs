@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using ScaffoldX.App.ViewModels;
 
 namespace ScaffoldX.App.Views;
@@ -43,12 +42,11 @@ public partial class AnnotationView : UserControl
                     if (e.PropertyName is nameof(AnnotationViewModel.CurrentAnnotation)
                         or nameof(AnnotationViewModel.CurrentImage))
                     {
-                        RefreshBoxesDisplay(vm);
-                        RefreshPolygonDisplay(vm);
+                        DrawingHelper.RefreshBoxesDisplay(BoxesCanvas, AnnotationCanvas, vm);
                     }
                     else if (e.PropertyName is nameof(AnnotationViewModel.CurrentPolygonPoints))
                     {
-                        UpdateDrawingPolygon(vm);
+                        DrawingHelper.UpdateDrawingPolygon(DrawingPolygon, vm);
                     }
                     else if (e.PropertyName is nameof(AnnotationViewModel.ZoomLevel))
                     {
@@ -60,7 +58,7 @@ public partial class AnnotationView : UserControl
                         or nameof(AnnotationViewModel.IsDrawingObb)
                         or nameof(AnnotationViewModel.IsRotatingObb))
                     {
-                        UpdateDrawingObb(vm);
+                        DrawingHelper.UpdateDrawingObb(DrawingObbRect, vm);
                     }
                 };
             }
@@ -194,10 +192,8 @@ public partial class AnnotationView : UserControl
         var zoomFactor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
         var newZoom = vm.ZoomLevel * zoomFactor;
 
-        // 限制缩放范围
         newZoom = Math.Clamp(newZoom, 0.1, 10.0);
 
-        // 以鼠标位置为中心缩放
         var mousePos = e.GetPosition(AnnotationCanvas);
         var scaleChange = newZoom / vm.ZoomLevel;
 
@@ -216,7 +212,6 @@ public partial class AnnotationView : UserControl
     /// </summary>
     private void OnPanMouseDown(object sender, MouseButtonEventArgs e)
     {
-        // 中键平移或 Ctrl+左键平移
         if (e.MiddleButton == MouseButtonState.Pressed ||
             (e.LeftButton == MouseButtonState.Pressed && Keyboard.Modifiers == ModifierKeys.Control))
         {
@@ -267,7 +262,6 @@ public partial class AnnotationView : UserControl
 
     /// <summary>
     /// 将屏幕坐标转换为画布坐标（去除缩放和平移变换）。
-    /// 用于在缩放/平移状态下正确计算标注坐标。
     /// </summary>
     public Point ScreenToCanvas(Point screenPoint)
     {
@@ -291,24 +285,22 @@ public partial class AnnotationView : UserControl
 
     /// <summary>
     /// 鼠标按下事件：开始绘制边界框、多边形顶点、OBB 或 SAM3 点提示。
-    /// 中键/Ctrl+左键平移时跳过绘制逻辑。
     /// </summary>
     private void AnnotationCanvas_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not AnnotationViewModel viewModel) return;
 
-        // 中键平移或 Ctrl+左键平移时不处理绘制
         if (e.MiddleButton == MouseButtonState.Pressed ||
             (e.LeftButton == MouseButtonState.Pressed && Keyboard.Modifiers == ModifierKeys.Control))
             return;
 
         Point position = e.GetPosition(AnnotationCanvas);
 
-        // SAM3 点提示模式：左键=正点，右键=负点
+        // SAM3 点提示模式
         if (viewModel.Sam3PromptMode == ScaffoldX.App.Models.Sam3PromptMode.Point)
         {
             bool isPositive = e.LeftButton == MouseButtonState.Pressed;
-            var normalizedPoint = ScreenToNormalized(position, viewModel);
+            var normalizedPoint = DrawingHelper.ScreenToNormalized(position, AnnotationCanvas, viewModel);
             viewModel.Sam3Handler.AddPromptPoint(
                 (float)normalizedPoint.X, (float)normalizedPoint.Y, isPositive);
             e.Handled = true;
@@ -318,7 +310,7 @@ public partial class AnnotationView : UserControl
         if (viewModel.IsPolygonMode)
         {
             viewModel.PolygonMouseDownCommand.Execute((Point?)position);
-            UpdateDrawingPolygon(viewModel);
+            DrawingHelper.UpdateDrawingPolygon(DrawingPolygon, viewModel);
         }
         else if (viewModel.IsObbMode)
         {
@@ -329,14 +321,12 @@ public partial class AnnotationView : UserControl
         {
             viewModel.ImageMouseDownCommand.Execute((Point?)position);
 
-            // 显示绘制矩形
             DrawingRect.Visibility = Visibility.Visible;
             Canvas.SetLeft(DrawingRect, position.X);
             Canvas.SetTop(DrawingRect, position.Y);
             DrawingRect.Width = 0;
             DrawingRect.Height = 0;
 
-            // 捕获鼠标
             AnnotationCanvas.CaptureMouse();
         }
     }
@@ -348,10 +338,8 @@ public partial class AnnotationView : UserControl
     {
         if (DataContext is not AnnotationViewModel viewModel) return;
 
-        // 多边形模式下不需要处理鼠标移动
         if (viewModel.IsPolygonMode) return;
 
-        // OBB 模式下更新 OBB 预览
         if (viewModel.IsObbMode)
         {
             Point position = e.GetPosition(AnnotationCanvas);
@@ -364,7 +352,6 @@ public partial class AnnotationView : UserControl
         Point pos = e.GetPosition(AnnotationCanvas);
         viewModel.ImageMouseMoveCommand.Execute((Point?)pos);
 
-        // 更新绘制矩形
         var startX = Canvas.GetLeft(DrawingRect);
         var startY = Canvas.GetTop(DrawingRect);
 
@@ -386,11 +373,7 @@ public partial class AnnotationView : UserControl
     {
         if (DataContext is not AnnotationViewModel viewModel) return;
 
-        if (viewModel.IsPolygonMode)
-        {
-            // 多边形模式下，鼠标释放不做额外处理（MouseDown 已处理添加顶点）
-            return;
-        }
+        if (viewModel.IsPolygonMode) return;
 
         if (viewModel.IsObbMode)
         {
@@ -403,14 +386,10 @@ public partial class AnnotationView : UserControl
         Point pos = e.GetPosition(AnnotationCanvas);
         viewModel.ImageMouseUpCommand.Execute((Point?)pos);
 
-        // 隐藏绘制矩形
         DrawingRect.Visibility = Visibility.Collapsed;
-
-        // 释放鼠标捕获
         AnnotationCanvas.ReleaseMouseCapture();
 
-        // 刷新边界框显示
-        RefreshBoxesDisplay(viewModel);
+        DrawingHelper.RefreshBoxesDisplay(BoxesCanvas, AnnotationCanvas, viewModel);
     }
 
     /// <summary>
@@ -423,343 +402,12 @@ public partial class AnnotationView : UserControl
             Point position = e.GetPosition(AnnotationCanvas);
             viewModel.PolygonDoubleClickCommand.Execute((Point?)position);
 
-            // 刷新显示
-            RefreshBoxesDisplay(viewModel);
-            UpdateDrawingPolygon(viewModel);
+            DrawingHelper.RefreshBoxesDisplay(BoxesCanvas, AnnotationCanvas, viewModel);
+            DrawingHelper.UpdateDrawingPolygon(DrawingPolygon, viewModel);
             e.Handled = true;
             return;
         }
 
         base.OnMouseDoubleClick(e);
-    }
-
-    // ── 显示刷新 ────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// 刷新边界框和多边形显示，使用每个类别对应的颜色。
-    /// </summary>
-    private void RefreshBoxesDisplay(AnnotationViewModel viewModel)
-    {
-        BoxesCanvas.Children.Clear();
-
-        if (viewModel.CurrentAnnotation == null || viewModel.CurrentImage == null)
-            return;
-
-        var imageWidth = viewModel.CurrentImage.PixelWidth;
-        var imageHeight = viewModel.CurrentImage.PixelHeight;
-
-        // 构建类别名称到颜色的映射
-        var classColorMap = new Dictionary<string, Color>();
-        foreach (var cls in viewModel.Classes)
-        {
-            if (TryParseColor(cls.Color, out var color))
-            {
-                classColorMap[cls.Name] = color;
-            }
-        }
-
-        foreach (var box in viewModel.CurrentAnnotation.Boxes)
-        {
-            var canvasWidth = AnnotationCanvas.ActualWidth;
-            var canvasHeight = AnnotationCanvas.ActualHeight;
-
-            var imageAspect = (double)imageWidth / imageHeight;
-            var canvasAspect = canvasWidth / canvasHeight;
-
-            double displayWidth, displayHeight, offsetX, offsetY;
-
-            if (imageAspect > canvasAspect)
-            {
-                displayWidth = canvasWidth;
-                displayHeight = canvasWidth / imageAspect;
-                offsetX = 0;
-                offsetY = (canvasHeight - displayHeight) / 2;
-            }
-            else
-            {
-                displayHeight = canvasHeight;
-                displayWidth = canvasHeight * imageAspect;
-                offsetX = (canvasWidth - displayWidth) / 2;
-                offsetY = 0;
-            }
-
-            var boxX = offsetX + (box.CenterX - box.Width / 2) * displayWidth;
-            var boxY = offsetY + (box.CenterY - box.Height / 2) * displayHeight;
-            var boxWidth = box.Width * displayWidth;
-            var boxHeight = box.Height * displayHeight;
-
-            // 获取该类别对应的颜色，没有则用红色
-            var boxColor = classColorMap.TryGetValue(box.ClassName, out var c) ? c : Color.FromRgb(255, 0, 0);
-
-            var rect = new System.Windows.Shapes.Rectangle
-            {
-                Width = boxWidth,
-                Height = boxHeight,
-                Stroke = new SolidColorBrush(boxColor),
-                StrokeThickness = 2,
-                Fill = Brushes.Transparent
-            };
-
-            Canvas.SetLeft(rect, boxX);
-            Canvas.SetTop(rect, boxY);
-            BoxesCanvas.Children.Add(rect);
-
-            // 类别标签
-            var labelBg = Color.FromArgb(180, boxColor.R, boxColor.G, boxColor.B);
-            var label = new TextBlock
-            {
-                Text = box.ClassName,
-                Foreground = Brushes.White,
-                Background = new SolidColorBrush(labelBg),
-                Padding = new Thickness(4, 2, 4, 2),
-                FontSize = 12
-            };
-
-            Canvas.SetLeft(label, boxX);
-            Canvas.SetTop(label, boxY - 20);
-            BoxesCanvas.Children.Add(label);
-        }
-
-        // 绘制多边形标注
-        foreach (var polygon in viewModel.CurrentAnnotation.Polygons)
-        {
-            var canvasWidth = AnnotationCanvas.ActualWidth;
-            var canvasHeight = AnnotationCanvas.ActualHeight;
-
-            var imageAspect = (double)imageWidth / imageHeight;
-            var canvasAspect = canvasWidth / canvasHeight;
-
-            double displayWidth, displayHeight, offsetX, offsetY;
-
-            if (imageAspect > canvasAspect)
-            {
-                displayWidth = canvasWidth;
-                displayHeight = canvasWidth / imageAspect;
-                offsetX = 0;
-                offsetY = (canvasHeight - displayHeight) / 2;
-            }
-            else
-            {
-                displayHeight = canvasHeight;
-                displayWidth = canvasHeight * imageAspect;
-                offsetX = (canvasWidth - displayWidth) / 2;
-                offsetY = 0;
-            }
-
-            // 获取该类别对应的颜色，没有则用绿色
-            var polyColor = classColorMap.TryGetValue(polygon.ClassName, out var pc)
-                ? pc
-                : Color.FromRgb(0, 255, 0);
-
-            var points = new PointCollection(
-                polygon.Points.Select(p => new Point(
-                    offsetX + p.X * displayWidth,
-                    offsetY + p.Y * displayHeight)));
-
-            var polyline = new System.Windows.Shapes.Polyline
-            {
-                Points = points,
-                Stroke = new SolidColorBrush(polyColor),
-                StrokeThickness = 2,
-                Fill = new SolidColorBrush(Color.FromArgb(40, polyColor.R, polyColor.G, polyColor.B))
-            };
-
-            BoxesCanvas.Children.Add(polyline);
-
-            // 类别标签
-            var labelBg = Color.FromArgb(180, polyColor.R, polyColor.G, polyColor.B);
-            var labelPoint = points.FirstOrDefault();
-            var label = new TextBlock
-            {
-                Text = polygon.ClassName,
-                Foreground = Brushes.White,
-                Background = new SolidColorBrush(labelBg),
-                Padding = new Thickness(4, 2, 4, 2),
-                FontSize = 12
-            };
-
-            Canvas.SetLeft(label, labelPoint.X);
-            Canvas.SetTop(label, labelPoint.Y - 20);
-            BoxesCanvas.Children.Add(label);
-        }
-
-        // 绘制旋转边界框（OBB）标注
-        foreach (var obb in viewModel.CurrentAnnotation.OrientedBoxes)
-        {
-            var canvasWidth = AnnotationCanvas.ActualWidth;
-            var canvasHeight = AnnotationCanvas.ActualHeight;
-
-            var imageAspect = (double)imageWidth / imageHeight;
-            var canvasAspect = canvasWidth / canvasHeight;
-
-            double displayWidth, displayHeight, offsetX, offsetY;
-
-            if (imageAspect > canvasAspect)
-            {
-                displayWidth = canvasWidth;
-                displayHeight = canvasWidth / imageAspect;
-                offsetX = 0;
-                offsetY = (canvasHeight - displayHeight) / 2;
-            }
-            else
-            {
-                displayHeight = canvasHeight;
-                displayWidth = canvasHeight * imageAspect;
-                offsetX = (canvasWidth - displayWidth) / 2;
-                offsetY = 0;
-            }
-
-            // 获取该类别对应的颜色，没有则用橙色
-            var obbColor = classColorMap.TryGetValue(obb.ClassName, out var oc)
-                ? oc
-                : Color.FromRgb(255, 152, 0);
-
-            // 计算 OBB 在画布上的位置和尺寸
-            var obbCenterX = offsetX + obb.CenterX * displayWidth;
-            var obbCenterY = offsetY + obb.CenterY * displayHeight;
-            var obbWidth = obb.Width * displayWidth;
-            var obbHeight = obb.Height * displayHeight;
-
-            var rect = new System.Windows.Shapes.Rectangle
-            {
-                Width = obbWidth,
-                Height = obbHeight,
-                Stroke = new SolidColorBrush(obbColor),
-                StrokeThickness = 2,
-                Fill = new SolidColorBrush(Color.FromArgb(40, obbColor.R, obbColor.G, obbColor.B))
-            };
-
-            // 设置旋转（以矩形中心为旋转中心）
-            var rotateTransform = new RotateTransform(obb.Angle * 180 / Math.PI);
-            rotateTransform.CenterX = obbWidth / 2;
-            rotateTransform.CenterY = obbHeight / 2;
-            rect.RenderTransform = rotateTransform;
-
-            Canvas.SetLeft(rect, obbCenterX - obbWidth / 2);
-            Canvas.SetTop(rect, obbCenterY - obbHeight / 2);
-            BoxesCanvas.Children.Add(rect);
-
-            // 类别标签
-            var labelBgO = Color.FromArgb(180, obbColor.R, obbColor.G, obbColor.B);
-            var labelO = new TextBlock
-            {
-                Text = $"{obb.ClassName} ({obb.Angle * 180 / Math.PI:F1}°)",
-                Foreground = Brushes.White,
-                Background = new SolidColorBrush(labelBgO),
-                Padding = new Thickness(4, 2, 4, 2),
-                FontSize = 12
-            };
-
-            Canvas.SetLeft(labelO, obbCenterX - obbWidth / 2);
-            Canvas.SetTop(labelO, obbCenterY - obbHeight / 2 - 20);
-            BoxesCanvas.Children.Add(labelO);
-        }
-    }
-
-    /// <summary>
-    /// 刷新已保存的多边形显示（委托给 RefreshBoxesDisplay 统一处理）。
-    /// </summary>
-    private void RefreshPolygonDisplay(AnnotationViewModel viewModel)
-    {
-        // 多边形已在 RefreshBoxesDisplay 中统一绘制
-    }
-
-    /// <summary>
-    /// 更新正在绘制的多边形预览线。
-    /// </summary>
-    private void UpdateDrawingPolygon(AnnotationViewModel viewModel)
-    {
-        if (!viewModel.IsPolygonMode || viewModel.CurrentPolygonPoints.Count == 0)
-        {
-            DrawingPolygon.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        DrawingPolygon.Visibility = Visibility.Visible;
-        DrawingPolygon.Points = new PointCollection(viewModel.CurrentPolygonPoints);
-    }
-
-    /// <summary>
-    /// 更新正在绘制的 OBB 预览矩形（带旋转）。
-    /// </summary>
-    private void UpdateDrawingObb(AnnotationViewModel viewModel)
-    {
-        if (!viewModel.IsObbMode || (!viewModel.IsDrawingObb && !viewModel.IsRotatingObb))
-        {
-            DrawingObbRect.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        DrawingObbRect.Visibility = Visibility.Visible;
-        DrawingObbRect.Width = viewModel.ObbSize.Width;
-        DrawingObbRect.Height = viewModel.ObbSize.Height;
-
-        // 设置旋转中心为矩形中心
-        var rotateTransform = new RotateTransform(viewModel.ObbAngle * 180 / Math.PI);
-        rotateTransform.CenterX = viewModel.ObbSize.Width / 2;
-        rotateTransform.CenterY = viewModel.ObbSize.Height / 2;
-        DrawingObbRect.RenderTransform = rotateTransform;
-
-        // 定位矩形（左上角 = 中心 - 半宽/半高）
-        Canvas.SetLeft(DrawingObbRect, viewModel.ObbCenter.X - viewModel.ObbSize.Width / 2);
-        Canvas.SetTop(DrawingObbRect, viewModel.ObbCenter.Y - viewModel.ObbSize.Height / 2);
-    }
-
-    /// <summary>
-    /// 将屏幕坐标转换为归一化图像坐标（0-1）。
-    /// 用于 SAM3 点提示模式。
-    /// </summary>
-    private Point ScreenToNormalized(Point screenPoint, AnnotationViewModel viewModel)
-    {
-        if (viewModel.CurrentImage == null)
-            return new Point(0, 0);
-
-        var canvasWidth = AnnotationCanvas.ActualWidth;
-        var canvasHeight = AnnotationCanvas.ActualHeight;
-        var imageWidth = viewModel.CurrentImage.PixelWidth;
-        var imageHeight = viewModel.CurrentImage.PixelHeight;
-
-        var imageAspect = (double)imageWidth / imageHeight;
-        var canvasAspect = canvasWidth / canvasHeight;
-
-        double displayWidth, displayHeight, offsetX, offsetY;
-        if (imageAspect > canvasAspect)
-        {
-            displayWidth = canvasWidth;
-            displayHeight = canvasWidth / imageAspect;
-            offsetX = 0;
-            offsetY = (canvasHeight - displayHeight) / 2;
-        }
-        else
-        {
-            displayHeight = canvasHeight;
-            displayWidth = canvasHeight * imageAspect;
-            offsetX = (canvasWidth - displayWidth) / 2;
-            offsetY = 0;
-        }
-
-        var normalizedX = (screenPoint.X - offsetX) / displayWidth;
-        var normalizedY = (screenPoint.Y - offsetY) / displayHeight;
-
-        return new Point(Math.Clamp(normalizedX, 0, 1), Math.Clamp(normalizedY, 0, 1));
-    }
-
-    /// <summary>
-    /// 尝试解析十六进制颜色字符串（如 "#FF0000"）。
-    /// </summary>
-    private static bool TryParseColor(string hex, out Color color)
-    {
-        color = Colors.Transparent;
-        if (string.IsNullOrWhiteSpace(hex)) return false;
-
-        try
-        {
-            color = (Color)ColorConverter.ConvertFromString(hex);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

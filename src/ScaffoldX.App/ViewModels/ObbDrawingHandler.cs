@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using Prism.Commands;
 using Prism.Mvvm;
+using ScaffoldX.App.Constants;
 using ScaffoldX.App.Models;
 using ScaffoldX.App.Services;
 
@@ -264,7 +265,7 @@ public class ObbDrawingHandler : BindableBase
         _ctx.UpdateBoxesList();
         _ctx.UpdateClassDistribution();
 
-        _ctx.SetStatusMessage($"已添加 OBB 标注: {selectedClass.Name} (角度: {angle * 180 / Math.PI:F1}°)");
+        _ctx.SetStatusMessage($"已添加 OBB 标注: {selectedClass.Name} (角度: {angle * MathConstants.RadiansToDegrees:F1}°)");
     }
 
     /// <summary>

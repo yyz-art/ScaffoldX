@@ -31,7 +31,6 @@ public class YoloTrainingService : IYoloTrainingService
 
         try
         {
-            // 检查 Python
             var pythonOutput = await RunProcessAsync("python", "--version");
             if (pythonOutput.Success)
             {
@@ -52,7 +51,6 @@ public class YoloTrainingService : IYoloTrainingService
 
         try
         {
-            // 检查 Ultralytics
             var ultralyticsOutput = await RunProcessAsync("python", "-c \"import ultralytics; print(ultralytics.__version__)\"");
             if (ultralyticsOutput.Success)
             {
@@ -67,14 +65,12 @@ public class YoloTrainingService : IYoloTrainingService
 
         try
         {
-            // 检查 PyTorch
             var pytorchOutput = await RunProcessAsync("python", "-c \"import torch; print(torch.__version__)\"");
             if (pytorchOutput.Success)
             {
                 result.PyTorchInstalled = true;
             }
 
-            // 检查 CUDA
             var cudaOutput = await RunProcessAsync("python", "-c \"import torch; print(torch.cuda.is_available()); print(torch.version.cuda)\"");
             if (cudaOutput.Success)
             {
@@ -126,12 +122,10 @@ public class YoloTrainingService : IYoloTrainingService
 
         try
         {
-            // 创建训练脚本
             var scriptPath = Path.Combine(config.OutputPath, "train_script.py");
-            var scriptContent = GenerateTrainingScript(config);
+            var scriptContent = YoloScriptGenerator.GenerateTrainingScript(config);
             await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken);
 
-            // 创建输出目录
             Directory.CreateDirectory(config.OutputPath);
 
             progress.Report(new TrainingProgress
@@ -140,95 +134,33 @@ public class YoloTrainingService : IYoloTrainingService
                 TotalEpochs = config.Epochs
             });
 
-            // 运行训练脚本
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "python",
-                    Arguments = scriptPath,
-                    WorkingDirectory = config.OutputPath,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-
-            // 读取输出
-            var outputTask = ReadProcessOutputAsync(process, progress, config.Epochs, cancellationToken);
-            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-
-            await process.WaitForExitAsync(cancellationToken);
-            var output = await outputTask;
-            var error = await errorTask;
-
-            stopwatch.Stop();
-
-            if (process.ExitCode != 0)
-            {
-                _logger.Error("训练失败: {Error}", error);
-                return new TrainingResult
-                {
-                    Success = false,
-                    ErrorMessage = error,
-                    TotalTime = stopwatch.Elapsed
-                };
-            }
-
-            // 解析最终结果
-            var result = ParseTrainingOutput(output);
+            var result = await RunTrainingProcessAsync(scriptPath, config.OutputPath, progress, config.Epochs, cancellationToken);
             result.TotalTime = stopwatch.Elapsed;
-            result.ModelPath = Path.Combine(config.OutputPath, "weights", "best.pt");
+
+            if (result.Success)
+            {
+                result.ModelPath = Path.Combine(config.OutputPath, "weights", "best.pt");
+            }
 
             return result;
         }
         catch (OperationCanceledException)
         {
             stopwatch.Stop();
-            return new TrainingResult
-            {
-                Success = false,
-                ErrorMessage = "训练已取消",
-                TotalTime = stopwatch.Elapsed
-            };
+            return new TrainingResult { Success = false, ErrorMessage = "训练已取消", TotalTime = stopwatch.Elapsed };
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             _logger.Error(ex, "训练过程中发生错误");
-            return new TrainingResult
-            {
-                Success = false,
-                ErrorMessage = ex.Message,
-                TotalTime = stopwatch.Elapsed
-            };
+            return new TrainingResult { Success = false, ErrorMessage = ex.Message, TotalTime = stopwatch.Elapsed };
         }
     }
 
     /// <inheritdoc/>
     public async Task<ModelValidationResult> ValidateAsync(string modelPath, string datasetPath)
     {
-        var script = $$$"""
-            from ultralytics import YOLO
-            import json
-
-            model = YOLO('{{{modelPath.Replace("\\", "\\\\")}}}')
-            results = model.val(data='{{{Path.Combine(datasetPath, "data.yaml").Replace("\\", "\\\\")}}}')
-
-            output = {{
-                "map50": results.box.map50,
-                "map50_95": results.box.map,
-                "precision": results.box.mp,
-                "recall": results.box.mr,
-                "inference_speed": results.speed['inference']
-            }}
-
-            print(json.dumps(output))
-            """;
-
+        var script = YoloScriptGenerator.GenerateValidationScript(modelPath, datasetPath);
         var scriptPath = Path.GetTempFileName() + ".py";
         await File.WriteAllTextAsync(scriptPath, script);
 
@@ -251,13 +183,7 @@ public class YoloTrainingService : IYoloTrainingService
     /// <inheritdoc/>
     public async Task<bool> ExportToOnnxAsync(string modelPath, string outputPath, int imageSize = 640)
     {
-        var script = $"""
-            from ultralytics import YOLO
-
-            model = YOLO('{modelPath.Replace("\\", "\\\\")}')
-            model.export(format='onnx', imgsz={imageSize}, simplify=True)
-            """;
-
+        var script = YoloScriptGenerator.GenerateExportOnnxScript(modelPath, imageSize);
         var scriptPath = Path.GetTempFileName() + ".py";
         await File.WriteAllTextAsync(scriptPath, script);
 
@@ -275,7 +201,6 @@ public class YoloTrainingService : IYoloTrainingService
     /// <inheritdoc/>
     public IReadOnlyList<PretrainedModel> GetAvailableModels()
     {
-        // 检查哪些模型已下载
         var modelsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".cache", "ultralytics");
@@ -294,13 +219,7 @@ public class YoloTrainingService : IYoloTrainingService
     {
         progress.Report($"正在下载 {modelName}...");
 
-        var script = $"""
-            from ultralytics import YOLO
-
-            model = YOLO('{modelName}')
-            print('Download complete')
-            """;
-
+        var script = YoloScriptGenerator.GenerateDownloadScript(modelName);
         var scriptPath = Path.GetTempFileName() + ".py";
         await File.WriteAllTextAsync(scriptPath, script);
 
@@ -327,7 +246,7 @@ public class YoloTrainingService : IYoloTrainingService
         try
         {
             var scriptPath = Path.Combine(config.OutputPath, "resume_train_script.py");
-            var scriptContent = GenerateTrainingScript(config, resumeFromPath);
+            var scriptContent = YoloScriptGenerator.GenerateTrainingScript(config, resumeFromPath);
             await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken);
 
             Directory.CreateDirectory(config.OutputPath);
@@ -338,40 +257,14 @@ public class YoloTrainingService : IYoloTrainingService
                 TotalEpochs = config.Epochs
             });
 
-            var process = new Process
+            var result = await RunTrainingProcessAsync(scriptPath, config.OutputPath, progress, config.Epochs, cancellationToken);
+            result.TotalTime = stopwatch.Elapsed;
+
+            if (result.Success)
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "python",
-                    Arguments = scriptPath,
-                    WorkingDirectory = config.OutputPath,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-
-            var outputTask = ReadProcessOutputAsync(process, progress, config.Epochs, cancellationToken);
-            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-
-            await process.WaitForExitAsync(cancellationToken);
-            var output = await outputTask;
-            var error = await errorTask;
-
-            stopwatch.Stop();
-
-            if (process.ExitCode != 0)
-            {
-                _logger.Error("恢复训练失败: {Error}", error);
-                return new TrainingResult { Success = false, ErrorMessage = error, TotalTime = stopwatch.Elapsed };
+                result.ModelPath = Path.Combine(config.OutputPath, "weights", "best.pt");
             }
 
-            var result = ParseTrainingOutput(output);
-            result.TotalTime = stopwatch.Elapsed;
-            result.ModelPath = Path.Combine(config.OutputPath, "weights", "best.pt");
             return result;
         }
         catch (OperationCanceledException)
@@ -389,127 +282,41 @@ public class YoloTrainingService : IYoloTrainingService
 
     // ── 辅助方法 ──────────────────────────────────────────────────────────────
 
-    private string GenerateTrainingScript(YoloTrainingConfig config, string? resumeFromPath = null)
+    private async Task<TrainingResult> RunTrainingProcessAsync(
+        string scriptPath, string workingDirectory,
+        IProgress<TrainingProgress> progress, int totalEpochs,
+        CancellationToken cancellationToken)
     {
-        var classNamesJson = JsonSerializer.Serialize(config.ClassNames);
-        var device = config.UseGpu ? "0" : "cpu";
-        var modelPath = resumeFromPath ?? config.PretrainedModel;
-        var isResume = resumeFromPath != null;
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = scriptPath,
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
 
-        return $$$"""
-            from ultralytics import YOLO
-            import json
+        process.Start();
 
-            # 加载模型{{{{(isResume ? "（从检查点恢复）" : "（预训练）")}}}}
-            model = YOLO('{{{modelPath.Replace("\\", "\\\\")}}}')
+        var outputTask = ReadProcessOutputAsync(process, progress, totalEpochs, cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
-            # 训练配置
-            results = model.train(
-                data='{{{Path.Combine(config.DatasetPath, "data.yaml").Replace("\\", "\\\\")}}}',
-                epochs={{{config.Epochs}}},
-                batch={{{config.BatchSize}}},
-                imgsz={{{config.ImageSize}}},
-                lr0={{{config.LearningRate}}},
-                workers={{{config.Workers}}},
-                device='{{{device}}}',
-                project='{{{config.OutputPath.Replace("\\", "\\\\")}}}',
-                name='train',
-                exist_ok=True,
-                pretrained=True,
-                optimizer='auto',
-                verbose=True,
-                seed=0,
-                deterministic=True,
-                single_cls=False,
-                rect=False,
-                cos_lr=False,
-                close_mosaic=10,
-                resume={{{(isResume ? "True" : "False")}}},
-                amp=True,
-                overlap_mask=True,
-                mask_ratio=4,
-                dropout=0.0,
-                val=True,
-                save=True,
-                save_json=False,
-                save_hybrid=False,
-                conf=None,
-                iou=0.7,
-                max_det=300,
-                half=False,
-                dnn=False,
-                plots=True,
-                source=None,
-                vid_stride=1,
-                stream_buffer=False,
-                visualize=False,
-                augment=False,
-                agnostic_nms=False,
-                classes=None,
-                retina_masks=False,
-                embed=None,
-                show=False,
-                save_frames=False,
-                save_txt=False,
-                save_conf=False,
-                save_crop=False,
-                show_labels=True,
-                show_conf=True,
-                show_boxes=True,
-                line_width=None,
-                format='torchscript',
-                keras=False,
-                optimize=False,
-                int8=False,
-                dynamic=False,
-                simplify=False,
-                opset=None,
-                workspace=4,
-                nms=False,
-                lr0={{{config.LearningRate}}},
-                lrf=0.01,
-                momentum=0.937,
-                weight_decay=0.0005,
-                warmup_epochs=3.0,
-                warmup_momentum=0.8,
-                warmup_bias_lr=0.1,
-                box=7.5,
-                cls=0.5,
-                dfl=1.5,
-                pose=12.0,
-                kobj=1.0,
-                label_smoothing=0.0,
-                nbs=64,
-                hsv_h=0.015,
-                hsv_s=0.7,
-                hsv_v=0.4,
-                degrees=0.0,
-                translate=0.1,
-                scale=0.5,
-                shear=0.0,
-                perspective=0.0,
-                flipud=0.0,
-                fliplr=0.5,
-                bgr=0.0,
-                mosaic=1.0,
-                mixup=0.0,
-                copy_paste=0.0,
-                auto_augment='randaugment',
-                erasing=0.4,
-                crop_fraction=1.0,
-                cfg=None,
-                tracker='botsort.yaml',
-            )
+        await process.WaitForExitAsync(cancellationToken);
+        var output = await outputTask;
+        var error = await errorTask;
 
-            # 输出训练结果
-            output = {{
-                "success": True,
-                "map50": float(results.results_dict.get('metrics/mAP50(B)', 0)),
-                "map50_95": float(results.results_dict.get('metrics/mAP50-95(B)', 0)),
-            }}
+        if (process.ExitCode != 0)
+        {
+            _logger.Error("训练失败: {Error}", error);
+            return new TrainingResult { Success = false, ErrorMessage = error };
+        }
 
-            print(json.dumps(output))
-            """;
+        return ParseTrainingOutput(output);
     }
 
     private async Task<string> ReadProcessOutputAsync(
@@ -527,7 +334,6 @@ public class YoloTrainingService : IYoloTrainingService
 
             output.AppendLine(line);
 
-            // 解析训练进度
             var epochMatch = Regex.Match(line, @"Epoch\s+(\d+)/(\d+)");
             if (epochMatch.Success)
             {
@@ -540,7 +346,6 @@ public class YoloTrainingService : IYoloTrainingService
                 });
             }
 
-            // 解析损失值
             var lossMatch = Regex.Match(line, @"loss:\s+([\d.]+)");
             if (lossMatch.Success)
             {
@@ -562,7 +367,6 @@ public class YoloTrainingService : IYoloTrainingService
 
         try
         {
-            // 尝试解析 JSON 输出
             var jsonMatch = Regex.Match(output, @"\{[^}]+\}");
             if (jsonMatch.Success)
             {
