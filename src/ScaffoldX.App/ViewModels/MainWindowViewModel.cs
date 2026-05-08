@@ -6,6 +6,7 @@ namespace ScaffoldX.App.ViewModels;
 
 /// <summary>
 /// 主窗口 ViewModel，管理向导步骤切换和共享的 ProjectConfig。
+/// 所有步骤 ViewModel 直接读写 SharedConfig，无需手动字段同步。
 /// CurrentStep: 0=历史列表, 1=步骤一(类型), 2=步骤二(基础信息), 3=步骤三(专项配置), 4=步骤四(确认生成), 10=标注工具, 11=训练平台。
 /// </summary>
 public class MainWindowViewModel : BindableBase
@@ -23,6 +24,7 @@ public class MainWindowViewModel : BindableBase
 
     /// <summary>
     /// 初始化主窗口 ViewModel，注入各步骤子 ViewModel。
+    /// 将 SharedConfig 传递给所有步骤 ViewModel，消除手动字段同步。
     /// </summary>
     public MainWindowViewModel(
         ProjectHistoryViewModel historyVm,
@@ -42,6 +44,11 @@ public class MainWindowViewModel : BindableBase
         _trainingVm = trainingVm;
 
         SharedConfig = new ProjectConfig();
+
+        // 将共享配置传递给所有步骤 ViewModel
+        _step1Vm.Config = SharedConfig;
+        _step2Vm.Config = SharedConfig;
+        _step3Vm.Initialize(SharedConfig);
 
         GoBackCommand = new DelegateCommand(ExecuteGoBack, () => CanGoBack)
             .ObservesProperty(() => CanGoBack);
@@ -166,20 +173,23 @@ public class MainWindowViewModel : BindableBase
     {
         if (CurrentStep == 3)
         {
-            // 将配置同步到 Step4，然后跳转
-            SyncConfigToStep4();
+            // Step3 的配置已直接写入 SharedConfig，只需初始化 Step4
+            SharedConfig.EnableVision = SharedConfig.ProjectType == "Vision";
+            _step4Vm.Initialize(SharedConfig);
             NavigateTo(4);
         }
         else if (CurrentStep >= 1 && CurrentStep < 4)
         {
-            SyncConfigFromCurrentStep();
+            // Step1/Step2 的配置已直接写入 SharedConfig
+            // 从 Step1 切换到 Step2 时，通知 Step3 应用项目类型
+            if (CurrentStep == 1)
+                _step3Vm.ApplyProjectType(SharedConfig.ProjectType);
             NavigateTo(CurrentStep + 1);
         }
     }
 
     private void ExecuteNewProject()
     {
-        // 重置配置
         SharedConfig.ProjectName = string.Empty;
         SharedConfig.ProjectType = string.Empty;
         _step1Vm.Reset();
@@ -207,56 +217,5 @@ public class MainWindowViewModel : BindableBase
             11 => _trainingVm,
             _ => _historyVm
         };
-    }
-
-    private void SyncConfigFromCurrentStep()
-    {
-        switch (CurrentStep)
-        {
-            case 1:
-                SharedConfig.ProjectType = _step1Vm.SelectedProjectType;
-                _step3Vm.ApplyProjectType(SharedConfig.ProjectType);
-                break;
-            case 2:
-                SharedConfig.ProjectName = _step2Vm.ProjectName;
-                SharedConfig.OutputDirectory = _step2Vm.OutputPath;
-                SharedConfig.NamespacePrefix = _step2Vm.NamespacePrefix;
-                SharedConfig.UIFramework = _step2Vm.UIFramework;
-                SharedConfig.TargetFramework = _step2Vm.DotNetVersion switch
-                {
-                    ".NET 6" => _step2Vm.UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
-                    _        => _step2Vm.UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
-                };
-                SharedConfig.Description = _step2Vm.ProjectDescription;
-                break;
-        }
-    }
-
-    private void SyncConfigToStep4()
-    {
-        // 同步步骤三的专项配置：驱动选项
-        foreach (var driver in _step3Vm.DriverOptions)
-            SharedConfig.SetDriver(driver.Key, driver.IsSelected);
-
-        SharedConfig.EnableSimulationDriver = _step3Vm.EnableSimulationDriver;
-        SharedConfig.DefaultPLCIp = _step3Vm.DefaultPLCIp;
-        SharedConfig.DefaultPLCPort = _step3Vm.DefaultPLCPort;
-        SharedConfig.S7Rack = _step3Vm.S7Rack;
-        SharedConfig.S7Slot = _step3Vm.S7Slot;
-        SharedConfig.OpcUaEndpoint = _step3Vm.OpcUaEndpoint;
-        SharedConfig.CameraBrand = _step3Vm.CameraBrand;
-        SharedConfig.ModelType = _step3Vm.ModelType;
-        SharedConfig.ModelPath = _step3Vm.ModelPath;
-        SharedConfig.EnablePipeline = _step3Vm.EnablePipeline;
-
-        // 同步步骤三的专项配置：系统模块
-        foreach (var module in _step3Vm.ModuleOptions)
-            SharedConfig.SetModule(module.Key, module.IsSelected);
-
-        SharedConfig.EnableVision = SharedConfig.ProjectType == "Vision";
-        SharedConfig.EnableLoginWindow = _step3Vm.EnableLoginWindow;
-        SharedConfig.ForcePasswordChange = _step3Vm.ForcePasswordChange;
-
-        _step4Vm.Initialize(SharedConfig);
     }
 }

@@ -3,6 +3,7 @@ using System.Windows.Media.Imaging;
 using Prism.Commands;
 using Prism.Mvvm;
 using ScaffoldX.App.Models;
+using ScaffoldX.App.Services;
 
 namespace ScaffoldX.App.ViewModels;
 
@@ -191,7 +192,7 @@ public class ObbDrawingHandler : BindableBase
     {
         if (!IsObbMode || !_ctx.DrawingState.IsDrawingObb) return;
 
-        if (ObbSize.Width < 5 || ObbSize.Height < 5)
+        if (ObbSize.Width < CoordinateMapper.MinBoxSize || ObbSize.Height < CoordinateMapper.MinBoxSize)
         {
             ExecuteCancelObb();
             return;
@@ -209,7 +210,7 @@ public class ObbDrawingHandler : BindableBase
     /// <summary>
     /// 判断是否可以完成 OBB 绘制（处于旋转阶段且尺寸有效）。
     /// </summary>
-    private bool CanFinishObb() => _ctx.DrawingState.IsRotatingObb && ObbSize.Width >= 5 && ObbSize.Height >= 5;
+    private bool CanFinishObb() => _ctx.DrawingState.IsRotatingObb && ObbSize.Width >= CoordinateMapper.MinBoxSize && ObbSize.Height >= CoordinateMapper.MinBoxSize;
 
     /// <summary>
     /// 完成 OBB 绘制，创建旋转边界框标注并添加到当前标注数据。
@@ -219,7 +220,7 @@ public class ObbDrawingHandler : BindableBase
         var currentAnnotation = _ctx.GetCurrentAnnotation();
         var currentImage = _ctx.GetCurrentImage();
         if (currentAnnotation == null || currentImage == null) return;
-        if (!_ctx.DrawingState.IsRotatingObb || ObbSize.Width < 5 || ObbSize.Height < 5) return;
+        if (!_ctx.DrawingState.IsRotatingObb || ObbSize.Width < CoordinateMapper.MinBoxSize || ObbSize.Height < CoordinateMapper.MinBoxSize) return;
 
         _ctx.PushUndoSnapshot();
 

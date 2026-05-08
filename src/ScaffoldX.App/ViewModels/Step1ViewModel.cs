@@ -1,41 +1,51 @@
 using Prism.Commands;
 using Prism.Mvvm;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
 
 /// <summary>
 /// 步骤一 ViewModel：项目类型选择。
 /// 提供三种类型（Collection/Vision/System）的选择状态和验证。
+/// SelectedProjectType 直接读写 ProjectConfig，无需手动字段拷贝。
 /// </summary>
 public class Step1ViewModel : BindableBase
 {
-    private string _selectedProjectType = string.Empty;
-
     /// <summary>
     /// 初始化步骤一 ViewModel，注册选择命令。
     /// </summary>
-    public Step1ViewModel()
+    public Step1ViewModel() : this(new ProjectConfig()) { }
+
+    /// <summary>
+    /// 初始化步骤一 ViewModel，绑定到指定 ProjectConfig。
+    /// </summary>
+    /// <param name="config">项目配置对象。</param>
+    public Step1ViewModel(ProjectConfig config)
     {
+        Config = config;
         SelectTypeCommand = new DelegateCommand<string>(ExecuteSelectType);
     }
+
+    /// <summary>关联的项目配置对象，SelectedProjectType 直接读写此对象。</summary>
+    public ProjectConfig Config { get; set; }
 
     /// <summary>当前选中的项目类型："Collection"、"Vision" 或 "System"。</summary>
     public string SelectedProjectType
     {
-        get => _selectedProjectType;
+        get => Config.ProjectType;
         private set
         {
-            if (SetProperty(ref _selectedProjectType, value))
-            {
-                RaisePropertyChanged(nameof(IsCollectionSelected));
-                RaisePropertyChanged(nameof(IsVisionSelected));
-                RaisePropertyChanged(nameof(IsSystemSelected));
-                RaisePropertyChanged(nameof(CanProceed));
-                RaisePropertyChanged(nameof(TypeDescription));
-                RaisePropertyChanged(nameof(CollectionBorderBrush));
-                RaisePropertyChanged(nameof(VisionBorderBrush));
-                RaisePropertyChanged(nameof(SystemBorderBrush));
-            }
+            Config.ProjectType = value;
+            // 始终触发 UI 刷新，即使值未变（NavigateTo 可能重新应用）
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(IsCollectionSelected));
+            RaisePropertyChanged(nameof(IsVisionSelected));
+            RaisePropertyChanged(nameof(IsSystemSelected));
+            RaisePropertyChanged(nameof(CanProceed));
+            RaisePropertyChanged(nameof(TypeDescription));
+            RaisePropertyChanged(nameof(CollectionBorderBrush));
+            RaisePropertyChanged(nameof(VisionBorderBrush));
+            RaisePropertyChanged(nameof(SystemBorderBrush));
         }
     }
 

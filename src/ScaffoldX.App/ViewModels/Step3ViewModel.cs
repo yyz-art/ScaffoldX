@@ -1,4 +1,5 @@
 using Prism.Mvvm;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
 
@@ -46,83 +47,92 @@ public class ModuleOption : BindableBase
 
 /// <summary>
 /// 步骤三 ViewModel：专项配置，根据项目类型展示不同的配置面板。
-/// 包含采集类、视觉类、系统类三套配置属性及联动逻辑。
+/// 内部拆分为三个子 ViewModel（Collection / Vision / System），
+/// 所有属性直接读写共享的 ProjectConfig，无需手动字段拷贝。
 /// </summary>
 public class Step3ViewModel : BindableBase
 {
-    private string _projectType = string.Empty;
-
-    // ── 采集类字段 ────────────────────────────────────────────────────────────
-    private bool _enableSimulationDriver = true;
-    private string _defaultPLCIp = "192.168.1.1";
-    private int _defaultPLCPort = 102;
-    private int _s7Rack;
-    private int _s7Slot = 1;
-    private string _opcUaEndpoint = "opc.tcp://localhost:4840";
-
-    // ── 视觉类字段 ────────────────────────────────────────────────────────────
-    private string _cameraBrand = "海康";
-    private string _modelType = "Classification";
-    private string _modelPath = string.Empty;
-    private bool _enablePipeline = true;
-
-    // ── UI/导航字段 ────────────────────────────────────────────────────────────
-    private string _navigationStyle = "LeftSidebar";
-    private string _defaultTheme = "IndustrialDark";
-    private string _defaultLanguage = "zh-CN";
-
-    // ── 系统类字段 ────────────────────────────────────────────────────────────
-    private bool _enableLoginWindow = true;
-    private bool _forcePasswordChange;
+    /// <summary>
+    /// 初始化步骤三 ViewModel，创建三个子配置 ViewModel。
+    /// </summary>
+    public Step3ViewModel() : this(new ProjectConfig
+    {
+        EnableSimulationDriver = true,
+        DefaultPLCIp = "192.168.1.1",
+        DefaultPLCPort = 102,
+        S7Slot = 1,
+        OpcUaEndpoint = "opc.tcp://localhost:4840",
+        CameraBrand = "海康",
+        ModelType = "Classification",
+        EnablePipeline = true,
+        EnableLoginWindow = true,
+        EnableUserManagement = true,
+        EnableRolePermission = true,
+        NavigationStyle = "LeftSidebar",
+        DefaultTheme = "IndustrialDark",
+        DefaultLanguage = "zh-CN"
+    }) { }
 
     /// <summary>
-    /// 初始化步骤三 ViewModel，构建驱动和模块选项列表。
+    /// 初始化步骤三 ViewModel，绑定到指定 ProjectConfig。
     /// </summary>
-    public Step3ViewModel()
+    /// <param name="config">项目配置对象。</param>
+    public Step3ViewModel(ProjectConfig config)
     {
-        DriverOptions = new List<DriverOption>
-        {
-            new() { Key = "S7Net",     DisplayName = "西门子 S7（S7Net）",   IsSelected = false },
-            new() { Key = "ModbusTcp", DisplayName = "Modbus TCP",           IsSelected = false },
-            new() { Key = "OpcUa",     DisplayName = "OPC UA",               IsSelected = false },
-            new() { Key = "Mitsubishi",DisplayName = "三菱 MC 协议",          IsSelected = false },
-            new() { Key = "Omron",     DisplayName = "欧姆龙 FINS",           IsSelected = false },
-        };
-
-        // 监听 S7Net 选中状态，联动显示机架槽号
-        foreach (var d in DriverOptions)
-            d.PropertyChanged += (_, _) => RaisePropertyChanged(nameof(IsS7Selected));
-
-        ModuleOptions = new List<ModuleOption>
-        {
-            new() { Key = "UserManagement", DisplayName = "用户管理",   IsSelected = true  },
-            new() { Key = "RolePermission", DisplayName = "角色权限",   IsSelected = true  },
-            new() { Key = "SystemLog",      DisplayName = "审计日志",   IsSelected = false },
-            new() { Key = "ThemeSwitcher",  DisplayName = "主题切换",   IsSelected = false },
-        };
-
-        CameraBrands = new List<string> { "海康", "大华", "Basler", "其他" };
-        ModelTypes   = new List<string> { "Classification", "Detection", "Segmentation" };
+        Config = config;
+        Collection = new CollectionConfigViewModel(config);
+        Vision = new VisionConfigViewModel(config);
+        System = new SystemConfigViewModel(config);
 
         NavigationStyleOptions = new List<string> { "LeftSidebar", "TopNav" };
-        DefaultThemeOptions    = new List<string> { "IndustrialDark", "LightModern" };
+        DefaultThemeOptions = new List<string> { "IndustrialDark", "LightModern" };
         DefaultLanguageOptions = new List<string> { "zh-CN", "en-US" };
     }
+
+    // ── 子 ViewModel ───────────────────────────────────────────────────────────
+
+    /// <summary>关联的项目配置对象，所有属性直接读写此对象。</summary>
+    public ProjectConfig Config { get; private set; }
+
+    /// <summary>
+    /// 初始化或重新绑定到指定 ProjectConfig，并同步所有子 ViewModel。
+    /// </summary>
+    /// <param name="config">项目配置对象。</param>
+    public void Initialize(ProjectConfig config)
+    {
+        Config = config;
+        Collection.Initialize(config);
+        Vision.Initialize(config);
+        System.Initialize(config);
+
+        RaisePropertyChanged(nameof(ProjectType));
+        RaisePropertyChanged(nameof(NavigationStyle));
+        RaisePropertyChanged(nameof(DefaultTheme));
+        RaisePropertyChanged(nameof(DefaultLanguage));
+    }
+
+    /// <summary>采集类配置子 ViewModel。</summary>
+    public CollectionConfigViewModel Collection { get; }
+
+    /// <summary>视觉类配置子 ViewModel。</summary>
+    public VisionConfigViewModel Vision { get; }
+
+    /// <summary>系统类配置子 ViewModel。</summary>
+    public SystemConfigViewModel System { get; }
 
     // ── 通用 ──────────────────────────────────────────────────────────────────
 
     /// <summary>当前项目类型，控制显示哪个配置面板。</summary>
     public string ProjectType
     {
-        get => _projectType;
+        get => Config.ProjectType;
         private set
         {
-            if (SetProperty(ref _projectType, value))
-            {
-                RaisePropertyChanged(nameof(IsCollection));
-                RaisePropertyChanged(nameof(IsVision));
-                RaisePropertyChanged(nameof(IsSystem));
-            }
+            Config.ProjectType = value;
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(IsCollection));
+            RaisePropertyChanged(nameof(IsVision));
+            RaisePropertyChanged(nameof(IsSystem));
         }
     }
 
@@ -135,90 +145,90 @@ public class Step3ViewModel : BindableBase
     /// <summary>是否为系统类项目。</summary>
     public bool IsSystem => ProjectType == "System";
 
-    // ── 采集类属性 ────────────────────────────────────────────────────────────
+    // ── 采集类属性（委托到 Collection） ────────────────────────────────────────
 
     /// <summary>驱动选项列表（CheckBox 绑定）。</summary>
-    public List<DriverOption> DriverOptions { get; }
+    public List<DriverOption> DriverOptions => Collection.DriverOptions;
 
     /// <summary>是否选中了 S7Net 驱动（联动显示机架槽号）。</summary>
-    public bool IsS7Selected => DriverOptions.Any(d => d.Key == "S7Net" && d.IsSelected);
+    public bool IsS7Selected => Collection.IsS7Selected;
 
     /// <summary>是否生成仿真驱动。</summary>
     public bool EnableSimulationDriver
     {
-        get => _enableSimulationDriver;
-        set => SetProperty(ref _enableSimulationDriver, value);
+        get => Collection.EnableSimulationDriver;
+        set => Collection.EnableSimulationDriver = value;
     }
 
     /// <summary>默认 PLC IP 地址。</summary>
     public string DefaultPLCIp
     {
-        get => _defaultPLCIp;
-        set => SetProperty(ref _defaultPLCIp, value);
+        get => Collection.DefaultPLCIp;
+        set => Collection.DefaultPLCIp = value;
     }
 
     /// <summary>默认 PLC 端口。</summary>
     public int DefaultPLCPort
     {
-        get => _defaultPLCPort;
-        set => SetProperty(ref _defaultPLCPort, value);
+        get => Collection.DefaultPLCPort;
+        set => Collection.DefaultPLCPort = value;
     }
 
     /// <summary>S7 协议机架号。</summary>
     public int S7Rack
     {
-        get => _s7Rack;
-        set => SetProperty(ref _s7Rack, value);
+        get => Collection.S7Rack;
+        set => Collection.S7Rack = value;
     }
 
     /// <summary>S7 协议槽号。</summary>
     public int S7Slot
     {
-        get => _s7Slot;
-        set => SetProperty(ref _s7Slot, value);
+        get => Collection.S7Slot;
+        set => Collection.S7Slot = value;
     }
 
     /// <summary>OPC UA 服务端端点 URL。</summary>
     public string OpcUaEndpoint
     {
-        get => _opcUaEndpoint;
-        set => SetProperty(ref _opcUaEndpoint, value);
+        get => Collection.OpcUaEndpoint;
+        set => Collection.OpcUaEndpoint = value;
     }
 
-    // ── 视觉类属性 ────────────────────────────────────────────────────────────
+    // ── 视觉类属性（委托到 Vision） ────────────────────────────────────────────
 
     /// <summary>相机品牌列表。</summary>
-    public List<string> CameraBrands { get; }
+    public List<string> CameraBrands => Vision.CameraBrands;
 
     /// <summary>模型类型列表。</summary>
-    public List<string> ModelTypes { get; }
+    public List<string> ModelTypes => Vision.ModelTypes;
 
     /// <summary>选中的相机品牌。</summary>
     public string CameraBrand
     {
-        get => _cameraBrand;
-        set => SetProperty(ref _cameraBrand, value);
+        get => Vision.CameraBrand;
+        set => Vision.CameraBrand = value;
     }
 
     /// <summary>选中的模型类型。</summary>
     public string ModelType
     {
-        get => _modelType;
-        set => SetProperty(ref _modelType, value);
+        get => Vision.ModelType;
+        set => Vision.ModelType = value;
     }
 
     /// <summary>推理模型文件路径。</summary>
     public string ModelPath
     {
-        get => _modelPath;
-        set => SetProperty(ref _modelPath, value);
+        get => Vision.ModelPath;
+        set => Vision.ModelPath = value;
     }
 
     /// <summary>是否启用图像处理 Pipeline。</summary>
     public bool EnablePipeline
     {
-        get => _enablePipeline;
-        set => SetProperty(ref _enablePipeline, value);
+        get => Vision.EnablePipeline;
+        set => Vision.EnablePipeline = value;
     }
 
     // ── UI/导航属性 ──────────────────────────────────────────────────────────
@@ -235,41 +245,53 @@ public class Step3ViewModel : BindableBase
     /// <summary>选中的导航样式。</summary>
     public string NavigationStyle
     {
-        get => _navigationStyle;
-        set => SetProperty(ref _navigationStyle, value);
+        get => Config.NavigationStyle;
+        set
+        {
+            Config.NavigationStyle = value;
+            RaisePropertyChanged();
+        }
     }
 
     /// <summary>选中的默认主题。</summary>
     public string DefaultTheme
     {
-        get => _defaultTheme;
-        set => SetProperty(ref _defaultTheme, value);
+        get => Config.DefaultTheme;
+        set
+        {
+            Config.DefaultTheme = value;
+            RaisePropertyChanged();
+        }
     }
 
     /// <summary>选中的默认语言。</summary>
     public string DefaultLanguage
     {
-        get => _defaultLanguage;
-        set => SetProperty(ref _defaultLanguage, value);
+        get => Config.DefaultLanguage;
+        set
+        {
+            Config.DefaultLanguage = value;
+            RaisePropertyChanged();
+        }
     }
 
-    // ── 系统类属性 ────────────────────────────────────────────────────────────
+    // ── 系统类属性（委托到 System） ────────────────────────────────────────────
 
     /// <summary>功能模块选项列表（CheckBox 绑定）。</summary>
-    public List<ModuleOption> ModuleOptions { get; }
+    public List<ModuleOption> ModuleOptions => System.ModuleOptions;
 
     /// <summary>是否生成独立登录窗口。</summary>
     public bool EnableLoginWindow
     {
-        get => _enableLoginWindow;
-        set => SetProperty(ref _enableLoginWindow, value);
+        get => System.EnableLoginWindow;
+        set => System.EnableLoginWindow = value;
     }
 
     /// <summary>是否强制首次登录修改密码。</summary>
     public bool ForcePasswordChange
     {
-        get => _forcePasswordChange;
-        set => SetProperty(ref _forcePasswordChange, value);
+        get => System.ForcePasswordChange;
+        set => System.ForcePasswordChange = value;
     }
 
     // ── 公共方法 ──────────────────────────────────────────────────────────────
@@ -296,14 +318,14 @@ public class Step3ViewModel : BindableBase
     /// </summary>
     /// <returns>已选驱动标识符列表。</returns>
     public List<string> GetSelectedDrivers()
-        => DriverOptions.Where(d => d.IsSelected).Select(d => d.Key).ToList();
+        => Collection.GetSelectedDrivers();
 
     /// <summary>
     /// 获取已选功能模块的 Key 列表。
     /// </summary>
     /// <returns>已选模块标识符列表。</returns>
     public List<string> GetSelectedModules()
-        => ModuleOptions.Where(m => m.IsSelected).Select(m => m.Key).ToList();
+        => System.GetSelectedModules();
 
     /// <summary>
     /// 重置所有配置到默认值（新建项目时调用）。
@@ -311,24 +333,12 @@ public class Step3ViewModel : BindableBase
     public void Reset()
     {
         ProjectType = string.Empty;
-        EnableSimulationDriver = true;
-        DefaultPLCIp = "192.168.1.1";
-        DefaultPLCPort = 102;
-        S7Rack = 0;
-        S7Slot = 1;
-        OpcUaEndpoint = "opc.tcp://localhost:4840";
-        CameraBrand = "海康";
-        ModelType = "Classification";
-        ModelPath = string.Empty;
-        EnablePipeline = true;
         NavigationStyle = "LeftSidebar";
         DefaultTheme = "IndustrialDark";
         DefaultLanguage = "zh-CN";
-        EnableLoginWindow = true;
-        ForcePasswordChange = false;
 
-        foreach (var d in DriverOptions) d.IsSelected = false;
-        foreach (var m in ModuleOptions)
-            m.IsSelected = m.Key is "UserManagement" or "RolePermission";
+        Collection.Reset();
+        Vision.Reset();
+        System.Reset();
     }
 }

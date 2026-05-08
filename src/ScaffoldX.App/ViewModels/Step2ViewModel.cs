@@ -1,22 +1,17 @@
 using Prism.Commands;
 using Prism.Mvvm;
 using ScaffoldX.App.Services;
+using ScaffoldX.Core.Models;
 
 namespace ScaffoldX.App.ViewModels;
 
 /// <summary>
 /// 步骤二 ViewModel：基础信息表单，包含实时验证和字段联动逻辑。
+/// 所有配置字段直接读写 ProjectConfig，无需手动字段拷贝。
 /// </summary>
 public class Step2ViewModel : BindableBase
 {
     private readonly IValidationService _validationService;
-
-    private string _projectName = string.Empty;
-    private string _outputPath = string.Empty;
-    private string _namespacePrefix = string.Empty;
-    private string _uiFramework = "WPF";
-    private string _dotNetVersion = ".NET 8";
-    private string _projectDescription = string.Empty;
 
     private string _projectNameError = string.Empty;
     private string _outputPathError = string.Empty;
@@ -26,87 +21,106 @@ public class Step2ViewModel : BindableBase
     /// </summary>
     /// <param name="validationService">字段验证服务。</param>
     public Step2ViewModel(IValidationService validationService)
+        : this(validationService, new ProjectConfig()) { }
+
+    /// <summary>
+    /// 初始化步骤二 ViewModel，注入验证服务并绑定到指定 ProjectConfig。
+    /// </summary>
+    /// <param name="validationService">字段验证服务。</param>
+    /// <param name="config">项目配置对象。</param>
+    public Step2ViewModel(IValidationService validationService, ProjectConfig config)
     {
         _validationService = validationService;
+        Config = config;
         BrowseOutputPathCommand = new DelegateCommand(ExecuteBrowseOutputPath);
     }
+
+    /// <summary>关联的项目配置对象，所有配置字段直接读写此对象。</summary>
+    public ProjectConfig Config { get; set; }
 
     /// <summary>项目名称，变更时触发实时验证并联动命名空间前缀。</summary>
     public string ProjectName
     {
-        get => _projectName;
+        get => Config.ProjectName;
         set
         {
-            if (SetProperty(ref _projectName, value))
-            {
-                ValidateProjectName();
-                // 自动生成命名空间前缀
-                if (!string.IsNullOrWhiteSpace(value))
-                    NamespacePrefix = _validationService.ToPascalCase(value);
-                RaisePropertyChanged(nameof(PreviewText));
-                RaisePropertyChanged(nameof(HasErrors));
-            }
+            Config.ProjectName = value;
+            RaisePropertyChanged();
+            ValidateProjectName();
+            // 自动生成命名空间前缀
+            if (!string.IsNullOrWhiteSpace(value))
+                NamespacePrefix = _validationService.ToPascalCase(value);
+            RaisePropertyChanged(nameof(PreviewText));
+            RaisePropertyChanged(nameof(HasErrors));
         }
     }
 
     /// <summary>输出路径，变更时触发实时验证。</summary>
     public string OutputPath
     {
-        get => _outputPath;
+        get => Config.OutputDirectory;
         set
         {
-            if (SetProperty(ref _outputPath, value))
-            {
-                ValidateOutputPath();
-                RaisePropertyChanged(nameof(HasErrors));
-            }
+            Config.OutputDirectory = value;
+            RaisePropertyChanged();
+            ValidateOutputPath();
+            RaisePropertyChanged(nameof(HasErrors));
         }
     }
 
     /// <summary>命名空间前缀，默认由项目名称自动生成。</summary>
     public string NamespacePrefix
     {
-        get => _namespacePrefix;
+        get => Config.NamespacePrefix;
         set
         {
-            if (SetProperty(ref _namespacePrefix, value))
-                RaisePropertyChanged(nameof(PreviewText));
+            Config.NamespacePrefix = value;
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(PreviewText));
         }
     }
 
     /// <summary>目标 UI 框架："WPF" 或 "Avalonia"。选择 Avalonia 时禁用 .NET 6。</summary>
     public string UIFramework
     {
-        get => _uiFramework;
+        get => Config.UIFramework;
         set
         {
-            if (SetProperty(ref _uiFramework, value))
-            {
-                // Avalonia 不支持 .NET 6，强制切换到 .NET 8
-                if (value == "Avalonia" && DotNetVersion == ".NET 6")
-                    DotNetVersion = ".NET 8";
-                RaisePropertyChanged(nameof(IsDotNet6Enabled));
-                RaisePropertyChanged(nameof(PreviewText));
-            }
+            Config.UIFramework = value;
+            RaisePropertyChanged();
+            // Avalonia 不支持 .NET 6，强制切换到 .NET 8
+            if (value == "Avalonia" && DotNetVersion == ".NET 6")
+                DotNetVersion = ".NET 8";
+            RaisePropertyChanged(nameof(IsDotNet6Enabled));
+            RaisePropertyChanged(nameof(PreviewText));
         }
     }
 
-    /// <summary>.NET 目标版本：".NET 6" 或 ".NET 8"。</summary>
+    /// <summary>.NET 目标版本：".NET 6" 或 ".NET 8"。同时更新 TargetFramework。</summary>
     public string DotNetVersion
     {
-        get => _dotNetVersion;
+        get => Config.TargetFramework.Contains("net6") ? ".NET 6" : ".NET 8";
         set
         {
-            if (SetProperty(ref _dotNetVersion, value))
-                RaisePropertyChanged(nameof(PreviewText));
+            Config.TargetFramework = value switch
+            {
+                ".NET 6" => UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
+                _ => UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
+            };
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(PreviewText));
         }
     }
 
     /// <summary>项目描述文字。</summary>
     public string ProjectDescription
     {
-        get => _projectDescription;
-        set => SetProperty(ref _projectDescription, value);
+        get => Config.Description;
+        set
+        {
+            Config.Description = value;
+            RaisePropertyChanged();
+        }
     }
 
     /// <summary>项目名称验证错误信息，为空表示验证通过。</summary>

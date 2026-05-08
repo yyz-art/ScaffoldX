@@ -10,16 +10,16 @@ namespace ScaffoldX.App.Services;
 /// </summary>
 public class AnnotationExportService
 {
-    private readonly IAnnotationService _annotationService;
+    private readonly IAnnotationExporter _annotationExporter;
     private readonly ILogger _logger = Log.ForContext<AnnotationExportService>();
 
     /// <summary>
-    /// Initializes the export service with the annotation data service.
+    /// Initializes the export service with the annotation exporter.
     /// </summary>
-    /// <param name="annotationService">The annotation service that performs the actual export.</param>
-    public AnnotationExportService(IAnnotationService annotationService)
+    /// <param name="annotationExporter">The annotation exporter that performs the actual export.</param>
+    public AnnotationExportService(IAnnotationExporter annotationExporter)
     {
-        _annotationService = annotationService;
+        _annotationExporter = annotationExporter;
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public class AnnotationExportService
     {
         try
         {
-            await _annotationService.ExportYoloDatasetAsync(project, outputDirectory);
+            await _annotationExporter.ExportYoloDatasetAsync(project, outputDirectory);
             return true;
         }
         catch (Exception ex)
@@ -60,7 +60,7 @@ public class AnnotationExportService
     {
         try
         {
-            await _annotationService.ExportCocoDatasetAsync(project, outputDirectory);
+            await _annotationExporter.ExportCocoDatasetAsync(project, outputDirectory);
             return true;
         }
         catch (Exception ex)
@@ -80,7 +80,7 @@ public class AnnotationExportService
     {
         try
         {
-            await _annotationService.ExportVocDatasetAsync(project, outputDirectory);
+            await _annotationExporter.ExportVocDatasetAsync(project, outputDirectory);
             return true;
         }
         catch (Exception ex)
@@ -100,7 +100,7 @@ public class AnnotationExportService
     {
         try
         {
-            await _annotationService.ExportDotDatasetAsync(project, outputDirectory);
+            await _annotationExporter.ExportDotDatasetAsync(project, outputDirectory);
             return true;
         }
         catch (Exception ex)
@@ -120,7 +120,7 @@ public class AnnotationExportService
     {
         try
         {
-            await _annotationService.ExportMotDatasetAsync(project, outputDirectory);
+            await _annotationExporter.ExportMotDatasetAsync(project, outputDirectory);
             return true;
         }
         catch (Exception ex)

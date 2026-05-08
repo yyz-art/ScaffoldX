@@ -6,8 +6,10 @@ namespace ScaffoldX.App.ViewModels;
 /// <summary>
 /// 标注工具的共享上下文，封装所有 handler 共需的状态和回调。
 /// 替代 AnnotationViewModel 构造函数中 64 个 Func/Action 参数。
+/// 实现 <see cref="IAnnotationState"/> 和 <see cref="IAnnotationActions"/> 接口，
+/// 新代码应优先通过接口依赖，Func/Action 属性保留为向后兼容适配器。
 /// </summary>
-public class AnnotationContext
+public class AnnotationContext : IAnnotationState, IAnnotationActions
 {
     // ── 只读状态 ──────────────────────────────────────────────────────────
 
@@ -84,4 +86,33 @@ public class AnnotationContext
 
     /// <summary>禁用多边形模式。</summary>
     public Action DisablePolygonMode { get; init; } = () => { };
+
+    // ── 显式接口实现 ──────────────────────────────────────────────────────
+    // 委托到 Func/Action 属性，保持向后兼容。
+
+    // IAnnotationState
+    AnnotationProject? IAnnotationState.GetProject() => GetProject();
+    AnnotationData? IAnnotationState.GetCurrentAnnotation() => GetCurrentAnnotation();
+    BitmapImage? IAnnotationState.GetCurrentImage() => GetCurrentImage();
+    int IAnnotationState.GetCurrentImageIndex() => GetCurrentImageIndex();
+    int IAnnotationState.GetTotalImages() => GetTotalImages();
+    int IAnnotationState.GetSelectedClassIndex() => GetSelectedClassIndex();
+    int IAnnotationState.GetPolylineCount() => GetPolylineCount();
+    int IAnnotationState.GetCircleCount() => GetCircleCount();
+    bool IAnnotationState.GetIsObbMode() => GetIsObbMode();
+    bool IAnnotationState.GetIsPolygonMode() => GetIsPolygonMode();
+    // DrawingState is implicitly satisfied by the public getter property above.
+
+    // IAnnotationActions
+    void IAnnotationActions.SetCurrentAnnotation(AnnotationData? data) => SetCurrentAnnotation(data);
+    void IAnnotationActions.SetStatusMessage(string message) => SetStatusMessage(message);
+    void IAnnotationActions.UpdateBoxesList() => UpdateBoxesList();
+    void IAnnotationActions.UpdateStatistics() => UpdateStatistics();
+    void IAnnotationActions.UpdateClassDistribution() => UpdateClassDistribution();
+    void IAnnotationActions.UpdateClassesList() => UpdateClassesList();
+    void IAnnotationActions.PushUndoSnapshot() => PushUndoSnapshot();
+    Task IAnnotationActions.LoadFirstImage() => LoadFirstImage();
+    Task IAnnotationActions.LoadImageAsync(int index) => LoadImageAsync(index);
+    void IAnnotationActions.DisableObbMode() => DisableObbMode();
+    void IAnnotationActions.DisablePolygonMode() => DisablePolygonMode();
 }

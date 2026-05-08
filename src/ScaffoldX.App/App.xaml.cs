@@ -37,10 +37,13 @@ public partial class App : Prism.Unity.PrismApplication
         containerRegistry.RegisterSingleton<Func<ISam3SegmentationEngine>>(sp => () => new Sam3Segmentor());
 
         // App 层服务注册
+        containerRegistry.RegisterSingleton<IDialogService, WpfDialogService>();
         containerRegistry.RegisterSingleton<IValidationService, ValidationService>();
         containerRegistry.RegisterSingleton<IHistoryService, HistoryService>();
         containerRegistry.RegisterSingleton<ITemplateEngine, ScribanTemplateEngine>();
         containerRegistry.RegisterSingleton<IProjectGenerator, ProjectGenerator>();
+        containerRegistry.RegisterSingleton<IAnnotationRepository, AnnotationRepository>();
+        containerRegistry.RegisterSingleton<IAnnotationExporter, AnnotationExporter>();
         containerRegistry.RegisterSingleton<IAnnotationService, AnnotationService>();
         containerRegistry.RegisterSingleton<IAutoLabelingService, AutoLabelingService>();
         containerRegistry.RegisterSingleton<IYoloTrainingService, YoloTrainingService>();
