@@ -8,7 +8,7 @@ using System.Windows.Controls;
 namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
-    /// StatusBarView 代码隐藏，处理 ComboBox SelectionChanged 事件。
+    /// StatusBarView 代码隐藏。
     /// </summary>
     public partial class StatusBarView : System.Windows.Controls.UserControl
     {
@@ -18,22 +18,6 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         public StatusBarView()
         {
             InitializeComponent();
-        }
-
-        /// <summary>
-        /// 语言切换下拉框选择变更事件处理。
-        /// </summary>
-        private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 通过 ViewModel 的 SelectedLanguage 属性自动处理（双向绑定）
-        }
-
-        /// <summary>
-        /// 主题切换下拉框选择变更事件处理。
-        /// </summary>
-        private void OnThemeSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // 通过 ViewModel 的 SelectedTheme 属性自动处理（双向绑定）
         }
     }
 }

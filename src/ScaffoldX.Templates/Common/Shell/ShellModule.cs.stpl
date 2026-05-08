@@ -40,11 +40,12 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         }
 
         /// <summary>
-        /// 模块初始化完成后，导航到首页视图。
+        /// 模块初始化完成后，导航到首页视图和状态栏。
         /// </summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             _regionManager.RequestNavigate("MainRegion", "HomePageView");
+            _regionManager.RequestNavigate("StatusBarRegion", "StatusBarView");
         }
     }
 }

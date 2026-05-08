@@ -8,68 +8,182 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:prism="http://prismlibrary.com/"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
-             d:DesignHeight="450"
-             d:DesignWidth="800">
+             d:DesignHeight="600"
+             d:DesignWidth="900">
 
-    <Grid Margin="32">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="16"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <!-- 欢迎标题 -->
-        <TextBlock Grid.Row="0"
-                   Text="{Binding WelcomeText}"
-                   FontSize="24"
-                   FontWeight="SemiBold"
-                   Foreground="#263238"/>
-
-        <!-- 系统概览卡片 -->
-        <WrapPanel Grid.Row="2">
-            <Border Width="200" Height="100" Margin="0,0,16,0"
-                    Background="#E3F2FD" CornerRadius="4">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding RunningStatusText}" FontSize="13" Foreground="#1565C0"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding RunningStatus}" FontSize="20"
-                               FontWeight="SemiBold" Foreground="#0D47A1"
-                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24">
+        <StackPanel>
+            <!-- 欢迎标题 + 日期时间 -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding WelcomeText}"
+                               Style="{StaticResource MaterialDesignHeadline4TextBlock}"
+                               Foreground="{DynamicResource MaterialDesignBody}"/>
+                    <TextBlock Text="{Binding ProjectDescription}"
+                               Style="{StaticResource MaterialDesignBody1TextBlock}"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
-            </Border>
-
-            <Border Width="200" Height="100" Margin="0,0,16,0"
-                    Background="#E8F5E9" CornerRadius="4">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding PluginCountText}" FontSize="13" Foreground="#2E7D32"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding PluginCount}" FontSize="20"
-                               FontWeight="SemiBold" Foreground="#1B5E20"
-                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="{Binding CurrentDate}"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               Foreground="{DynamicResource MaterialDesignBody}"
+                               HorizontalAlignment="Right"/>
+                    <TextBlock Text="{Binding CurrentTime}"
+                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               HorizontalAlignment="Right"/>
                 </StackPanel>
-            </Border>
+            </Grid>
 
-            <Border Width="200" Height="100" Margin="0,0,16,0"
-                    Background="#FFF3E0" CornerRadius="4">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding AlarmCountText}" FontSize="13" Foreground="#E65100"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding AlarmCount}" FontSize="20"
-                               FontWeight="SemiBold" Foreground="#BF360C"
-                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                </StackPanel>
-            </Border>
-        </WrapPanel>
+            <!-- 系统状态卡片区域 -->
+            <materialDesign:Card Padding="16" Margin="0,0,0,16"
+                                 materialDesign:ShadowAssist.ShadowDepth="Dp2">
+                <TextBlock Text="系统概览"
+                           Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                           Foreground="{DynamicResource PrimaryHueMidBrush}"
+                           Margin="0,0,0,16"/>
+                <UniformGrid Rows="1" Columns="4">
+                    <!-- 运行状态卡片 -->
+                    <materialDesign:Card Padding="16" Margin="6"
+                                         Background="{DynamicResource MaterialDesignPaper}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CheckCircle"
+                                                     Width="36" Height="36"
+                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                     HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding RunningStatus}"
+                                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding RunningStatusText}"
+                                       Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </materialDesign:Card>
 
-        <!-- 底部信息 -->
-        <TextBlock Grid.Row="4"
-                   Text="{Binding FooterText}"
-                   Foreground="#90A4AE"
-                   FontSize="12"
-                   VerticalAlignment="Bottom"/>
-    </Grid>
+                    <!-- 已加载插件卡片 -->
+                    <materialDesign:Card Padding="16" Margin="6"
+                                         Background="{DynamicResource MaterialDesignPaper}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <materialDesign:PackIcon Kind="PowerPlug"
+                                                     Width="36" Height="36"
+                                                     Foreground="{DynamicResource SecondaryHueMidBrush}"
+                                                     HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding PluginCount}"
+                                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding PluginCountText}"
+                                       Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- 今日告警卡片 -->
+                    <materialDesign:Card Padding="16" Margin="6"
+                                         Background="{DynamicResource MaterialDesignPaper}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Alert"
+                                                     Width="36" Height="36"
+                                                     Foreground="{DynamicResource SecondaryHueMidBrush}"
+                                                     HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding AlarmCount}"
+                                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding AlarmCountText}"
+                                       Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- 连接数卡片 -->
+                    <materialDesign:Card Padding="16" Margin="6"
+                                         Background="{DynamicResource MaterialDesignPaper}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <materialDesign:PackIcon Kind="LanConnect"
+                                                     Width="36" Height="36"
+                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                     HorizontalAlignment="Center"/>
+                            <TextBlock Text="{Binding ConnectionCount}"
+                                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                            <TextBlock Text="{Binding ConnectionCountText}"
+                                       Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </UniformGrid>
+            </materialDesign:Card>
+
+            <!-- 最近活动日志 -->
+            <materialDesign:Card Padding="16" Margin="0,0,0,16"
+                                 materialDesign:ShadowAssist.ShadowDepth="Dp2">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="最近活动"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               Foreground="{DynamicResource PrimaryHueMidBrush}"
+                               Margin="0,0,0,12"/>
+                    <ListBox ItemsSource="{Binding RecentActivities}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             MaxHeight="240"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Timestamp}"
+                                               Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                               Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Source}"
+                                               Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                               Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                               FontWeight="Medium"
+                                               Margin="12,0,0,0"/>
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Message}"
+                                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                               Foreground="{DynamicResource MaterialDesignBody}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </materialDesign:Card>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

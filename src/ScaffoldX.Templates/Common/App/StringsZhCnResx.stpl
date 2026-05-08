@@ -106,4 +106,10 @@
   &lt;data name="ThemeLabel" xml:space="preserve"&gt;
     &lt;value&gt;主题&lt;/value&gt;
   &lt;/data&gt;
+  &lt;data name="ConnectionCount" xml:space="preserve"&gt;
+    &lt;value&gt;连接数&lt;/value&gt;
+  &lt;/data&gt;
+  &lt;data name="ProjectDescription" xml:space="preserve"&gt;
+    &lt;value&gt;工业自动化项目脚手架 — 系统监控面板&lt;/value&gt;
+  &lt;/data&gt;
 &lt;/root&gt;

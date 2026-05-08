@@ -4,6 +4,7 @@
 // 请勿手动修改此文件
 
 using System.Collections.ObjectModel;
+using MaterialDesignThemes.Wpf;
 using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -18,7 +19,7 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         private readonly IRegionManager _regionManager;
         private MenuItemViewModel _selectedMenuItem;
         private bool _isCollapsed;
-        private string _collapseIcon = "◀";
+        private PackIconKind _collapseIcon = PackIconKind.ChevronLeft;
 
         /// <summary>
         /// 初始化侧边栏 ViewModel，注册默认菜单项。
@@ -32,7 +33,7 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             // TODO: [ScaffoldX] 根据已加载插件动态构建菜单
             MenuItems.Add(new MenuItemViewModel
             {
-                Icon = "☰",
+                Icon = PackIconKind.Home,
                 Title = "首页",
                 NavigationTarget = "HomePageView"
             });
@@ -66,7 +67,7 @@ namespace {{ NamespacePrefix }}.Modules.Shell
                 if (SetProperty(ref _isCollapsed, value))
                 {
                     IsTitleVisible = !value;
-                    CollapseIcon = value ? "▶" : "◀";
+                    CollapseIcon = value ? PackIconKind.ChevronRight : PackIconKind.ChevronLeft;
                 }
             }
         }
@@ -79,7 +80,7 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         }
 
         /// <summary>折叠/展开按钮图标。</summary>
-        public string CollapseIcon
+        public PackIconKind CollapseIcon
         {
             get => _collapseIcon;
             set => SetProperty(ref _collapseIcon, value);
@@ -116,12 +117,12 @@ namespace {{ NamespacePrefix }}.Modules.Shell
     /// </summary>
     public class MenuItemViewModel : BindableBase
     {
-        private string _icon;
+        private PackIconKind _icon;
         private string _title;
         private string _navigationTarget;
 
-        /// <summary>菜单项图标（Unicode 字符或资源键）。</summary>
-        public string Icon
+        /// <summary>菜单项图标（MaterialDesign PackIcon Kind）。</summary>
+        public PackIconKind Icon
         {
             get => _icon;
             set => SetProperty(ref _icon, value);

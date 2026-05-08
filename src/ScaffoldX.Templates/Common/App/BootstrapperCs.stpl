@@ -34,12 +34,9 @@ namespace {{ NamespacePrefix }}.App
             // TODO: [ScaffoldX] 根据项目需求注册额外的服务
 
             // 注册视图
-            containerRegistry.RegisterForNavigation<MainWindow>();
             containerRegistry.RegisterForNavigation<SidebarView>();
             containerRegistry.RegisterForNavigation<StatusBarView>();
             containerRegistry.RegisterForNavigation<HomePageView>();
-            containerRegistry.RegisterForNavigation<LogViewerView>();
-            containerRegistry.RegisterForNavigation<PluginStatusView>();
         }
 
         /// <summary>

@@ -4,6 +4,7 @@
 // 请勿手动修改此文件
 
 using System.Collections.ObjectModel;
+using MaterialDesignThemes.Wpf;
 using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -30,7 +31,7 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             // TODO: [ScaffoldX] 根据已加载插件动态构建菜单
             MenuItems.Add(new MenuItemViewModel
             {
-                Icon = "",
+                Icon = PackIconKind.Home,
                 Title = "首页",
                 NavigationTarget = "HomePageView"
             });

@@ -8,16 +8,18 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:prism="http://prismlibrary.com/"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
              d:DesignHeight="600"
-             d:DesignWidth="200">
+             d:DesignWidth="240">
 
     <UserControl.Resources>
+        <!-- 侧边栏菜单项样式 -->
         <Style x:Key="SidebarMenuItemStyle" TargetType="ListBoxItem">
             <Setter Property="Height" Value="48"/>
-            <Setter Property="Padding" Value="16,0"/>
-            <Setter Property="Foreground" Value="#B0BEC5"/>
+            <Setter Property="Margin" Value="4,1"/>
+            <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -26,16 +28,20 @@
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="Bd"
                                 Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center"/>
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              Margin="12,0"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#37474F"/>
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource MaterialDesignDivider}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#455A64"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource MaterialDesignSelection}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -44,70 +50,83 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#263238">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="64"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <materialDesign:ColorZone Mode="PrimaryMid"
+                              DockPanel.Dock="Top"
+                              materialDesign:ShadowAssist.ShadowDepth="Depth2">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- 应用标题区 + 折叠按钮 -->
-        <Border Grid.Row="0" Background="#1C2B30">
-            <DockPanel>
-                <!-- 折叠/展开按钮 -->
-                <Button DockPanel.Dock="Right"
-                        Command="{Binding ToggleCollapseCommand}"
-                        Background="Transparent"
-                        Foreground="#B0BEC5"
-                        BorderThickness="0"
-                        Width="32"
-                        Cursor="Hand"
-                        ToolTip="折叠/展开侧边栏"
-                        Content="{Binding CollapseIcon}"
-                        FontSize="14"
-                        VerticalAlignment="Center"/>
+            <!-- 应用标题区 + 折叠按钮 -->
+            <Border Grid.Row="0" Background="{DynamicResource MaterialDesignPaper}">
+                <DockPanel Margin="12,0">
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ToggleCollapseCommand}"
+                            Style="{StaticResource MaterialDesignFlatForegroundButton}"
+                            Width="32" Height="32"
+                            ToolTip="折叠/展开侧边栏"
+                            VerticalAlignment="Center"
+                            Padding="0">
+                        <materialDesign:PackIcon Kind="{Binding CollapseIcon}"
+                                                 Width="20" Height="20"/>
+                    </Button>
 
-                <TextBlock Text="{{ AppTitle }}"
-                           Foreground="#ECEFF1"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center"/>
-            </DockPanel>
-        </Border>
-
-        <!-- 菜单项列表 -->
-        <ListBox Grid.Row="1"
-                 ItemsSource="{Binding MenuItems}"
-                 SelectedItem="{Binding SelectedMenuItem}"
-                 Background="Transparent"
-                 BorderThickness="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 ItemContainerStyle="{StaticResource SidebarMenuItemStyle}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Icon}"
-                                   FontSize="16"
-                                   Width="24"
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsTitleVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <materialDesign:PackIcon Kind="ViewDashboard"
+                                                 Width="28" Height="28"
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                 Margin="0,0,8,0"
+                                                 VerticalAlignment="Center"/>
+                        <TextBlock Text="{{ AppTitle }}"
+                                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                   Foreground="{DynamicResource MaterialDesignBody}"
                                    VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Title}"
-                                   FontSize="14"
-                                   Margin="8,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding DataContext.IsTitleVisible, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                     </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                </DockPanel>
+            </Border>
 
-        <!-- 底部版本信息 -->
-        <TextBlock Grid.Row="2"
-                   Text="{{ AppTitle }} v{{ AppVersion }}"
-                   Foreground="#546E7A"
-                   FontSize="11"
-                   HorizontalAlignment="Center"
-                   Margin="0,8"
-                   Visibility="{Binding IsTitleVisible}"/>
-    </Grid>
+            <!-- 菜单项列表 -->
+            <ListBox Grid.Row="1"
+                     ItemsSource="{Binding MenuItems}"
+                     SelectedItem="{Binding SelectedMenuItem}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ItemContainerStyle="{StaticResource SidebarMenuItemStyle}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="{Binding Icon}"
+                                                     Width="22" Height="22"
+                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Title}"
+                                       Style="{StaticResource MaterialDesignBody1TextBlock}"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding DataContext.IsTitleVisible,
+                                           RelativeSource={RelativeSource AncestorType=UserControl},
+                                           Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 底部版本信息 -->
+            <StackPanel Grid.Row="2" Margin="12,8"
+                        Visibility="{Binding IsTitleVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Separator Style="{StaticResource MaterialDesignSeparator}"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="{{ AppTitle }} v{{ AppVersion }}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </materialDesign:ColorZone>
 </UserControl>

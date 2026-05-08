@@ -106,4 +106,10 @@
   &lt;data name="ThemeLabel" xml:space="preserve"&gt;
     &lt;value&gt;Theme&lt;/value&gt;
   &lt;/data&gt;
+  &lt;data name="ConnectionCount" xml:space="preserve"&gt;
+    &lt;value&gt;Connections&lt;/value&gt;
+  &lt;/data&gt;
+  &lt;data name="ProjectDescription" xml:space="preserve"&gt;
+    &lt;value&gt;Industrial Automation Project Scaffold — System Monitor Dashboard&lt;/value&gt;
+  &lt;/data&gt;
 &lt;/root&gt;

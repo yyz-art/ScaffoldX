@@ -8,71 +8,82 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:prism="http://prismlibrary.com/"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
-             Height="28"
-             d:DesignWidth="800">
+             Height="32"
+             d:DesignWidth="1280">
 
-    <Grid Background="#37474F">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
+    <Border Background="{DynamicResource MaterialDesignPaper}"
+            BorderBrush="{DynamicResource MaterialDesignDivider}"
+            BorderThickness="0,1,0,0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- 连接状态指示 -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0">
-            <Ellipse Width="8" Height="8" Margin="0,0,6,0"
-                     Fill="{Binding ConnectionStatusColor}"/>
-            <TextBlock Text="{Binding ConnectionStatusText}"
-                       Foreground="#B0BEC5" FontSize="11"
-                       VerticalAlignment="Center"/>
-        </StackPanel>
+            <!-- 左侧：连接状态指示灯 + 状态文字 -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0">
+                <Ellipse Width="8" Height="8" Margin="0,0,8,0"
+                         Fill="{Binding ConnectionStatusColor}"/>
+                <materialDesign:PackIcon Kind="LanConnect" Width="14" Height="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding ConnectionStatusText}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBody}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
 
-        <!-- 语言切换 -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0">
-            <TextBlock Text="{Binding LanguageLabel}"
-                       Foreground="#78909C" FontSize="11"
-                       VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="80" FontSize="11"
-                      ItemsSource="{Binding AvailableLanguages}"
-                      SelectedItem="{Binding SelectedLanguage}"
-                      Foreground="#B0BEC5"
-                      Background="Transparent"
-                      BorderBrush="#546E7A"
-                      SelectionChanged="OnLanguageSelectionChanged"/>
-        </StackPanel>
+            <!-- 中间：语言切换 ComboBox -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                        HorizontalAlignment="Center" Margin="8,0">
+                <materialDesign:PackIcon Kind="Translate" Width="14" Height="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox Width="80" FontSize="11"
+                          ItemsSource="{Binding AvailableLanguages}"
+                          SelectedItem="{Binding SelectedLanguage}"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
 
-        <!-- 主题切换 -->
-        <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0">
-            <TextBlock Text="{Binding ThemeLabel}"
-                       Foreground="#78909C" FontSize="11"
-                       VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="100" FontSize="11"
-                      ItemsSource="{Binding AvailableThemes}"
-                      SelectedItem="{Binding SelectedTheme}"
-                      DisplayMemberPath="DisplayName"
-                      Foreground="#B0BEC5"
-                      Background="Transparent"
-                      BorderBrush="#546E7A"
-                      SelectionChanged="OnThemeSelectionChanged"/>
-        </StackPanel>
+            <!-- 主题切换 ComboBox -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0">
+                <materialDesign:PackIcon Kind="Palette" Width="14" Height="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox Width="120" FontSize="11"
+                          ItemsSource="{Binding AvailableThemes}"
+                          SelectedItem="{Binding SelectedTheme}"
+                          DisplayMemberPath="DisplayName"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
 
-        <!-- 当前用户 -->
-        <TextBlock Grid.Column="4"
-                   Text="{Binding CurrentUser}"
-                   Foreground="#B0BEC5" FontSize="11"
-                   VerticalAlignment="Center"
-                   Margin="16,0"/>
+            <!-- 当前用户 -->
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="16,0">
+                <materialDesign:PackIcon Kind="Account" Width="14" Height="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding CurrentUser}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBody}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
 
-        <!-- 当前时间 -->
-        <TextBlock Grid.Column="5"
-                   Text="{Binding CurrentTime}"
-                   Foreground="#78909C" FontSize="11"
-                   VerticalAlignment="Center"
-                   Margin="0,0,12,0"/>
-    </Grid>
+            <!-- 当前时间 -->
+            <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="0,0,12,0">
+                <materialDesign:PackIcon Kind="Clock" Width="14" Height="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding CurrentTime}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBody}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </Border>
 </UserControl>

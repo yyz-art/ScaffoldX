@@ -3,13 +3,16 @@
 // 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
 // 请勿手动修改此文件
 
+using System;
+using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using Prism.Mvvm;
 using {{ NamespacePrefix }}.Core.Abstractions;
 
 namespace {{ NamespacePrefix }}.Modules.Shell
 {
     /// <summary>
-    /// 首页 ViewModel，展示系统概览和运行状态。
+    /// 首页 ViewModel，展示系统概览、运行状态和最近活动日志。
     /// 从 ILocalizationService 获取本地化文本，监听语言切换自动刷新。
     /// </summary>
     public class HomePageViewModel : BindableBase
@@ -19,20 +22,47 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         private string _runningStatus = "正常";
         private string _pluginCount = "0";
         private string _alarmCount = "0";
+        private string _connectionCount = "0";
+        private string _currentDate;
+        private string _currentTime;
 
         /// <summary>
-        /// 初始化首页 ViewModel。
+        /// 初始化首页 ViewModel，设置定时器更新日期时间。
         /// </summary>
         /// <param name="localization">本地化服务。</param>
         public HomePageViewModel(ILocalizationService localization)
         {
             _localization = localization;
             _localization.PropertyChanged += (_, _) => RefreshLocalizedTexts();
+
+            _currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+            _currentTime = DateTime.Now.ToString("HH:mm:ss");
+
+            RecentActivities = new ObservableCollection<ActivityEntry>();
+            RecentActivities.Add(new ActivityEntry
+            {
+                Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Source = "系统",
+                Message = "应用程序已启动"
+            });
+
+            // 定时器：每秒更新时钟
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            timer.Tick += (_, _) =>
+            {
+                CurrentDate = DateTime.Now.ToString("yyyy-MM-dd");
+                CurrentTime = DateTime.Now.ToString("HH:mm:ss");
+            };
+            timer.Start();
+
             RefreshLocalizedTexts();
         }
 
         /// <summary>欢迎文本。</summary>
         public string WelcomeText => _localization.GetString("WelcomeText");
+
+        /// <summary>项目描述文本。</summary>
+        public string ProjectDescription => _localization.GetString("ProjectDescription");
 
         /// <summary>运行状态标签。</summary>
         public string RunningStatusText => _localization.GetString("RunningStatus");
@@ -64,8 +94,56 @@ namespace {{ NamespacePrefix }}.Modules.Shell
             set => SetProperty(ref _alarmCount, value);
         }
 
+        /// <summary>连接数标签。</summary>
+        public string ConnectionCountText => _localization.GetString("ConnectionCount");
+
+        /// <summary>当前连接数。</summary>
+        public string ConnectionCount
+        {
+            get => _connectionCount;
+            set => SetProperty(ref _connectionCount, value);
+        }
+
+        /// <summary>当前日期。</summary>
+        public string CurrentDate
+        {
+            get => _currentDate;
+            set => SetProperty(ref _currentDate, value);
+        }
+
+        /// <summary>当前时间。</summary>
+        public string CurrentTime
+        {
+            get => _currentTime;
+            set => SetProperty(ref _currentTime, value);
+        }
+
         /// <summary>底部版权信息。</summary>
         public string FooterText => _localization.GetString("FooterText");
+
+        /// <summary>最近活动日志列表。</summary>
+        public ObservableCollection<ActivityEntry> RecentActivities { get; }
+
+        /// <summary>
+        /// 添加活动日志条目。
+        /// </summary>
+        /// <param name="source">日志来源。</param>
+        /// <param name="message">日志消息。</param>
+        public void AddActivity(string source, string message)
+        {
+            RecentActivities.Insert(0, new ActivityEntry
+            {
+                Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Source = source,
+                Message = message
+            });
+
+            // 保留最近 100 条
+            while (RecentActivities.Count > 100)
+            {
+                RecentActivities.RemoveAt(RecentActivities.Count - 1);
+            }
+        }
 
         /// <summary>
         /// 刷新所有本地化文本属性，通知 UI 更新。
@@ -73,10 +151,30 @@ namespace {{ NamespacePrefix }}.Modules.Shell
         private void RefreshLocalizedTexts()
         {
             RaisePropertyChanged(nameof(WelcomeText));
+            RaisePropertyChanged(nameof(ProjectDescription));
             RaisePropertyChanged(nameof(RunningStatusText));
             RaisePropertyChanged(nameof(PluginCountText));
             RaisePropertyChanged(nameof(AlarmCountText));
+            RaisePropertyChanged(nameof(ConnectionCountText));
             RaisePropertyChanged(nameof(FooterText));
         }
+    }
+
+    /// <summary>
+    /// 活动日志条目。
+    /// </summary>
+    public class ActivityEntry
+    {
+        /// <summary>时间戳。</summary>
+        public string Timestamp { get; set; }
+
+        /// <summary>日志来源。</summary>
+        public string Source { get; set; }
+
+        /// <summary>日志消息。</summary>
+        public string Message { get; set; }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"[{Timestamp}] [{Source}] {Message}";
     }
 }
