@@ -1,0 +1,138 @@
+##OUTPUT: src/{{ProjectName}}.Core/Plugins/PluginLoader.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using {{ NamespacePrefix }}.Core.Abstractions;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.Core.Plugins
+{
+    /// <summary>
+    /// 使用 <see cref="PluginLoadContext"/> 隔离加载插件程序集，
+    /// 实例化其中的 <see cref="IPlugin"/> 实现。
+    /// </summary>
+    public sealed class PluginLoader : IDisposable
+    {
+        private readonly ILogger _logger;
+        private readonly List<PluginLoadContext> _loadContexts = new();
+        private readonly List<IPlugin> _loadedPlugins = new();
+        private bool _disposed;
+
+        /// <summary>
+        /// 初始化插件加载器。
+        /// </summary>
+        /// <param name="logger">Serilog 日志记录器。</param>
+        public PluginLoader(ILogger logger)
+        {
+            _logger = logger?.ForContext<PluginLoader>()
+                ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        /// <summary>已成功加载的插件实例列表。</summary>
+        public IReadOnlyList<IPlugin> LoadedPlugins => _loadedPlugins.AsReadOnly();
+
+        /// <summary>
+        /// 加载指定路径的插件程序集，实例化其中所有 <see cref="IPlugin"/> 实现。
+        /// 每个程序集使用独立的 <see cref="PluginLoadContext"/> 进行隔离。
+        /// </summary>
+        /// <param name="assemblyPath">插件程序集文件路径。</param>
+        /// <returns>本次加载的插件实例列表。</returns>
+        public IReadOnlyList<IPlugin> LoadFromAssembly(string assemblyPath)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            if (!File.Exists(assemblyPath))
+            {
+                _logger.Warning("程序集文件不存在: {Path}", assemblyPath);
+                return Array.Empty<IPlugin>();
+            }
+
+            var plugins = new List<IPlugin>();
+
+            try
+            {
+                var loadContext = new PluginLoadContext(
+                    Path.GetDirectoryName(assemblyPath) ?? string.Empty,
+                    _logger);
+                _loadContexts.Add(loadContext);
+
+                var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
+                var pluginTypes = assembly.GetTypes()
+                    .Where(t => typeof(IPlugin).IsAssignableFrom(t)
+                             && t is { IsAbstract: false, IsInterface: false });
+
+                foreach (var pluginType in pluginTypes)
+                {
+                    try
+                    {
+                        if (Activator.CreateInstance(pluginType) is IPlugin plugin)
+                        {
+                            plugins.Add(plugin);
+                            _logger.Information("加载插件: {PluginId} ({TypeName})",
+                                plugin.Id, pluginType.FullName);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "实例化插件类型失败: {TypeName}", pluginType.FullName);
+                    }
+                }
+
+                _loadedPlugins.AddRange(plugins);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "加载程序集失败: {Path}", assemblyPath);
+            }
+
+            return plugins.AsReadOnly();
+        }
+
+        /// <summary>
+        /// 批量加载多个插件程序集。
+        /// </summary>
+        /// <param name="assemblyPaths">程序集路径列表。</param>
+        /// <returns>所有成功加载的插件实例。</returns>
+        public IReadOnlyList<IPlugin> LoadFromAssemblies(IEnumerable<string> assemblyPaths)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            var allPlugins = new List<IPlugin>();
+            foreach (var path in assemblyPaths)
+            {
+                allPlugins.AddRange(LoadFromAssembly(path));
+            }
+
+            _logger.Information("批量加载完成，共 {Count} 个插件", allPlugins.Count);
+            return allPlugins.AsReadOnly();
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            foreach (var context in _loadContexts)
+            {
+                try
+                {
+                    context.Unload();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "卸载插件上下文失败");
+                }
+            }
+
+            _loadContexts.Clear();
+            _loadedPlugins.Clear();
+        }
+    }
+}

@@ -1,0 +1,71 @@
+##OUTPUT: src/{{ProjectName}}.Core/Plugins/PluginLoadContext.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.Core.Plugins
+{
+    /// <summary>
+    /// 插件专用的 <see cref="AssemblyLoadContext"/>，实现插件程序集隔离。
+    /// 每个插件目录使用独立上下文，避免插件间以及插件与宿主间的程序集版本冲突。
+    /// </summary>
+    public sealed class PluginLoadContext : AssemblyLoadContext
+    {
+        private readonly AssemblyDependencyResolver _resolver;
+        private readonly ILogger _logger;
+
+        /// <summary>
+        /// 初始化插件加载上下文。
+        /// </summary>
+        /// <param name="pluginDirectory">插件所在目录，用于解析依赖。</param>
+        /// <param name="logger">Serilog 日志记录器。</param>
+        public PluginLoadContext(string pluginDirectory, ILogger logger)
+            : base(isCollectible: true)
+        {
+            if (string.IsNullOrWhiteSpace(pluginDirectory))
+            {
+                throw new ArgumentException("插件目录不能为空。", nameof(pluginDirectory));
+            }
+
+            var entryPoint = Directory.GetFiles(pluginDirectory, "*.dll")[0];
+            _resolver = new AssemblyDependencyResolver(entryPoint);
+            _logger = logger?.ForContext<PluginLoadContext>()
+                ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        /// <inheritdoc/>
+        protected override Assembly? Load(AssemblyName assemblyName)
+        {
+            var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            if (assemblyPath is not null)
+            {
+                _logger.Debug("从插件上下文加载程序集: {Name} ({Path})",
+                    assemblyName.FullName, assemblyPath);
+                return LoadFromAssemblyPath(assemblyPath);
+            }
+
+            // 未在插件目录找到的依赖，回退到默认上下文（共享宿主依赖）
+            return null;
+        }
+
+        /// <inheritdoc/>
+        protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
+        {
+            var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+            if (libraryPath is not null)
+            {
+                _logger.Debug("从插件上下文加载非托管库: {Name} ({Path})",
+                    unmanagedDllName, libraryPath);
+                return LoadUnmanagedDllFromPath(libraryPath);
+            }
+
+            return IntPtr.Zero;
+        }
+    }
+}

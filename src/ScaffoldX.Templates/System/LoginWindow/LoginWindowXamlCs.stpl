@@ -1,0 +1,49 @@
+##OUTPUT: src/{{ProjectName}}.App/Views/LoginWindow{{XamlCodeBehindExt}}
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using {{ NamespacePrefix }}.App.ViewModels;
+
+namespace {{ NamespacePrefix }}.App.Views
+{
+    /// <summary>
+    /// 登录窗口，支持回车键触发登录。
+    /// </summary>
+    public partial class LoginWindow : Window
+    {
+        public LoginWindow()
+        {
+            InitializeComponent();
+            PasswordBox.PasswordChanged += OnPasswordChanged;
+            KeyDown += OnKeyDown;
+        }
+
+        /// <summary>
+        /// 将 PasswordBox 的密码同步到 ViewModel。
+        /// PasswordBox.Password 不支持直接绑定，需通过事件中转。
+        /// </summary>
+        private void OnPasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is LoginViewModel vm)
+            {
+                vm.Password = PasswordBox.Password;
+            }
+        }
+
+        /// <summary>
+        /// 回车键触发登录命令。
+        /// </summary>
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && DataContext is LoginViewModel vm
+                && vm.LoginCommand.CanExecute(null))
+            {
+                vm.LoginCommand.Execute(null);
+            }
+        }
+    }
+}

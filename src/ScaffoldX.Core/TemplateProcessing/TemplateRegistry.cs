@@ -212,6 +212,11 @@ public class TemplateRegistry : ITemplateRegistry
             return config.EnableSystemLog;
         }
 
+        if (name.Contains("LOGIN") || name.Contains("LOGINWINDOW"))
+        {
+            return config.EnableLoginWindow;
+        }
+
         if (name.Contains("THEME") || name.Contains("SWITCHER"))
         {
             return config.EnableThemeSwitcher;

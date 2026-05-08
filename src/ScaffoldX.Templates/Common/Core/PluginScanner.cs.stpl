@@ -1,0 +1,108 @@
+##OUTPUT: src/{{ProjectName}}.Core/Plugins/PluginScanner.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using {{ NamespacePrefix }}.Core.Abstractions;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.Core.Plugins
+{
+    /// <summary>
+    /// 扫描指定目录下的插件程序集，发现实现 <see cref="IPlugin"/> 的类型。
+    /// </summary>
+    public sealed class PluginScanner
+    {
+        private readonly ILogger _logger;
+
+        /// <summary>插件目录路径。</summary>
+        public string PluginDirectory { get; }
+
+        /// <summary>
+        /// 初始化插件扫描器。
+        /// </summary>
+        /// <param name="pluginDirectory">插件目录路径，默认为应用程序目录下的 Plugins 子目录。</param>
+        /// <param name="logger">Serilog 日志记录器。</param>
+        public PluginScanner(string pluginDirectory, ILogger logger)
+        {
+            PluginDirectory = pluginDirectory
+                ?? throw new ArgumentNullException(nameof(pluginDirectory));
+            _logger = logger?.ForContext<PluginScanner>()
+                ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        /// <summary>
+        /// 扫描插件目录，返回所有发现的插件程序集文件路径。
+        /// </summary>
+        /// <returns>插件 DLL 文件路径列表。</returns>
+        public IReadOnlyList<string> ScanAssemblyFiles()
+        {
+            if (!Directory.Exists(PluginDirectory))
+            {
+                _logger.Warning("插件目录不存在: {Directory}", PluginDirectory);
+                return Array.Empty<string>();
+            }
+
+            var dllFiles = Directory.GetFiles(PluginDirectory, "*.dll", SearchOption.AllDirectories);
+
+            _logger.Information("扫描到 {Count} 个程序集文件", dllFiles.Length);
+            return dllFiles.ToList().AsReadOnly();
+        }
+
+        /// <summary>
+        /// 扫描并解析程序集中的插件类型元数据（不加载程序集）。
+        /// 使用 <see cref="AssemblyName.GetAssemblyName"/> 读取元数据以避免锁定。
+        /// </summary>
+        /// <returns>发现的插件类型描述列表。</returns>
+        public IReadOnlyList<PluginDescriptor> DiscoverPlugins()
+        {
+            var descriptors = new List<PluginDescriptor>();
+            var dllFiles = ScanAssemblyFiles();
+
+            foreach (var dllPath in dllFiles)
+            {
+                try
+                {
+                    var assemblyName = AssemblyName.GetAssemblyName(dllPath);
+                    descriptors.Add(new PluginDescriptor
+                    {
+                        AssemblyPath = dllPath,
+                        AssemblyName = assemblyName.FullName,
+                        FileName = Path.GetFileName(dllPath)
+                    });
+                }
+                catch (BadImageFormatException)
+                {
+                    _logger.Debug("跳过非托管程序集: {Path}", dllPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "读取程序集元数据失败: {Path}", dllPath);
+                }
+            }
+
+            _logger.Information("发现 {Count} 个候选插件", descriptors.Count);
+            return descriptors.AsReadOnly();
+        }
+    }
+
+    /// <summary>
+    /// 插件元数据描述，在扫描阶段产生，用于后续加载决策。
+    /// </summary>
+    public sealed record PluginDescriptor
+    {
+        /// <summary>程序集文件完整路径。</summary>
+        public required string AssemblyPath { get; init; }
+
+        /// <summary>程序集全名。</summary>
+        public required string AssemblyName { get; init; }
+
+        /// <summary>文件名。</summary>
+        public required string FileName { get; init; }
+    }
+}

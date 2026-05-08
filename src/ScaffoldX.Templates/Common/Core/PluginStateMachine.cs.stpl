@@ -1,0 +1,100 @@
+##OUTPUT: src/{{ProjectName}}.Core/Plugins/PluginStateMachine.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using System;
+using System.Collections.Generic;
+using {{ NamespacePrefix }}.Core.Abstractions;
+
+namespace {{ NamespacePrefix }}.Core.Plugins
+{
+    /// <summary>
+    /// 插件状态机，管理插件生命周期中的合法状态转换。
+    /// 状态图：
+    /// <code>
+    ///   Offline ──→ Normal ──→ Faulted
+    ///      ↑           ↑          │
+    ///      └───────────┴──────────┘
+    /// </code>
+    /// </summary>
+    public sealed class PluginStateMachine
+    {
+        private static readonly Dictionary<PluginState, HashSet<PluginState>> AllowedTransitions = new()
+        {
+            [PluginState.Normal]  = new() { PluginState.Faulted, PluginState.Offline },
+            [PluginState.Faulted] = new() { PluginState.Normal, PluginState.Offline },
+            [PluginState.Offline] = new() { PluginState.Normal }
+        };
+
+        private PluginState _current = PluginState.Offline;
+        private readonly object _lock = new();
+
+        /// <summary>状态变更事件。</summary>
+        public event Action<PluginState, PluginState>? StateChanged;
+
+        /// <summary>当前状态。</summary>
+        public PluginState Current
+        {
+            get { lock (_lock) return _current; }
+        }
+
+        /// <summary>
+        /// 执行状态转换。若转换非法则抛出 <see cref="InvalidOperationException"/>。
+        /// </summary>
+        /// <param name="target">目标状态。</param>
+        /// <exception cref="InvalidOperationException">当前状态不允许转换到目标状态。</exception>
+        public void TransitionTo(PluginState target)
+        {
+            lock (_lock)
+            {
+                if (!AllowedTransitions.TryGetValue(_current, out var allowed) || !allowed.Contains(target))
+                {
+                    throw new InvalidOperationException(
+                        $"插件状态机：不允许从 {_current} 转换到 {target}");
+                }
+
+                var previous = _current;
+                _current = target;
+
+                StateChanged?.Invoke(previous, target);
+            }
+        }
+
+        /// <summary>
+        /// 尝试执行状态转换，不抛出异常。
+        /// </summary>
+        /// <param name="target">目标状态。</param>
+        /// <returns>转换成功返回 <c>true</c>，否则 <c>false</c>。</returns>
+        public bool TryTransitionTo(PluginState target)
+        {
+            lock (_lock)
+            {
+                if (!AllowedTransitions.TryGetValue(_current, out var allowed) || !allowed.Contains(target))
+                {
+                    return false;
+                }
+
+                var previous = _current;
+                _current = target;
+
+                StateChanged?.Invoke(previous, target);
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 检查当前状态是否可以转换到目标状态。
+        /// </summary>
+        /// <param name="target">目标状态。</param>
+        /// <returns>允许转换返回 <c>true</c>。</returns>
+        public bool CanTransitionTo(PluginState target)
+        {
+            lock (_lock)
+            {
+                return AllowedTransitions.TryGetValue(_current, out var allowed)
+                    && allowed.Contains(target);
+            }
+        }
+    }
+}

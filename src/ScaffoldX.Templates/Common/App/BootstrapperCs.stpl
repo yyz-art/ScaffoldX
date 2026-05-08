@@ -1,0 +1,177 @@
+##OUTPUT: src/{{ProjectName}}.App/Bootstrapper.cs
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
+using Prism.Ioc;
+using Prism.Modularity;
+using Prism.Unity;
+using {{ NamespacePrefix }}.App.Views;
+using {{ NamespacePrefix }}.Modules.Shell;
+using {{ NamespacePrefix }}.Modules.Diagnostic;
+using {{ NamespacePrefix }}.Core.Abstractions;
+using {{ NamespacePrefix }}.Core.Services;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.App
+{
+    /// <summary>
+    /// Prism 启动引导程序，统一管理 Shell 创建、服务注册、模块编录和启动初始化。
+    /// </summary>
+    internal class Bootstrapper : PrismApplication
+    {
+        /// <summary>
+        /// MaterialDesign 调色板名称到十六进制颜色的映射（大小写不敏感查找）。
+        /// </summary>
+        private static readonly Dictionary<string, string> MaterialColorMap = new(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["Red"] = "#F44336", ["Pink"] = "#E91E63", ["Purple"] = "#9C27B0",
+            ["DeepPurple"] = "#673AB7", ["Indigo"] = "#3F51B5", ["Blue"] = "#2196F3",
+            ["LightBlue"] = "#03A9F4", ["Cyan"] = "#00BCD4", ["Teal"] = "#009688",
+            ["Green"] = "#4CAF50", ["LightGreen"] = "#8BC34A", ["Lime"] = "#CDDC39",
+            ["Yellow"] = "#FFEB3B", ["Amber"] = "#FFC107", ["Orange"] = "#FF9800",
+            ["DeepOrange"] = "#FF5722", ["Brown"] = "#795548", ["Grey"] = "#9E9E9E",
+            ["BlueGrey"] = "#607D8B", ["Black"] = "#000000", ["White"] = "#FFFFFF"
+        };
+
+        /// <summary>
+        /// 创建主窗口 Shell。
+        /// </summary>
+        protected override Window CreateShell() => Container.Resolve<MainWindow>();
+
+        /// <summary>
+        /// 注册核心服务与导航视图到 DI 容器。
+        /// </summary>
+        protected override void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+            // 核心服务注册
+            containerRegistry.RegisterSingleton<IConfigService, ConfigService>();
+            containerRegistry.RegisterSingleton<IThemeService, ThemeService>();
+            containerRegistry.RegisterSingleton<ILocalizationService, LocalizationService>();
+            // TODO: [ScaffoldX] 根据项目需求注册额外的服务
+
+            // 注册视图
+            containerRegistry.RegisterForNavigation<MainWindow>();
+            containerRegistry.RegisterForNavigation<SidebarView>();
+            containerRegistry.RegisterForNavigation<StatusBarView>();
+            containerRegistry.RegisterForNavigation<HomePageView>();
+            containerRegistry.RegisterForNavigation<LogViewerView>();
+            containerRegistry.RegisterForNavigation<PluginStatusView>();
+        }
+
+        /// <summary>
+        /// 配置 Prism 模块编录。按需在此处添加模块声明。
+        /// </summary>
+        protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
+        {
+            // TODO: [ScaffoldX] 按需注册 Prism 模块
+        }
+
+        /// <summary>
+        /// 应用程序启动入口，完成日志初始化和主题事件订阅。
+        /// </summary>
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            ConfigureLogging();
+
+            // 订阅主题变更事件，实现运行时即时切换
+            var themeService = Container.Resolve<IThemeService>();
+            if (themeService is ThemeService concrete)
+            {
+                concrete.ThemeChanged += ApplyTheme;
+            }
+
+            Log.ForContext<Bootstrapper>().Information("应用程序启动");
+        }
+
+        /// <summary>
+        /// 将 MaterialDesign BundledTheme 切换到目标主题。
+        /// 从 Application 资源字典中查找 BundledTheme 实例。
+        /// </summary>
+        private void ApplyTheme(ThemeInfo theme)
+        {
+            var baseTheme = theme.BaseTheme.Equals("Dark", System.StringComparison.OrdinalIgnoreCase)
+                ? Theme.Dark : Theme.Light;
+
+            var primary = ParseColor(theme.PrimaryColor);
+            var secondary = ParseColor(theme.SecondaryColor);
+
+            if (primary.HasValue && secondary.HasValue)
+            {
+                var bundledTheme = FindBundledTheme();
+                if (bundledTheme != null)
+                {
+                    bundledTheme.SetBaseTheme(baseTheme);
+                    bundledTheme.SetPrimaryColor(primary.Value);
+                    bundledTheme.SetSecondaryColor(secondary.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从 Application 合并资源字典中查找 BundledTheme 实例。
+        /// </summary>
+        private static BundledTheme? FindBundledTheme()
+        {
+            if (Application.Current?.Resources?.MergedDictionaries == null)
+            {
+                return null;
+            }
+
+            foreach (var dict in Application.Current.Resources.MergedDictionaries)
+            {
+                foreach (var value in dict.Values)
+                {
+                    if (value is BundledTheme theme)
+                    {
+                        return theme;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 将 MaterialDesign 调色板名称或十六进制颜色字符串解析为 Color。
+        /// </summary>
+        private static System.Windows.Media.Color? ParseColor(string colorName)
+        {
+            // 先查找 MaterialDesign 调色板名称
+            if (MaterialColorMap.TryGetValue(colorName, out var hex))
+            {
+                return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            }
+
+            // 回退：直接尝试解析十六进制字符串
+            try
+            {
+                return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorName);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 配置 Serilog 日志：控制台 + 滚动文件。
+        /// </summary>
+        private static void ConfigureLogging()
+        {
+            var logDir = System.IO.Path.Combine(
+                System.AppDomain.CurrentDomain.BaseDirectory, "Logs");
+            System.IO.Directory.CreateDirectory(logDir);
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File(
+                    System.IO.Path.Combine(logDir, "app-.log"),
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 30)
+                .CreateLogger();
+        }
+    }
+}

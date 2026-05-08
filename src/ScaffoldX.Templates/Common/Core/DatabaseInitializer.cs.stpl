@@ -1,0 +1,208 @@
+##OUTPUT: src/{{ProjectName}}.Core/Services/DatabaseInitializer.cs
+##REQUIRED: false
+// 自动生成 by ScaffoldX {{ ScaffoldXVersion }} at {{ GeneratedAt }}
+// 请勿手动修改此文件
+
+using Microsoft.Data.Sqlite;
+using Serilog;
+
+namespace {{ NamespacePrefix }}.Core.Services
+{
+    /// <summary>
+    /// SQLite 数据库初始化器。
+    /// 负责创建表结构并插入种子数据，使用 IF NOT EXISTS 保证幂等性。
+    /// </summary>
+    public sealed class DatabaseInitializer
+    {
+        private readonly string _connectionString;
+        private readonly ILogger _logger = Log.ForContext<DatabaseInitializer>();
+
+        /// <summary>
+        /// 初始化数据库初始化器。
+        /// </summary>
+        /// <param name="dbPath">SQLite 数据库文件路径。</param>
+        public DatabaseInitializer(string dbPath)
+        {
+            _connectionString = $"Data Source={dbPath}";
+        }
+
+        /// <summary>
+        /// 执行数据库初始化：创建所有表并插入种子数据。
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            _logger.Information("正在初始化数据库: {ConnectionString}", _connectionString);
+
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            // 启用外键约束
+            await ExecuteNonQueryAsync(connection, "PRAGMA foreign_keys = ON;");
+
+            await using var transaction = connection.BeginTransaction();
+            try
+            {
+                await EnsureTablesAsync(connection);
+                await SeedDataAsync(connection);
+                transaction.Commit();
+                _logger.Information("数据库初始化完成");
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                _logger.Error(ex, "数据库初始化失败，已回滚");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 创建所有表结构（IF NOT EXISTS）。
+        /// </summary>
+        private async Task EnsureTablesAsync(SqliteConnection connection)
+        {
+            // ── app_config ──────────────────────────────────────────────────
+            await ExecuteNonQueryAsync(connection, $$$"""
+                CREATE TABLE IF NOT EXISTS app_config (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category    TEXT NOT NULL,
+                    key         TEXT NOT NULL,
+                    value       TEXT,
+                    value_type  TEXT NOT NULL DEFAULT 'string',
+                    description TEXT,
+                    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+                    UNIQUE(category, key)
+                );
+                """);
+
+            // ── plugin_state ────────────────────────────────────────────────
+            await ExecuteNonQueryAsync(connection, $$$"""
+                CREATE TABLE IF NOT EXISTS plugin_state (
+                    plugin_id   TEXT PRIMARY KEY,
+                    plugin_name TEXT NOT NULL,
+                    version     TEXT NOT NULL,
+                    state       TEXT NOT NULL DEFAULT 'Offline',
+                    last_error  TEXT,
+                    loaded_at   TEXT,
+                    faulted_at  TEXT,
+                    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                """);
+
+{{ if EnableUserManagement }}
+            // ── sys_user ────────────────────────────────────────────────────
+            await ExecuteNonQueryAsync(connection, $$$"""
+                CREATE TABLE IF NOT EXISTS sys_user (
+                    username             TEXT PRIMARY KEY,
+                    display_name         TEXT NOT NULL,
+                    password_hash        TEXT NOT NULL,
+                    role                 INTEGER NOT NULL DEFAULT 1,
+                    is_active            INTEGER NOT NULL DEFAULT 1,
+                    must_change_password INTEGER NOT NULL DEFAULT 0,
+                    last_login_at        TEXT,
+                    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                """);
+{{ end }}
+
+{{ if EnableSystemLog }}
+            // ── sys_audit_log ───────────────────────────────────────────────
+            await ExecuteNonQueryAsync(connection, $$$"""
+                CREATE TABLE IF NOT EXISTS sys_audit_log (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username    TEXT NOT NULL,
+                    action      TEXT NOT NULL,
+                    target      TEXT,
+                    detail      TEXT,
+                    ip_address  TEXT,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+                );
+                CREATE INDEX IF NOT EXISTS idx_audit_log_username ON sys_audit_log(username);
+                CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON sys_audit_log(created_at);
+                """);
+{{ end }}
+        }
+
+        /// <summary>
+        /// 插入种子数据（使用 INSERT OR IGNORE 保证幂等性）。
+        /// </summary>
+        private async Task SeedDataAsync(SqliteConnection connection)
+        {
+            // ── app_config 种子数据 ─────────────────────────────────────────
+            await SeedAppConfigAsync(connection, "App", "Language", "\"zh-CN\"",
+                "string", "界面语言");
+            await SeedAppConfigAsync(connection, "App", "Theme", "\"Light\"",
+                "string", "主题");
+            await SeedAppConfigAsync(connection, "App", "LogLevel", "\"Information\"",
+                "string", "日志级别");
+
+{{ if EnableUserManagement }}
+            // ── sys_user 种子数据 ───────────────────────────────────────────
+            await SeedUserAsync(connection, "admin", "系统管理员",
+                BCrypt.Net.BCrypt.HashPassword("admin123"), 7, mustChange: true);
+            await SeedUserAsync(connection, "engineer", "工程师",
+                BCrypt.Net.BCrypt.HashPassword("engineer123"), 3, mustChange: false);
+            await SeedUserAsync(connection, "operator", "操作员",
+                BCrypt.Net.BCrypt.HashPassword("operator123"), 1, mustChange: false);
+{{ end }}
+        }
+
+        /// <summary>
+        /// 插入一条 app_config 配置（幂等）。
+        /// </summary>
+        private async Task SeedAppConfigAsync(
+            SqliteConnection connection,
+            string category, string key, string value,
+            string valueType, string description)
+        {
+            const string sql = $$$"""
+                INSERT OR IGNORE INTO app_config (category, key, value, value_type, description)
+                VALUES (@category, @key, @value, @valueType, @description);
+                """;
+
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@category", category);
+            cmd.Parameters.AddWithValue("@key", key);
+            cmd.Parameters.AddWithValue("@value", value);
+            cmd.Parameters.AddWithValue("@valueType", valueType);
+            cmd.Parameters.AddWithValue("@description", description);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+{{ if EnableUserManagement }}
+        /// <summary>
+        /// 插入一条 sys_user 种子用户（幂等）。
+        /// </summary>
+        private async Task SeedUserAsync(
+            SqliteConnection connection,
+            string username, string displayName,
+            string passwordHash, int role, bool mustChange)
+        {
+            const string sql = $$$"""
+                INSERT OR IGNORE INTO sys_user (username, display_name, password_hash, role, must_change_password)
+                VALUES (@username, @displayName, @passwordHash, @role, @mustChange);
+                """;
+
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@username", username);
+            cmd.Parameters.AddWithValue("@displayName", displayName);
+            cmd.Parameters.AddWithValue("@passwordHash", passwordHash);
+            cmd.Parameters.AddWithValue("@role", role);
+            cmd.Parameters.AddWithValue("@mustChange", mustChange ? 1 : 0);
+            await cmd.ExecuteNonQueryAsync();
+        }
+{{ end }}
+
+        /// <summary>
+        /// 执行非查询 SQL 语句。
+        /// </summary>
+        private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)
+        {
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync();
+        }
+    }
+}
