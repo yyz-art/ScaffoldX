@@ -110,14 +110,9 @@
                                   materialDesign:HintAssist.IsFloating="True"
                                   Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                   SelectedValue="{Binding DotNetVersion}">
+                            <ComboBoxItem Content=".NET 10"/>
                             <ComboBoxItem Content=".NET 8"/>
-                            <ComboBoxItem Content=".NET 6" IsEnabled="{Binding IsDotNet6Enabled}"/>
                         </ComboBox>
-                        <TextBlock Text="Avalonia 项目不支持 .NET 6"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,4,0,0"
-                                   Foreground="{StaticResource WarningBrush}"
-                                   Visibility="{Binding IsDotNet6Enabled, Converter={StaticResource InverseBoolToVisConverter}}"/>
                     </StackPanel>
 
                     <!-- 项目描述 -->

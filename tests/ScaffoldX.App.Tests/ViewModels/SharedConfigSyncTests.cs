@@ -77,9 +77,9 @@ public class SharedConfigSyncTests
         var config = new ProjectConfig { UIFramework = "WPF" };
         var vm = new Step2ViewModel(new FakeValidationService(), config);
 
-        vm.DotNetVersion = ".NET 6";
+        vm.DotNetVersion = ".NET 10";
 
-        config.TargetFramework.Should().Be("net6.0-windows");
+        config.TargetFramework.Should().Be("net10.0-windows");
     }
 
     [Fact]

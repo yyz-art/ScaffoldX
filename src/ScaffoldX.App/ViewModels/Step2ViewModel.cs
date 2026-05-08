@@ -80,7 +80,7 @@ public class Step2ViewModel : BindableBase
         }
     }
 
-    /// <summary>目标 UI 框架："WPF" 或 "Avalonia"。选择 Avalonia 时禁用 .NET 6。</summary>
+    /// <summary>目标 UI 框架："WPF" 或 "Avalonia"。</summary>
     public string UIFramework
     {
         get => Config.UIFramework;
@@ -88,23 +88,23 @@ public class Step2ViewModel : BindableBase
         {
             Config.UIFramework = value;
             RaisePropertyChanged();
-            // Avalonia 不支持 .NET 6，强制切换到 .NET 8
-            if (value == "Avalonia" && DotNetVersion == ".NET 6")
-                DotNetVersion = ".NET 8";
-            RaisePropertyChanged(nameof(IsDotNet6Enabled));
             RaisePropertyChanged(nameof(PreviewText));
         }
     }
 
-    /// <summary>.NET 目标版本：".NET 6" 或 ".NET 8"。同时更新 TargetFramework。</summary>
+    /// <summary>.NET 目标版本：".NET 8" 或 ".NET 10"。同时更新 TargetFramework。</summary>
     public string DotNetVersion
     {
-        get => Config.TargetFramework.Contains("net6") ? ".NET 6" : ".NET 8";
+        get
+        {
+            if (Config.TargetFramework.Contains("net10")) return ".NET 10";
+            return ".NET 8";
+        }
         set
         {
             Config.TargetFramework = value switch
             {
-                ".NET 6" => UIFramework == "WPF" ? "net6.0-windows" : "net6.0",
+                ".NET 10" => UIFramework == "WPF" ? "net10.0-windows" : "net10.0",
                 _ => UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
             };
             RaisePropertyChanged();
@@ -143,9 +143,6 @@ public class Step2ViewModel : BindableBase
         !string.IsNullOrEmpty(OutputPathError) ||
         string.IsNullOrWhiteSpace(ProjectName) ||
         string.IsNullOrWhiteSpace(OutputPath);
-
-    /// <summary>.NET 6 选项是否可用（Avalonia 时禁用）。</summary>
-    public bool IsDotNet6Enabled => UIFramework != "Avalonia";
 
     /// <summary>底部预览文字，显示将生成的解决方案文件名和命名空间。</summary>
     public string PreviewText
