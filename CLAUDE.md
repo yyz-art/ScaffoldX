@@ -337,3 +337,16 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context layout: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+
+### Multi-Agent Orchestration
+
+For batch development workflows, use the orchestration system defined in `docs/agents/orchestrator.md`. Key rules:
+- **谁写谁修**: The agent that writes code fixes its own bugs
+- **谁提谁验**: The agent that finds a bug verifies its fix
+- **三轮上限**: Max 3 fix rounds, then escalate to human
+- **批量并行**: Independent issues run in parallel via `Agent(run_in_background=true)`
+- **可恢复性**: Use `Agent(name="dev-{n}")` + `SendMessage(to="dev-{n}")` for recovery
+
+Skills workflow order: `/grill-with-docs` → `/to-prd` → `/to-issues` → `/tdd` → `/diagnose`
+
+Sub-agent registry template: `docs/agents/sub-agent-registry.md`
