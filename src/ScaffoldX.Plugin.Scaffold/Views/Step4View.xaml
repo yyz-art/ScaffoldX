@@ -1,0 +1,113 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step4View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="确认并生成"
+                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                   Margin="0,0,0,24"/>
+
+        <!-- 项目摘要 -->
+        <md:Card Grid.Row="1" Margin="0,0,0,16" Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="项目名称:" FontWeight="Bold" Margin="0,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SummaryProjectName}" Margin="0,4"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="项目类型:" FontWeight="Bold" Margin="0,4"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SummaryProjectType}" Margin="0,4"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="输出目录:" FontWeight="Bold" Margin="0,4"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SummaryOutputDirectory}" Margin="0,4" TextTrimming="CharacterEllipsis"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="作者:" FontWeight="Bold" Margin="0,4"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SummaryAuthor}" Margin="0,4"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="目标框架:" FontWeight="Bold" Margin="0,4"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SummaryTargetFramework}" Margin="0,4"/>
+            </Grid>
+        </md:Card>
+
+        <!-- 功能模块摘要 -->
+        <md:Card Grid.Row="2" Margin="0,0,0,16" Padding="16">
+            <StackPanel>
+                <TextBlock Text="已选功能模块" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="数据采集" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding SummaryDriversText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="视觉模块" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding SummaryVisionText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="系统模块" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding SummarySystemText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </md:Card>
+
+        <!-- 生成按钮和进度 -->
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <ProgressBar Grid.Row="0"
+                         Value="{Binding ProgressPercent}"
+                         Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"
+                         Margin="0,0,0,8"/>
+
+            <TextBlock Grid.Row="0"
+                       Text="{Binding ProgressMessage}"
+                       Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"/>
+
+            <Button Grid.Row="1"
+                    Content="生成项目"
+                    Command="{Binding GenerateCommand}"
+                    IsEnabled="{Binding CanGenerate}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    HorizontalAlignment="Center"
+                    Padding="24,8"/>
+
+            <TextBlock Grid.Row="1"
+                       Text="{Binding ResultMessage}"
+                       Foreground="{StaticResource MaterialDesignValidationErrorBrush}"
+                       HorizontalAlignment="Center"
+                       Visibility="{Binding ResultMessage, Converter={StaticResource StringIsNotEmptyToVisibilityConverter}}"/>
+        </Grid>
+    </Grid>
+</UserControl>

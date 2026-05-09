@@ -104,8 +104,8 @@ public class Step2ViewModel : BindableBase
         {
             Config.TargetFramework = value switch
             {
-                ".NET 10" => UIFramework == "WPF" ? "net10.0-windows" : "net10.0",
-                _ => UIFramework == "WPF" ? "net8.0-windows" : "net8.0"
+                ".NET 10" => "net10.0-windows",
+                _ => "net8.0-windows"
             };
             RaisePropertyChanged();
             RaisePropertyChanged(nameof(PreviewText));

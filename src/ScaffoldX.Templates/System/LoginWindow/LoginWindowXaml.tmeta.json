@@ -1,0 +1,9 @@
+{
+  "Name": "LoginWindowXaml",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableLoginWindow"],
+  "ExcludeWhen": [],
+  "Tags": ["login"]
+}

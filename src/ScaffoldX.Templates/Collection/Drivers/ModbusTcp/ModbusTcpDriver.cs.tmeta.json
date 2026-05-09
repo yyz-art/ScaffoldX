@@ -1,0 +1,9 @@
+{
+  "Name": "ModbusTcpDriver.cs",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableModbusTcp"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "modbus"]
+}

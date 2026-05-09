@@ -1,0 +1,9 @@
+{
+  "Name": "SimDriver.cs",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableSimulationDriver"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "simulation"]
+}

@@ -1,0 +1,9 @@
+{
+  "Name": "gitignore",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": true,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [],
+  "Tags": []
+}

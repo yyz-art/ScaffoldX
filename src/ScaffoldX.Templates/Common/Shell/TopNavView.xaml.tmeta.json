@@ -1,0 +1,11 @@
+{
+  "Name": "TopNavView.xaml",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": false,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [
+    { "Key": "NavigationStyle", "Value": "LeftSidebar" }
+  ],
+  "Tags": []
+}

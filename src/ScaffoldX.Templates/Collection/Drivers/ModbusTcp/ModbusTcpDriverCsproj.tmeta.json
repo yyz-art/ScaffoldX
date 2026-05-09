@@ -1,0 +1,9 @@
+{
+  "Name": "ModbusTcpDriverCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableModbusTcp"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "modbus"]
+}

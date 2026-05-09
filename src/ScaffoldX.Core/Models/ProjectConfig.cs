@@ -16,7 +16,7 @@ public class ProjectConfig
     /// <summary>命名空间前缀，默认与 ProjectName 相同，可由用户覆盖。</summary>
     public string NamespacePrefix { get; set; } = string.Empty;
 
-    /// <summary>目标框架，如 "net8.0-windows"。</summary>
+    /// <summary>目标框架，如 "net8.0-windows"。工业上位机项目必须使用 -windows 后缀以支持 WinForms/WPF。</summary>
     public string TargetFramework { get; set; } = "net8.0-windows";
 
     /// <summary>UI 框架：WPF 或 Avalonia。</summary>

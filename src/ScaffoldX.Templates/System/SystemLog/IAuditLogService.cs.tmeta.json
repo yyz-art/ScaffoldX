@@ -1,0 +1,9 @@
+{
+  "Name": "IAuditLogService.cs",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableSystemLog"],
+  "ExcludeWhen": [],
+  "Tags": ["system-log"]
+}

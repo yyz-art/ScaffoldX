@@ -1,0 +1,9 @@
+{
+  "Name": "Sam3Engine.cs",
+  "OutputPathTemplate": "",
+  "Category": "Vision",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableVision"],
+  "ExcludeWhen": [],
+  "Tags": ["inference", "sam3"]
+}

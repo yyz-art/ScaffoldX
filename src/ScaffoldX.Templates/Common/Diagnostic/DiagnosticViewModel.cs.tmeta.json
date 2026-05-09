@@ -1,0 +1,9 @@
+{
+  "Name": "DiagnosticViewModel.cs",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": true,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [],
+  "Tags": []
+}

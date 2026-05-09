@@ -1,0 +1,9 @@
+{
+  "Name": "OmronFinsDriverCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableOmronFins"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "omron"]
+}

@@ -1,0 +1,9 @@
+{
+  "Name": "InferenceCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Vision",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableVision"],
+  "ExcludeWhen": [],
+  "Tags": ["inference"]
+}

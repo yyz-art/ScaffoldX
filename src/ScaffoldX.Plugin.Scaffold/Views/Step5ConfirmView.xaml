@@ -1,0 +1,225 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step5ConfirmView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="确认并生成"
+                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                   Margin="0,0,0,24"/>
+
+        <!-- 配置摘要 -->
+        <md:Card Grid.Row="1" Margin="0,0,0,24">
+            <StackPanel Margin="24">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <md:PackIcon Kind="ClipboardCheck" Width="28" Height="28" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="配置摘要"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Separator Margin="0,0,0,16"/>
+
+                <!-- 项目信息 -->
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Column="0" Grid.Row="0"
+                               Text="项目名称:"
+                               FontWeight="Bold"
+                               Margin="0,0,16,8"/>
+                    <TextBlock Grid.Column="1" Grid.Row="0"
+                               Text="{Binding ProjectName}"
+                               Margin="0,0,0,8"/>
+
+                    <TextBlock Grid.Column="0" Grid.Row="1"
+                               Text="项目类型:"
+                               FontWeight="Bold"
+                               Margin="0,0,16,8"/>
+                    <TextBlock Grid.Column="1" Grid.Row="1"
+                               Text="{Binding ProjectTypeDisplay}"
+                               Margin="0,0,0,8"/>
+
+                    <TextBlock Grid.Column="0" Grid.Row="2"
+                               Text="输出目录:"
+                               FontWeight="Bold"
+                               Margin="0,0,16,0"/>
+                    <TextBlock Grid.Column="1" Grid.Row="2"
+                               Text="{Binding OutputDirectory}"
+                               TextTrimming="CharacterEllipsis"
+                               Margin="0,0,0,0"/>
+                </Grid>
+
+                <Separator Margin="0,0,0,16"/>
+
+                <!-- 设备配置摘要 -->
+                <StackPanel Visibility="{Binding HasDeviceConfig, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="设备配置"
+                               FontWeight="Bold"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding DeviceSummaryItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="16,0,0,4">
+                                    <md:PackIcon Kind="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Separator Margin="0,16,0,16"/>
+                </StackPanel>
+
+                <!-- 功能配置摘要 -->
+                <StackPanel Visibility="{Binding HasFunctionConfig, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="功能配置"
+                               FontWeight="Bold"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding FunctionSummaryItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="16,0,0,4">
+                                    <md:PackIcon Kind="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Separator Margin="0,16,0,16"/>
+                </StackPanel>
+
+                <!-- 系统配置摘要 -->
+                <StackPanel Visibility="{Binding HasSystemConfig, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="系统配置"
+                               FontWeight="Bold"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding SystemSummaryItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="16,0,0,4">
+                                    <md:PackIcon Kind="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </md:Card>
+
+        <!-- 生成进度 -->
+        <md:Card Grid.Row="2" 
+                 Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"
+                 VerticalAlignment="Center">
+            <StackPanel Margin="48,32" HorizontalAlignment="Center">
+                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                             Value="0"
+                             IsIndeterminate="True"
+                             Width="64"
+                             Height="64"
+                             Margin="0,0,0,24"/>
+                <TextBlock Text="{Binding GenerationStatus}"
+                           Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding CurrentOperation}"
+                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                           Opacity="0.6"
+                           HorizontalAlignment="Center"/>
+
+                <!-- 进度条 -->
+                <ProgressBar Value="{Binding GenerationProgress}"
+                             Maximum="100"
+                             Width="400"
+                             Margin="0,24,0,0"/>
+                <TextBlock Text="{Binding GenerationProgress, StringFormat={}{0}%}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+            </StackPanel>
+        </md:Card>
+
+        <!-- 生成结果 -->
+        <md:Card Grid.Row="2"
+                 Visibility="{Binding ShowGenerationResult, Converter={StaticResource BooleanToVisibilityConverter}}"
+                 VerticalAlignment="Center"
+                 Background="{Binding ResultCardBackground}">
+            <StackPanel Margin="48,32" HorizontalAlignment="Center">
+                <md:PackIcon Kind="{Binding ResultIcon}"
+                             Width="64"
+                             Height="64"
+                             Margin="0,0,0,24"
+                             Foreground="{Binding ResultIconForeground}"/>
+                <TextBlock Text="{Binding ResultTitle}"
+                           Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding ResultMessage}"
+                           Style="{StaticResource MaterialDesignBody1TextBlock}"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="500"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,24,0,0">
+                    <Button Content="打开项目目录"
+                            Command="{Binding OpenProjectDirectoryCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Visibility="{Binding IsSuccess, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <Button Content="查看日志"
+                            Command="{Binding ViewLogCommand}"
+                            Style="{StaticResource MaterialDesignTextButton}"/>
+                </StackPanel>
+            </StackPanel>
+        </md:Card>
+
+        <!-- 生成按钮区域 -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center"
+                    Visibility="{Binding CanGenerate, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <md:Card Padding="24" Background="{StaticResource MaterialDesignCardBackground}">
+                <StackPanel>
+                    <TextBlock Text="准备就绪"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="点击生成按钮开始创建项目"
+                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                               Opacity="0.6"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16"/>
+                    <Button Content="生成项目"
+                            Command="{Binding GenerateCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Padding="32,12"
+                            FontSize="16">
+                        <Button.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <md:PackIcon Kind="PlayCircleOutline" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                </StackPanel>
+            </md:Card>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -1,0 +1,78 @@
+<Window x:Class="ScaffoldX.Shell.Views.ShellView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:prism="http://prismlibrary.com/"
+        prism:ViewModelLocator.AutoWireViewModel="False"
+        Title="ScaffoldX - 工业 AI 开发工作台"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#FFFAFAFA">
+
+    <Window.Resources>
+        <Style x:Key="NavButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF5C6BC0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Background="#FF3F51B5">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="ScaffoldX"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           Margin="24,32,0,4" />
+                <TextBlock DockPanel.Dock="Top"
+                           Text="工业 AI 开发工作台"
+                           FontSize="13"
+                           Foreground="#FFB0BEC5"
+                           Margin="24,0,0,32" />
+
+                <ItemsControl DockPanel.Dock="Top"
+                              ItemsSource="{Binding Plugins}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Metadata.DisplayName}"
+                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource NavButtonStyle}"
+                                    Margin="8,2" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Grid.Column="1"
+                        prism:RegionManager.RegionName="MainRegion"
+                        Margin="16" />
+    </Grid>
+</Window>

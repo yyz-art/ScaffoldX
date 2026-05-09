@@ -1,0 +1,9 @@
+{
+  "Name": "LogViewerView.xaml",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": true,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [],
+  "Tags": []
+}

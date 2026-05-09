@@ -1,0 +1,9 @@
+{
+  "Name": "RolePermCsproj",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableRolePermission"],
+  "ExcludeWhen": [],
+  "Tags": ["role-permission"]
+}

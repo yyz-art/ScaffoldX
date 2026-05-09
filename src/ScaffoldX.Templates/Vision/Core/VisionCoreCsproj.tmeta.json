@@ -1,0 +1,9 @@
+{
+  "Name": "VisionCoreCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Vision",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableVision"],
+  "ExcludeWhen": [],
+  "Tags": ["core"]
+}

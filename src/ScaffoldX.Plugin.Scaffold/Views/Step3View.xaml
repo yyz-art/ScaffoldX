@@ -1,0 +1,117 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step3View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="功能模块选择"
+                       Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                       Margin="0,0,0,24"/>
+
+            <!-- 数据采集驱动 -->
+            <md:Card Grid.Row="1" Margin="0,0,0,16" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="数据采集驱动"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <CheckBox Grid.Row="0" Grid.Column="0"
+                                  Content="西门子 S7"
+                                  IsChecked="{Binding HasSiemensS7}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1"
+                                  Content="三菱 MC"
+                                  IsChecked="{Binding HasMitsubishiQ}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="1" Grid.Column="0"
+                                  Content="Modbus TCP"
+                                  IsChecked="{Binding HasModbusTcp}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="1" Grid.Column="1"
+                                  Content="OPC UA"
+                                  IsChecked="{Binding HasOpcUa}"
+                                  Margin="0,4"/>
+                    </Grid>
+                </StackPanel>
+            </md:Card>
+
+            <!-- 视觉模块 -->
+            <md:Card Grid.Row="2" Margin="0,0,0,16" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="视觉模块"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <CheckBox Grid.Row="0" Grid.Column="0"
+                                  Content="海康相机"
+                                  IsChecked="{Binding HasHikVision}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1"
+                                  Content="大华相机"
+                                  IsChecked="{Binding HasDaHua}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="1" Grid.Column="0"
+                                  Content="YOLO 检测"
+                                  IsChecked="{Binding HasYoloDetection}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Row="1" Grid.Column="1"
+                                  Content="SAM3 分割"
+                                  IsChecked="{Binding HasSam3Segmentation}"
+                                  Margin="0,4"/>
+                    </Grid>
+                </StackPanel>
+            </md:Card>
+
+            <!-- 系统模块 -->
+            <md:Card Grid.Row="3" Margin="0,0,0,16" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="系统模块"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               Margin="0,0,0,12"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <CheckBox Grid.Column="0"
+                                  Content="用户管理"
+                                  IsChecked="{Binding HasUserManagement}"
+                                  Margin="0,4"/>
+                        <CheckBox Grid.Column="1"
+                                  Content="主题切换"
+                                  IsChecked="{Binding HasThemeSwitcher}"
+                                  Margin="0,4"/>
+                    </Grid>
+                </StackPanel>
+            </md:Card>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

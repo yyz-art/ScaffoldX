@@ -1,0 +1,9 @@
+{
+  "Name": "MitsubishiMcDriverCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableMitsubishiMc"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "mitsubishi"]
+}

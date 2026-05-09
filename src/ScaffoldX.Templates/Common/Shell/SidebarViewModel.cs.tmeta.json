@@ -1,0 +1,11 @@
+{
+  "Name": "SidebarViewModel.cs",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": false,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [
+    { "Key": "NavigationStyle", "Value": "TopNav" }
+  ],
+  "Tags": []
+}

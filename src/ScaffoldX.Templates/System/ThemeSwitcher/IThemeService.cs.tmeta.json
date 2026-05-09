@@ -1,0 +1,9 @@
+{
+  "Name": "IThemeService.cs",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableThemeSwitcher"],
+  "ExcludeWhen": [],
+  "Tags": ["theme"]
+}

@@ -1,0 +1,9 @@
+{
+  "Name": "OpcUaDriver.cs",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableOpcUa"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "opcua"]
+}

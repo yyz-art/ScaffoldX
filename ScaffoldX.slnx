@@ -1,7 +1,23 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ScaffoldX.Abstractions/ScaffoldX.Abstractions.csproj" />
     <Project Path="src/ScaffoldX.App/ScaffoldX.App.csproj" />
     <Project Path="src/ScaffoldX.Core/ScaffoldX.Core.csproj" />
+    <Project Path="src/ScaffoldX.Plugin.Annotation/ScaffoldX.Plugin.Annotation.csproj" />
+    <Project Path="src/ScaffoldX.Plugin.Annotation.Vision/ScaffoldX.Plugin.Annotation.Vision.csproj" />
+    <Project Path="src/ScaffoldX.Plugin.Management/ScaffoldX.Plugin.Management.csproj" />
+    <Project Path="src/ScaffoldX.Plugin.Scaffold/ScaffoldX.Plugin.Scaffold.csproj" />
+    <Project Path="src/ScaffoldX.Plugin.Training/ScaffoldX.Plugin.Training.csproj" />
+    <Project Path="src/ScaffoldX.Shell/ScaffoldX.Shell.csproj" />
     <Project Path="src/ScaffoldX.Templates/ScaffoldX.Templates.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScaffoldX.Abstractions.Tests/ScaffoldX.Abstractions.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Plugin.Annotation.Tests/ScaffoldX.Plugin.Annotation.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Plugin.Annotation.Vision.Tests/ScaffoldX.Plugin.Annotation.Vision.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Plugin.Management.Tests/ScaffoldX.Plugin.Management.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Plugin.Scaffold.Tests/ScaffoldX.Plugin.Scaffold.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Plugin.Training.Tests/ScaffoldX.Plugin.Training.Tests.csproj" />
+    <Project Path="tests/ScaffoldX.Shell.Tests/ScaffoldX.Shell.Tests.csproj" />
   </Folder>
 </Solution>

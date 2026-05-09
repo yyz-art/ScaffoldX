@@ -1,0 +1,9 @@
+{
+  "Name": "IMenuModule.cs",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["HasAnySystemModule"],
+  "ExcludeWhen": [],
+  "Tags": ["core"]
+}

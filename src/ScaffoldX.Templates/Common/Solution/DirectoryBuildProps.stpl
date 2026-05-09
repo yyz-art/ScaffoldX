@@ -1,7 +1,7 @@
 ##OUTPUT: Directory.Build.props
 <Project>
   <PropertyGroup>
-    <TargetFramework>{{ TargetFramework | string.replace "-windows" "" }}{{ if IsWPF }}-windows{{ end }}</TargetFramework>
+    <TargetFramework>{{ TargetFramework }}</TargetFramework>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <Nullable>enable</Nullable>

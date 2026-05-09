@@ -1,0 +1,237 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step2DeviceConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="设备配置"
+                       Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                       Margin="0,0,0,24"/>
+
+            <!-- PLC 设备区域 -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,24"
+                        Visibility="{Binding IsCollectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="PLC 设备"
+                           Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                           Margin="0,0,0,16"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Siemens S7 -->
+                    <md:Card Grid.Column="0" Grid.Row="0" Margin="0,0,8,8">
+                        <Expander IsExpanded="{Binding HasSiemensS7}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasSiemensS7}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="Memory" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Siemens S7" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="IP 地址"
+                                         Text="{Binding S7Ip}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="端口"
+                                         Text="{Binding S7Port}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" md:HintAssist.Hint="机架号"
+                                             Text="{Binding S7Rack}"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                             Margin="0,0,4,0"/>
+                                    <TextBox Grid.Column="1" md:HintAssist.Hint="槽号"
+                                             Text="{Binding S7Slot}"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                             Margin="4,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+
+                    <!-- Mitsubishi MC -->
+                    <md:Card Grid.Column="1" Grid.Row="0" Margin="8,0,0,8">
+                        <Expander IsExpanded="{Binding HasMitsubishiMc}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasMitsubishiMc}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="Chip" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Mitsubishi MC" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="IP 地址"
+                                         Text="{Binding McIp}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="端口"
+                                         Text="{Binding McPort}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="站号"
+                                         Text="{Binding McStation}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+
+                    <!-- Modbus TCP -->
+                    <md:Card Grid.Column="0" Grid.Row="1" Margin="0,0,8,0">
+                        <Expander IsExpanded="{Binding HasModbusTcp}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasModbusTcp}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="Lan" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Modbus TCP" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="IP 地址"
+                                         Text="{Binding ModbusIp}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="端口"
+                                         Text="{Binding ModbusPort}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="从站 ID"
+                                         Text="{Binding ModbusSlaveId}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+
+                    <!-- OPC UA -->
+                    <md:Card Grid.Column="1" Grid.Row="1" Margin="8,0,0,0">
+                        <Expander IsExpanded="{Binding HasOpcUa}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasOpcUa}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="Cloud" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="OPC UA" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="Endpoint URL"
+                                         Text="{Binding OpcUaEndpoint}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+                </Grid>
+            </StackPanel>
+
+            <!-- 相机设备区域 -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,24"
+                        Visibility="{Binding IsVisionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="相机设备"
+                           Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                           Margin="0,0,0,16"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- HikVision -->
+                    <md:Card Grid.Column="0" Margin="0,0,8,0">
+                        <Expander IsExpanded="{Binding HasHikVision}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasHikVision}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="ImageFilterCenterFocusStrong" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="海康威视 (HikVision)" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="IP 地址"
+                                         Text="{Binding HikIp}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="端口"
+                                         Text="{Binding HikPort}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="用户名"
+                                         Text="{Binding HikUsername}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <PasswordBox md:HintAssist.Hint="密码"
+                                             Style="{StaticResource MaterialDesignOutlinedPasswordBox}"/>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+
+                    <!-- DaHua -->
+                    <md:Card Grid.Column="1" Margin="8,0,0,0">
+                        <Expander IsExpanded="{Binding HasDaHua}" Background="Transparent">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding HasDaHua}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <md:PackIcon Kind="CameraOutline" Width="24" Height="24" Margin="0,0,8,0"/>
+                                    <TextBlock Text="大华 (DaHua)" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Margin="24,8,8,8">
+                                <TextBox md:HintAssist.Hint="IP 地址"
+                                         Text="{Binding DaHuaIp}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="端口"
+                                         Text="{Binding DaHuaPort}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <TextBox md:HintAssist.Hint="用户名"
+                                         Text="{Binding DaHuaUsername}"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Margin="0,0,0,8"/>
+                                <PasswordBox md:HintAssist.Hint="密码"
+                                             Style="{StaticResource MaterialDesignOutlinedPasswordBox}"/>
+                            </StackPanel>
+                        </Expander>
+                    </md:Card>
+                </Grid>
+            </StackPanel>
+
+            <!-- 系统类型提示 -->
+            <md:Card Grid.Row="3" 
+                     Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                     Background="{StaticResource MaterialDesignCardBackground}"
+                     Padding="24">
+                <StackPanel HorizontalAlignment="Center">
+                    <md:PackIcon Kind="InformationCircle" Width="48" Height="48" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                    <TextBlock Text="系统类型项目不需要配置设备"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="您可以直接进入下一步进行系统配置"
+                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                               Opacity="0.6"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0"/>
+                </StackPanel>
+            </md:Card>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

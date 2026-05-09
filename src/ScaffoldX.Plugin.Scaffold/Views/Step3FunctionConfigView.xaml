@@ -1,0 +1,381 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step3FunctionConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="功能配置"
+                       Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                       Margin="0,0,0,24"/>
+
+            <!-- 数据采集功能配置 -->
+            <md:Card Grid.Row="1" Margin="0,0,0,24"
+                     Visibility="{Binding IsCollectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="24">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <md:PackIcon Kind="Database" Width="28" Height="28" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="数据采集配置"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Separator Margin="0,0,0,16"/>
+
+                    <!-- 扫描周期 -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="扫描周期"
+                                   Style="{StaticResource MaterialDesignBody1TextBlock}"
+                                   Margin="0,0,0,8"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0"
+                                    Minimum="10"
+                                    Maximum="10000"
+                                    Value="{Binding ScanCycleMs}"
+                                    TickFrequency="10"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,16,0"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ScanCycleMs, Mode=TwoWay}"
+                                     Width="80"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </Grid>
+                        <TextBlock Text="毫秒 (ms)"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.6"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- 数据存储设置 -->
+                    <TextBlock Text="数据存储"
+                               Style="{StaticResource MaterialDesignBody1TextBlock}"
+                               Margin="0,0,0,12"/>
+
+                    <CheckBox IsChecked="{Binding EnableDataLogging}"
+                              Content="启用数据日志记录"
+                              Margin="0,0,0,12"/>
+
+                    <StackPanel Margin="24,0,0,16"
+                                IsEnabled="{Binding EnableDataLogging}">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <RadioButton IsChecked="{Binding StorageTypeSqlite, Mode=TwoWay}"
+                                         Content="SQLite"
+                                         GroupName="StorageType"
+                                         Margin="0,0,16,0"/>
+                            <RadioButton IsChecked="{Binding StorageTypeInfluxDb, Mode=TwoWay}"
+                                         Content="InfluxDB"
+                                         GroupName="StorageType"
+                                         Margin="0,0,16,0"/>
+                            <RadioButton IsChecked="{Binding StorageTypeSqlServer, Mode=TwoWay}"
+                                         Content="SQL Server"
+                                         GroupName="StorageType"/>
+                        </StackPanel>
+
+                        <TextBox md:HintAssist.Hint="数据库连接字符串 (可选)"
+                                 Text="{Binding DatabaseConnectionString}"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="0,8,0,0"
+                                 Visibility="{Binding StorageTypeRequiresConnectionString, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </StackPanel>
+
+                    <!-- 数据保留策略 -->
+                    <StackPanel>
+                        <TextBlock Text="数据保留策略"
+                                   Style="{StaticResource MaterialDesignBody1TextBlock}"
+                                   Margin="0,0,0,8"/>
+                        <ComboBox SelectedItem="{Binding DataRetentionPolicy}"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  Padding="12,8">
+                            <ComboBoxItem Content="7 天"/>
+                            <ComboBoxItem Content="30 天"/>
+                            <ComboBoxItem Content="90 天"/>
+                            <ComboBoxItem Content="1 年"/>
+                            <ComboBoxItem Content="永久保留"/>
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </md:Card>
+
+            <!-- 视觉功能配置 -->
+            <md:Card Grid.Row="2" Margin="0,0,0,24"
+                     Visibility="{Binding IsVisionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="24">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <md:PackIcon Kind="EyeOutline" Width="28" Height="28" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="视觉算法配置"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Separator Margin="0,0,0,16"/>
+
+                    <!-- 算法选择 -->
+                    <TextBlock Text="检测算法"
+                               Style="{StaticResource MaterialDesignBody1TextBlock}"
+                               Margin="0,0,0,12"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <md:Card Width="200"
+                                 Margin="0,0,16,0"
+                                 Padding="16"
+                                 Background="{Binding YoloCardBrush}">
+                            <md:Card.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" Command="{Binding SelectYoloCommand}"/>
+                            </md:Card.InputBindings>
+                            <StackPanel HorizontalAlignment="Center">
+                                <md:PackIcon Kind="Brain" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock Text="YOLO"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="目标检测"
+                                           FontSize="12"
+                                           Opacity="0.6"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </md:Card>
+
+                        <md:Card Width="200"
+                                 Padding="16"
+                                 Background="{Binding Sam3CardBrush}">
+                            <md:Card.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" Command="{Binding SelectSam3Command}"/>
+                            </md:Card.InputBindings>
+                            <StackPanel HorizontalAlignment="Center">
+                                <md:PackIcon Kind="ImageFilterCenterFocusStrong" Width="40" Height="40" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock Text="SAM3"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="分割模型"
+                                           FontSize="12"
+                                           Opacity="0.6"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </md:Card>
+                    </StackPanel>
+
+                    <!-- YOLO 参数 -->
+                    <StackPanel Visibility="{Binding IsYoloSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="YOLO 模型参数"
+                                   Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
+                                   Margin="0,0,0,12"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 模型版本 -->
+                            <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,8,12">
+                                <TextBlock Text="模型版本"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <ComboBox SelectedItem="{Binding YoloModelVersion}"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          Padding="12,8">
+                                    <ComboBoxItem Content="YOLOv8n"/>
+                                    <ComboBoxItem Content="YOLOv8s"/>
+                                    <ComboBoxItem Content="YOLOv8m"/>
+                                    <ComboBoxItem Content="YOLOv8l"/>
+                                    <ComboBoxItem Content="YOLOv8x"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- 置信度阈值 -->
+                            <StackPanel Grid.Column="1" Grid.Row="0" Margin="8,0,0,12">
+                                <TextBlock Text="置信度阈值"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column="0"
+                                            Minimum="0.1"
+                                            Maximum="1.0"
+                                            Value="{Binding YoloConfidenceThreshold}"
+                                            TickFrequency="0.05"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding YoloConfidenceThreshold, StringFormat={}{0:F2}}"
+                                               VerticalAlignment="Center"
+                                               Width="40"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- IoU 阈值 -->
+                            <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,8,0">
+                                <TextBlock Text="IoU 阈值"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column="0"
+                                            Minimum="0.1"
+                                            Maximum="1.0"
+                                            Value="{Binding YoloIouThreshold}"
+                                            TickFrequency="0.05"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding YoloIouThreshold, StringFormat={}{0:F2}}"
+                                               VerticalAlignment="Center"
+                                               Width="40"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- 输入尺寸 -->
+                            <StackPanel Grid.Column="1" Grid.Row="1" Margin="8,0,0,0">
+                                <TextBlock Text="输入尺寸"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <ComboBox SelectedItem="{Binding YoloInputSize}"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          Padding="12,8">
+                                    <ComboBoxItem Content="320"/>
+                                    <ComboBoxItem Content="416"/>
+                                    <ComboBoxItem Content="640"/>
+                                    <ComboBoxItem Content="1280"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- SAM3 参数 -->
+                    <StackPanel Visibility="{Binding IsSam3Selected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="SAM3 模型参数"
+                                   Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
+                                   Margin="0,0,0,12"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 模型类型 -->
+                            <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,8,12">
+                                <TextBlock Text="模型类型"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <ComboBox SelectedItem="{Binding Sam3ModelType}"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          Padding="12,8">
+                                    <ComboBoxItem Content="SAM3-H"/>
+                                    <ComboBoxItem Content="SAM3-L"/>
+                                    <ComboBoxItem Content="SAM3-B"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- 分割模式 -->
+                            <StackPanel Grid.Column="1" Grid.Row="0" Margin="8,0,0,12">
+                                <TextBlock Text="分割模式"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <ComboBox SelectedItem="{Binding Sam3SegmentMode}"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          Padding="12,8">
+                                    <ComboBoxItem Content="自动分割"/>
+                                    <ComboBoxItem Content="点提示"/>
+                                    <ComboBoxItem Content="框提示"/>
+                                    <ComboBoxItem Content="混合提示"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- 稳定性分数阈值 -->
+                            <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,8,0">
+                                <TextBlock Text="稳定性分数阈值"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column="0"
+                                            Minimum="0.1"
+                                            Maximum="1.0"
+                                            Value="{Binding Sam3StabilityScoreThresh}"
+                                            TickFrequency="0.05"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Sam3StabilityScoreThresh, StringFormat={}{0:F2}}"
+                                               VerticalAlignment="Center"
+                                               Width="40"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- 裁剪 NMS 阈值 -->
+                            <StackPanel Grid.Column="1" Grid.Row="1" Margin="8,0,0,0">
+                                <TextBlock Text="裁剪 NMS 阈值"
+                                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column="0"
+                                            Minimum="0.1"
+                                            Maximum="1.0"
+                                            Value="{Binding Sam3CropNmsThresh}"
+                                            TickFrequency="0.05"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Sam3CropNmsThresh, StringFormat={}{0:F2}}"
+                                               VerticalAlignment="Center"
+                                               Width="40"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </md:Card>
+
+            <!-- 系统功能配置 -->
+            <md:Card Grid.Row="3"
+                     Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                     Background="{StaticResource MaterialDesignCardBackground}"
+                     Padding="24">
+                <StackPanel HorizontalAlignment="Center">
+                    <md:PackIcon Kind="InformationCircle" Width="48" Height="48" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                    <TextBlock Text="系统功能配置"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="系统配置将在下一步进行详细设置"
+                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                               Opacity="0.6"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0"/>
+                </StackPanel>
+            </md:Card>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

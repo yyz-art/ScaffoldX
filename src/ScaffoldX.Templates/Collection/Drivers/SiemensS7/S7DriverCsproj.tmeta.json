@@ -1,0 +1,9 @@
+{
+  "Name": "S7DriverCsproj",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableSiemensS7"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "siemens"]
+}

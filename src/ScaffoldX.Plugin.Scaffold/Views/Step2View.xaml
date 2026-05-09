@@ -1,0 +1,53 @@
+<UserControl x:Class="ScaffoldX.Plugin.Scaffold.Views.Step2View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="项目元数据"
+                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                   Margin="0,0,0,24"/>
+
+        <TextBox Grid.Row="1"
+                 md:HintAssist.Hint="项目描述"
+                 Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Padding="12,8"
+                 Margin="0,0,0,16"/>
+
+        <TextBox Grid.Row="2"
+                 md:HintAssist.Hint="作者"
+                 Text="{Binding Author, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Padding="12,8"
+                 Margin="0,0,0,16"/>
+
+        <TextBox Grid.Row="3"
+                 md:HintAssist.Hint="公司"
+                 Text="{Binding Company, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Padding="12,8"
+                 Margin="0,0,0,16"/>
+
+        <TextBox Grid.Row="4"
+                 md:HintAssist.Hint="版权信息"
+                 Text="{Binding Copyright, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Padding="12,8"
+                 Margin="0,0,0,16"/>
+
+        <TextBlock Grid.Row="5"
+                   Text="目标框架: .NET 10.0-windows"
+                   Style="{StaticResource MaterialDesignBody2TextBlock}"
+                   Opacity="0.6"/>
+    </Grid>
+</UserControl>

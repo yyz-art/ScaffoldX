@@ -1,0 +1,9 @@
+{
+  "Name": "StatusBarViewModel.cs",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": true,
+  "RequiredFeatures": [],
+  "ExcludeWhen": [],
+  "Tags": []
+}

@@ -7,10 +7,12 @@
     <RootNamespace>ScaffoldX.Templates</RootNamespace>
   </PropertyGroup>
 
-  <!-- 将所有 .stpl 文件作为嵌入资源 -->
+  <!-- 将 .stpl 和 .tmeta.json 文件作为嵌入资源 -->
   <ItemGroup>
     <None Remove="**\*.stpl" />
+    <None Remove="**\*.tmeta.json" />
     <EmbeddedResource Include="**\*.stpl" WithCulture="false" Culture="" />
+    <EmbeddedResource Include="**\*.tmeta.json" WithCulture="false" Culture="" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,9 @@
+{
+  "Name": "ILocalizationService.cs",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableLocalization"],
+  "ExcludeWhen": [],
+  "Tags": ["localization"]
+}

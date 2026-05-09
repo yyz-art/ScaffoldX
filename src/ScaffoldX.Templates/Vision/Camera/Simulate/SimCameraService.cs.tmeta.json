@@ -1,0 +1,9 @@
+{
+  "Name": "SimCameraService.cs",
+  "OutputPathTemplate": "",
+  "Category": "Vision",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableVision"],
+  "ExcludeWhen": [],
+  "Tags": ["camera", "simulate"]
+}

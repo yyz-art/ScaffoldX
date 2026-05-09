@@ -1,0 +1,9 @@
+{
+  "Name": "DataValue.cs",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["HasAnyCollection"],
+  "ExcludeWhen": [],
+  "Tags": ["core"]
+}

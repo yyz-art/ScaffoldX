@@ -1,0 +1,9 @@
+{
+  "Name": "S7Driver.cs",
+  "OutputPathTemplate": "",
+  "Category": "Collection",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableSiemensS7"],
+  "ExcludeWhen": [],
+  "Tags": ["driver", "siemens"]
+}

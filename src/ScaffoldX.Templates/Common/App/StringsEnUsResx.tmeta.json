@@ -1,0 +1,9 @@
+{
+  "Name": "StringsEnUsResx",
+  "OutputPathTemplate": "",
+  "Category": "Common",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableLocalization"],
+  "ExcludeWhen": [],
+  "Tags": ["localization"]
+}

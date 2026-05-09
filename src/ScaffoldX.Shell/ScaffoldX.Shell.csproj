@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ScaffoldX.Shell</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MaterialDesignThemes" Version="5.1.0" />
+    <PackageReference Include="Prism.Unity" Version="8.1.97" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScaffoldX.Abstractions\ScaffoldX.Abstractions.csproj" />
+    <ProjectReference Include="..\ScaffoldX.Plugin.Scaffold\ScaffoldX.Plugin.Scaffold.csproj" />
+    <ProjectReference Include="..\ScaffoldX.Plugin.Annotation\ScaffoldX.Plugin.Annotation.csproj" />
+    <ProjectReference Include="..\ScaffoldX.Plugin.Annotation.Vision\ScaffoldX.Plugin.Annotation.Vision.csproj" />
+    <ProjectReference Include="..\ScaffoldX.Plugin.Training\ScaffoldX.Plugin.Training.csproj" />
+    <ProjectReference Include="..\ScaffoldX.Plugin.Management\ScaffoldX.Plugin.Management.csproj" />
+  </ItemGroup>
+
+</Project>

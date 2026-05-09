@@ -1,0 +1,9 @@
+{
+  "Name": "IUserService.cs",
+  "OutputPathTemplate": "",
+  "Category": "System",
+  "IsRequired": false,
+  "RequiredFeatures": ["EnableUserManagement"],
+  "ExcludeWhen": [],
+  "Tags": ["user-management"]
+}
