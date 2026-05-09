@@ -21,7 +21,7 @@ public class Step5ConfirmViewModelTests
 
         public Task<GenerationResult> GenerateAsync(ConfigRegistry configRegistry, IProgress<GenerationProgress>? progress = null)
         {
-            progress?.Report(new GenerationProgress("测试进度", 50));
+            progress?.Report(new GenerationProgress("测试进度", 100));
             return Task.FromResult(_result);
         }
     }

@@ -169,7 +169,7 @@ public sealed class Step5ConfirmViewModel : INotifyPropertyChanged
 
         // Device Summary
         if (_step2.HasSiemensS7)
-            DeviceSummaryItems.Add(new SummaryItem { Icon = "Cpu", Description = $"Siemens S7 - {_step2.S7Ip}:{_step2.S7Port}" });
+            DeviceSummaryItems.Add(new SummaryItem { Icon = "Memory", Description = $"Siemens S7 - {_step2.S7Ip}:{_step2.S7Port}" });
         if (_step2.HasMitsubishiMc)
             DeviceSummaryItems.Add(new SummaryItem { Icon = "Chip", Description = $"Mitsubishi MC - {_step2.McIp}:{_step2.McPort}" });
         if (_step2.HasModbusTcp)
@@ -240,37 +240,20 @@ public sealed class Step5ConfirmViewModel : INotifyPropertyChanged
 
         try
         {
-            var config = new ConfigRegistry();
-            config.Register(new ScaffoldConfigSection
-            {
-                ProjectName = _step1.ProjectName,
-                OutputDirectory = _step1.OutputDirectory,
-                ProjectType = _step1.ProjectTypeEnum.ToString()
-            });
+            var config = BuildConfigRegistry();
 
-            // Simulate generation steps
-            GenerationStatus = "正在准备...";
+            GenerationStatus = "正在生成项目...";
             CurrentOperation = "初始化项目结构";
             GenerationProgress = 10;
-            await Task.Delay(500);
 
-            GenerationStatus = "正在生成文件...";
-            CurrentOperation = "创建项目文件";
-            GenerationProgress = 40;
-            await Task.Delay(800);
+            var progress = new Progress<GenerationProgress>(p =>
+            {
+                CurrentOperation = p.Message;
+                GenerationProgress = 10 + p.Percent * 0.9;
+                GenerationStatus = $"正在生成项目... {GenerationProgress:F0}%";
+            });
 
-            GenerationStatus = "正在配置依赖...";
-            CurrentOperation = "添加 NuGet 包引用";
-            GenerationProgress = 70;
-            await Task.Delay(600);
-
-            GenerationStatus = "正在完成...";
-            CurrentOperation = "清理和验证";
-            GenerationProgress = 90;
-            await Task.Delay(400);
-
-            // Actual generation
-            var result = await _projectGenerator.GenerateAsync(config);
+            var result = await _projectGenerator.GenerateAsync(config, progress);
 
             GenerationProgress = 100;
             if (result.Success)
@@ -290,6 +273,75 @@ public sealed class Step5ConfirmViewModel : INotifyPropertyChanged
         {
             IsGenerating = false;
         }
+    }
+
+    private ConfigRegistry BuildConfigRegistry()
+    {
+        var config = new ConfigRegistry();
+
+        config.Register(new ScaffoldConfigSection
+        {
+            ProjectName = _step1!.ProjectName,
+            OutputDirectory = _step1.OutputDirectory,
+            ProjectType = _step1.ProjectTypeEnum.ToString()
+        });
+
+        if (_step2 != null)
+        {
+            if (_step1.ProjectTypeEnum == ProjectTypeCategory.Collection)
+            {
+                config.Register(new CollectionConfigSection
+                {
+                    EnableSiemensS7 = _step2.HasSiemensS7,
+                    EnableModbusTcp = _step2.HasModbusTcp,
+                    EnableOpcUa = _step2.HasOpcUa,
+                    EnableMitsubishiMc = _step2.HasMitsubishiMc,
+                    DefaultPLCIp = _step2.S7Ip,
+                    DefaultPLCPort = _step2.S7Port,
+                    S7Rack = _step2.S7Rack,
+                    S7Slot = _step2.S7Slot,
+                    OpcUaEndpoint = _step2.OpcUaEndpoint,
+                });
+            }
+            else if (_step1.ProjectTypeEnum == ProjectTypeCategory.Vision)
+            {
+                var cameraBrand = new List<string>();
+                if (_step2.HasHikVision) cameraBrand.Add("HikVision");
+                if (_step2.HasDaHua) cameraBrand.Add("DaHua");
+
+                config.Register(new VisionConfigSection
+                {
+                    EnableVision = true,
+                    CameraBrand = cameraBrand.FirstOrDefault() ?? "HikVision",
+                });
+            }
+        }
+
+        if (_step3 != null)
+        {
+            if (_step1.ProjectTypeEnum == ProjectTypeCategory.Vision)
+            {
+                var visionSection = config.GetSection("Scaffold.Vision") as VisionConfigSection;
+                if (visionSection != null)
+                {
+                    visionSection.ModelType = _step3.SelectedAlgorithm.ToString();
+                }
+            }
+        }
+
+        if (_step4 != null)
+        {
+            config.Register(new SystemConfigSection
+            {
+                EnableUserManagement = _step4.EnableUserManagement,
+                EnableRolePermission = _step4.EnableRoleBasedAccess,
+                EnableSystemLog = _step4.EnableLogging,
+                EnableThemeSwitcher = true,
+                EnableLoginWindow = _step4.EnableUserManagement,
+            });
+        }
+
+        return config;
     }
 
     private void ShowSuccess()
